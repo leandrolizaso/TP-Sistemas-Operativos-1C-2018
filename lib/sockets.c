@@ -162,11 +162,11 @@ int enviar_string(int fd ,char* mensaje){
 	char* msj = string_duplicate(mensaje);
 
 	int tamanioEnviado = enviar_int(fd, tamanio);
-			if (tamanioEnviado < 0) {
-				perror("Error al enviar tamaño");
-				free(msj);
-				return -1;
-			}
+	if (tamanioEnviado < 0) {
+		perror("Error al enviar tamaño");
+		free(msj);
+		return -1;
+	}
 
 	while (total < pendiente) {
 
@@ -178,8 +178,8 @@ int enviar_string(int fd ,char* mensaje){
 		total += enviado;
 		pendiente -= enviado;
 	}
-    free(msj);
-    return total;
+	free(msj);
+	return total;
 }
 
 char* recibir_string(int fd) {
@@ -218,4 +218,48 @@ int32_t recibir_int(int fd){
 		return -1;
 	}
 	return numero;
+}
+
+int enviar(int socket, int codigo_operacion, int tamanio, void * data) {
+
+	int tamanio_paquete = 2 * sizeof(int) + tamanio;
+	void * buffer = malloc(tamanio_paquete);
+
+	memcpy(buffer, &codigo_operacion, sizeof(int));
+	memcpy(buffer + sizeof(int), &tamanio, sizeof(int));
+	memcpy(buffer + 2 * sizeof(int), data, tamanio);
+
+	int res = send(socket, buffer, tamanio_paquete, MSG_NOSIGNAL);
+
+	free(buffer);
+
+	return res;
+
+}
+
+t_paquete* recibir(int socket) {
+
+	t_paquete * paquete = malloc(sizeof(t_paquete));
+	int res = recv(socket, &paquete->codigo_operacion, sizeof(int), MSG_WAITALL);
+
+	if(res <= 0){
+		paquete->codigo_operacion = -1; //Si el cod. de operacion es -1 indica que hubo un error al recibir el paquete
+		paquete->tamanio = -1;
+		paquete->data = NULL;
+		return paquete;
+
+	}
+
+	recv(socket, &paquete->tamanio, sizeof(int), MSG_WAITALL);
+
+	if(paquete->tamanio > 0)
+	{
+		void * info = malloc(paquete->tamanio);
+
+		recv(socket, info, paquete->tamanio, MSG_WAITALL);
+
+		paquete->data = info;
+	}
+
+	return paquete;
 }

@@ -21,6 +21,11 @@
 
 #define BACKLOG 100
 
+typedef struct {
+	int codigo_operacion;
+	int tamanio;
+	void * data;
+} t_paquete;
 
 /* Funciones para sockets */
 
@@ -37,5 +42,8 @@ int enviar_string(int fd ,char* mensaje);
 char* recibir_string(int fd);
 int enviar_int(int fd, int32_t numero);
 int32_t recibir_int(int fd);
+int enviar(int socket, int codigo_operacion, int tamanio, void * data);
+t_paquete* recibir(int socket);
+
 
 #endif /* SOCKETS_H_ */
