@@ -10,8 +10,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sockets.h>
 
 int main(void) {
-	puts("!!!Soy el proceso planificador!!!");
+
+	char* puerto = "8000";
+
+	int server = crear_server(puerto);
+
+	int acep = aceptar_conexion(server);
+
+	char* recib = recibir_string(acep);
+
+	printf("Recibi: %s",recib);
+
+
 	return EXIT_SUCCESS;
 }
