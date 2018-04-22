@@ -14,16 +14,17 @@
 
 int main(void) {
 
-	char* puerto = "8000";
+	char* puerto = "8001";
 
 	int server = crear_server(puerto);
 
-	int acep = aceptar_conexion(server);
+	int cli = aceptar_conexion(server);
 
-	char* recib = recibir_string(acep);
+	char* recib = recibir_string(cli);
 
 	printf("Recibi: %s",recib);
 
+	free(recib);
 
 	return EXIT_SUCCESS;
 }
