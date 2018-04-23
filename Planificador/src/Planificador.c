@@ -12,11 +12,22 @@
 #include <stdlib.h>
 #include <sockets.h>
 
+char* puerto = "9001";
+
 int main(void) {
 
-	char* puerto = "8001";
+	puts("Hola, soy el planificdor ;)");
+
+	empezar_comunicacion_ESI();
+
+	return EXIT_SUCCESS;
+}
+
+void empezar_comunicacion_ESI(){
 
 	int server = crear_server(puerto);
+
+	puts("Server creado");
 
 	int cli = aceptar_conexion(server);
 
@@ -26,5 +37,4 @@ int main(void) {
 
 	free(recib);
 
-	return EXIT_SUCCESS;
 }
