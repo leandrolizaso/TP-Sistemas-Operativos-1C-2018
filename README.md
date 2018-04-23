@@ -7,7 +7,7 @@ Nombre | Curso | Horario | Mail | Github
 Fernando Arellano | k3053 | Martes a la noche | f.arellano919@gmail.com | farellano91
 Cristian Egüez | k3013 | Sabados a la mañana | cristian.personal2704@gmail.com | cristianEguez
 Leandro Lizaso | k3011 | Martes a la mañana | llizaso@est.frba.utn.edu.ar | leandrolizaso
-Alexander Ortega | _k3055_* | Sabados a la tarde | alexorte03@gmail.com | alexorte03
+Alexander Ortega | k3113 | Sabados a la mañana | alexorte03@gmail.com | alexorte03
 David Perez | k3113 | Sabados a la mañana | davidperez@est.frba.utn.edu.ar | davidosvaldoperez
 
 _(*): Proceso de cambio de curso (de sabados tarde a sabados mañana)._
