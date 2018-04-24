@@ -10,6 +10,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sockets.h>
+#include <protocolo.h>
 #include <commons/config.h>
 #include <commons/log.h>
 
