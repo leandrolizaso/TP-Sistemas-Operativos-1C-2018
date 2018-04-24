@@ -22,7 +22,7 @@ Juan Ignacio Sierra | juanignaciosierra96@gmail.com
 ## FAQ
 
 - **¿No tenes a mano el enunciado del TP?**
-    [Si](https://www.utnso.com/wp-content/uploads/2018/04/2018-1C-Enunciado-ReDistinto.pdf).
+    [Si](https://sisoputnfrba.gitbook.io/re-distinto/).
 - **Pero... ¿por que _PELAO_?**
     [P]erez, [E]güez, [L]izaso, [A]rellano, [O]rtega... Pelao.
 - **Ah, no se requeria un posgrado en lingüistica computacional.**
