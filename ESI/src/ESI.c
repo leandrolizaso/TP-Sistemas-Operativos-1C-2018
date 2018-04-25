@@ -13,7 +13,7 @@
 #include <sockets.h>
 
 char* ip_planificador = "127.0.0.1";
-char* puerto_planificador = "9001";
+char* puerto_planificador = "8010";
 //char* ip_coordinador = "127.0.0.1";
 //int puerto_coordinador = 8000;
 
