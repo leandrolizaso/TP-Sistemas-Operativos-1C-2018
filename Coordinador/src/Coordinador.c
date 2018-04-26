@@ -15,14 +15,16 @@
 #include <protocolo.h>
 #include <commons/config.h>
 
-
 #define CFG_PORT  "listen_port"
 #define CFG_ALGO  "distribution_algorithm"
 #define CFG_ENTRYCANT  "entry_cant"
 #define CFG_ENTRYSIZE  "entry_size"
 #define CFG_DELAY  "delay"
 
- t_config* leer_config(int argc, char* argv[]) {
+#define CONTINUE_COMMUNICATION  1
+#define END_CONNECTION -1
+
+t_config* leer_config(int argc, char* argv[]) {
 	int opt;
 	t_config* config = NULL;
 	opterr = 1; //ver getopt()
@@ -50,6 +52,9 @@
 
 int config_incorrecta(t_config* config) {
 	if (config == NULL) {
+		// PARA CORRER DESDE ECLIPSE
+		// AGREGAR EN "Run Configurations.. > Arguments"
+		// -c ${workspace_loc:/Coordinador/src/coord.cfg}
 		puts("El parametro -c <config_file> es obligatorio.\n");
 		return EXIT_FAILURE;
 	}
@@ -82,32 +87,47 @@ int main(int argc, char* argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	return EXIT_SUCCESS;
-}
+	int recibir_mensaje(int socket) {
+		t_paquete* paquete = recibir(socket);
 
-/*
-int old(int argc, char* argv[]) {
-	char* puerto = "9999";
-	char* handshake = "coord_says_hi";
-	char* mensaje_recibido;
+		switch (paquete->codigo_operacion) {
+		case HANDSHAKE_ESI:
+		case HANDSHAKE_INSTANCIA:
+		case HANDSHAKE_PLANIFICADOR: {
+			enviar(socket, HANDSHAKE_COORDINADOR, 0, NULL);
+			break;
+		}
+		case STRING_SENT: {
+			char* recibido = (char*) (paquete->data);
+			printf("%s", recibido);
 
-	puts("Levantando..");
+			int len = strlen(recibido);
 
-	puts("Esperando conexion");
-	int client_socket = aceptar_conexion(server_socket);
+			char* enviado = malloc(len);
+			strcpy(enviado, recibido);
 
-	puts("Conexion recibida, enviando handshake");
-	int chars_sent = enviar_string(client_socket, handshake);
-	if (strlen(handshake) != chars_sent) {
-		puts("Opa! algo sucedio y no pude mandar handshake");
-		return EXIT_FAILURE;
+			int i;
+			for (i = 0; i < len; i++) {
+				switch (enviado[i]) {
+				case 'a':
+				case 'e':
+				case 'o':
+				case 'u':
+					enviado[i] = 'i'; //ñiñiñiñi
+				}
+			}
+			enviar(socket, STRING_SENT, len, enviado);
+			break;
+		}
+		default: //WTF? no gracias.
+			destruir_paquete(paquete);
+			return END_CONNECTION;
+		}
+		destruir_paquete(paquete);
+		return CONTINUE_COMMUNICATION;
 	}
-	mensaje_recibido = recibir_string(client_socket);
-	printf("Acabo de recibir %s... Eso quiere decir que estamos?\n",
-			mensaje_recibido);
 
-	free(mensaje_recibido);
-
+	multiplexar(config_get_string_value(config, CFG_PORT),
+			(void*) recibir_mensaje);
 	return EXIT_SUCCESS;
 }
-*/
