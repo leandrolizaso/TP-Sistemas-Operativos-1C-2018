@@ -15,6 +15,16 @@
 
 char* puerto = "8010";
 
+void agregar_espacio(char* buffer){
+	int i=0;
+	while(buffer[i]!='\n'){
+		i++;
+	}
+
+	buffer[i]='\0';
+}
+
+
 void* consola(void* no_use){
 	puts("Bienvenido a la consola");
 
@@ -27,7 +37,7 @@ void* consola(void* no_use){
     size_t tamanio = 32;
 
     getline(&buffer,&tamanio,stdin);
-   // buffer = strcat(buffer, "  ");
+    agregar_espacio(buffer);
     token = string_split(buffer, " ");
 
 
@@ -61,7 +71,7 @@ void* consola(void* no_use){
 		}
 
 		getline(&buffer,&tamanio,stdin);
-		//buffer = strcat(buffer, " ");
+		agregar_espacio(buffer);
 		token = string_split(buffer, " ");
 
 	}
