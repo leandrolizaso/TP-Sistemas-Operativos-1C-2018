@@ -8,9 +8,9 @@
  ============================================================================
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sockets.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <sockets.h>
 #include "ESI.h"
 
 char* ip_planificador = "127.0.0.1";
@@ -37,7 +37,7 @@ void empezar_comunicacion_Planificador(){
 	if(result != strlen("Hola, soy un ESI")){
 			puts("Error al enviar");
 	};
-
+}
 
 void inicializar(char* path){
 
