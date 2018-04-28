@@ -44,6 +44,7 @@ int enviar_int(int fd, int32_t numero);
 int32_t recibir_int(int fd);
 int enviar(int socket, int codigo_operacion, int tamanio, void * data);
 t_paquete* recibir(int socket);
+void destruir_paquete(t_paquete* paq);
 
 
 #endif /* SOCKETS_H_ */

@@ -220,16 +220,29 @@ int32_t recibir_int(int fd){
 	return numero;
 }
 
-int enviar(int socket, int codigo_operacion, int tamanio, void * data) {
+int enviar(int socket, int codigo_operacion, int tamanio, void * data) { //Para enviar un handshake: tamanio = 0 y data = NULL
+
+	void * buffer;
+	int res;
+
+	if(tamanio != 0){
 
 	int tamanio_paquete = 2 * sizeof(int) + tamanio;
-	void * buffer = malloc(tamanio_paquete);
+	buffer = malloc(tamanio_paquete);
 
 	memcpy(buffer, &codigo_operacion, sizeof(int));
 	memcpy(buffer + sizeof(int), &tamanio, sizeof(int));
 	memcpy(buffer + 2 * sizeof(int), data, tamanio);
 
-	int res = send(socket, buffer, tamanio_paquete, MSG_NOSIGNAL);
+	res = send(socket, buffer, tamanio_paquete, MSG_NOSIGNAL);
+
+	}else{
+
+		buffer = malloc(2 * sizeof(int));
+		memcpy(buffer, &codigo_operacion, sizeof(int));
+		memcpy(buffer + sizeof(int), &tamanio, sizeof(int));
+		res = send(socket, buffer, 2 * sizeof(int), MSG_NOSIGNAL);
+	}
 
 	free(buffer);
 
@@ -240,9 +253,11 @@ int enviar(int socket, int codigo_operacion, int tamanio, void * data) {
 t_paquete* recibir(int socket) {
 
 	t_paquete * paquete = malloc(sizeof(t_paquete));
-	int res = recv(socket, &paquete->codigo_operacion, sizeof(int), MSG_WAITALL);
 
-	if(res <= 0){
+	int res = recv(socket, &paquete->codigo_operacion, sizeof(int),
+			MSG_WAITALL);
+
+	if (res < 0) {
 		paquete->codigo_operacion = -1; //Si el cod. de operacion es -1 indica que hubo un error al recibir el paquete
 		paquete->tamanio = -1;
 		paquete->data = NULL;
@@ -252,8 +267,9 @@ t_paquete* recibir(int socket) {
 
 	recv(socket, &paquete->tamanio, sizeof(int), MSG_WAITALL);
 
-	if(paquete->tamanio > 0)
-	{
+	if (paquete->tamanio == 0) { // Si el tamanio es cero, no hay payload que recibir. Por ejemplo al recibir un handshake
+		paquete->data = NULL;
+	} else {
 		void * info = malloc(paquete->tamanio);
 
 		recv(socket, info, paquete->tamanio, MSG_WAITALL);
@@ -262,4 +278,9 @@ t_paquete* recibir(int socket) {
 	}
 
 	return paquete;
+}
+
+void destruir_paquete(t_paquete* paq){
+	free(paq->data);
+	free(paq);
 }
