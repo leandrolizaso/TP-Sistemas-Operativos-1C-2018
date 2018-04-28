@@ -112,7 +112,6 @@ int main(void) {
 }
 
 
-
 void empezar_comunicacion_ESI(){
 
 	int server = crear_server(puerto);
@@ -146,4 +145,8 @@ void enviar_paquete_coordinador(){
 	char * mensaje = "S1N V0C4L3S P4P4 XD";
 	enviar(socket_coordinador, 500, strlen(mensaje), (void *)mensaje); // STRING_SENT = 500 ; en el protocolo del coord :3
 
+	t_paquete* paquete = recibir(socket_coordinador);
+	if(paquete->codigo_operacion == 500)
+		printf(" A ver que mando el troller: %s", (char *)paquete->data);
+	destruir_paquete(paquete);
 }

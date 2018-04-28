@@ -22,17 +22,17 @@ int main(void) {
 
 	puts("!!!Soy el proceso ESI!!!");
 
-	empezar_comunicacion_Planificador();
+	empezar_comunicacion_planificador();
 
 	return EXIT_SUCCESS;
 }
 
-void empezar_comunicacion_Planificador(){
-	int socket_cliente = conectar_a_server((char *)ip_planificador,(char *) puerto_planificador);
+void empezar_comunicacion_planificador(){
+	int socket_planificador = conectar_a_server((char *)ip_planificador,(char *) puerto_planificador);
 
 	puts("Esperando accept del Planificador");
 
-	int result = enviar_string(socket_cliente, "Hola, soy un ESI");
+	int result = enviar_string(socket_planificador, "Hola, soy un ESI");
 
 	if(result != strlen("Hola, soy un ESI")){
 			puts("Error al enviar");
