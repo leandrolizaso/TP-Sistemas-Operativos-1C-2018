@@ -10,8 +10,6 @@ Leandro Lizaso | k3011 | Martes a la mañana | llizaso@est.frba.utn.edu.ar | lea
 Alexander Ortega | k3113 | Sabados a la mañana | alexorte03@gmail.com | alexorte03
 David Perez | k3113 | Sabados a la mañana | davidperez@est.frba.utn.edu.ar | davidosvaldoperez
 
-_(*): Proceso de cambio de curso (de sabados tarde a sabados mañana)._
-
 ## Ayudantes
 
 Nombre | Mail
