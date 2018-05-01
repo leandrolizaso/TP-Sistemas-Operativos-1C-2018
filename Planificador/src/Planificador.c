@@ -86,6 +86,18 @@ int main(void) {
 
 	puts("Hola, soy el planificador ;)");
 
+	inicializar("Planificador.cfg");
+
+	// Me conecto al Coordinador
+
+	socket_coordinador = conectar_a_server(ip_coordinador,puerto_coordinador);
+
+	log_info(logger, "Conexión exitosa al Coordinador");
+
+	multiplexar(puerto_escucha,(void *) procesar_mensaje);
+	
+	
+	//Creo el hilo de la consola
 	pthread_t consola_thread;
 
 	if(pthread_create(&consola_thread, NULL, &consola,NULL)){
@@ -99,17 +111,7 @@ int main(void) {
 		return 0;
 
 	}
-
-	inicializar("Planificador.cfg");
-
-	// Me conecto al Coordinador
-
-	socket_coordinador = conectar_a_server(ip_coordinador,puerto_coordinador);
-
-	log_info(logger, "Conexión exitosa al Coordinador");
-
-	multiplexar(puerto_escucha,(void *) procesar_mensaje);
-
+	
 	return EXIT_SUCCESS;
 }
 
