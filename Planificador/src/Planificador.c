@@ -167,6 +167,7 @@ void finalizar(){
 int procesar_mensaje(int socket) {
 		t_paquete* paquete = recibir(socket);
 
+
 		switch (paquete->codigo_operacion) {
 
 		case HANDSHAKE_ESI: {
