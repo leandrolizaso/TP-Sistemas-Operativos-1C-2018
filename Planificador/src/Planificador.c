@@ -16,9 +16,6 @@
 #include <commons/config.h>
 #include <commons/log.h>
 
-#define CONTINUE_COMMUNICATION  1
-#define END_CONNECTION -1
-
 char* ip_coordinador;
 int puerto_coordinador;
 int socket_coordinador;
@@ -111,7 +108,7 @@ int main(void) {
 
 	log_info(logger, "Conexión exitosa al Coordinador");
 
-	multiplexar(puerto_escucha,(void *) procesar_mensaje);   //falta definir la funcion que procesa el mensaje
+	multiplexar(puerto_escucha,(void *) procesar_mensaje);
 
 	return EXIT_SUCCESS;
 }
@@ -119,6 +116,7 @@ int main(void) {
 
 void inicializar(char* path){
 
+	//Creo log y cargo configuracion inicial
 
 	logger = log_create("planificador.log","PLANIFICADOR",false,LOG_LEVEL_TRACE);
 
@@ -180,10 +178,10 @@ int procesar_mensaje(int socket) {
 		}
 		default:
 			destruir_paquete(paquete);
-			return END_CONNECTION;
+			return -1;
 		}
 		destruir_paquete(paquete);
-		return CONTINUE_COMMUNICATION;
+		return 1;
 }
 
 
