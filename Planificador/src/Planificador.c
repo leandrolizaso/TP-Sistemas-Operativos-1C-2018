@@ -13,22 +13,16 @@
 #include <sockets.h>
 #include <pthread.h>
 #include "protocolo.h"
+#include <commons/config.h>
+#include <commons/log.h>
 
-char* ip_coordinador = "127.0.0.1";
-int puerto_coordinador = 8000;
-int socket_coordinador = conectar_a_server((char *)ip_coordinador,(char *) puerto_coordinador);
+char* ip_coordinador;
+int puerto_coordinador;
+int socket_coordinador;
+char* puerto_escucha;
+t_log* logger;
+t_config* config;
 
-char* puerto = "8010";
-
-
-void agregar_espacio(char* buffer){
-	int i=0;
-	while(buffer[i]!='\n'){
-		i++;
-	}
-
-	buffer[i]='\0';
-}
 
 
 void* consola(void* no_use){
@@ -38,9 +32,9 @@ void* consola(void* no_use){
 
     char** token;
 
-    buffer = (char *) calloc(32, sizeof(char));
+    buffer = (char *) calloc(50, sizeof(char));
 
-    size_t tamanio = 32;
+    size_t tamanio = 50;
 
     getline(&buffer,&tamanio,stdin);
     agregar_espacio(buffer);
@@ -92,12 +86,10 @@ int main(void) {
 
 	puts("Hola, soy el planificador ;)");
 
-	empezar_comunicacion_ESI();
-
 	pthread_t consola_thread;
 
 	if(pthread_create(&consola_thread, NULL, &consola,NULL)){
-		puts("Error al crear el hilo t.t");
+		puts("Error al crear el hilo");
 		return 0;
 	}
 
@@ -108,9 +100,79 @@ int main(void) {
 
 	}
 
+	// Me conecto al Coordinador
+
+	socket_coordinador = conectar_a_server(ip_coordinador,puerto_coordinador);
+
+	log_info(logger, "Conexión exitosa al Coordinador");
+
+	multiplexar(puerto_escucha,(*procesar_mensaje)(int));   //falta definir la funcion que procesa el mensaje
+
 	return EXIT_SUCCESS;
 }
 
+
+void inicializar(char* path){
+
+
+	logger = log_create("planificador.log","PLANIFICADOR",false,LOG_LEVEL_TRACE);
+
+	config = config_create(path);
+
+	if(config_has_property(config, "IP_COORDINADOR")){
+		ip_coordinador = config_get_string_value(config, "IP_COORDINADOR");
+	}else{
+		log_error(logger, "No se encuentra la ip del Coordinador");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+
+	if(config_has_property(config, "PUERTO_COORDINADOR")){
+		puerto_coordinador = config_get_string_value(config, "PUERTO_COORDINADOR");
+	}else{
+		log_error(logger, "No se encuentra el puerto del Coordinador");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+
+	if(config_has_property(config, "PUERTO")){
+			puerto_escucha= config_get_string_value(config, "PUERTO");
+		}else{
+			log_error(logger, "No se encuentra el puerto_escucha del Coordinador");
+			finalizar();
+			exit(EXIT_FAILURE);
+		}
+
+	log_info(logger, "Se cargó exitosamente la configuración");
+
+	// Me conecto al Coordinador
+
+	socket_coordinador = conectar_a_server(ip_coordinador,puerto_coordinador);
+
+	log_info(logger, "Conexión exitosa al Coordinador");
+
+}
+
+void finalizar(){
+	log_info(logger, "Fin ejecución");
+	config_destroy(config);
+	log_destroy(logger);
+}
+
+//Funciones auxiliares
+
+
+void agregar_espacio(char* buffer){
+	int i=0;
+	while(buffer[i]!='\n'){
+		i++;
+	}
+
+	buffer[i]='\0';
+}
+
+
+/*
 
 void empezar_comunicacion_ESI(){
 
@@ -130,6 +192,7 @@ void empezar_comunicacion_ESI(){
 
 
 void empezar_comunicacion_coordinador(){
+	socket_coordinador = conectar_a_server((char *)ip_coordinador,(char *) puerto_coordinador);
 
 	int result = enviar(socket_coordinador,HANDSHAKE_PLANIFICADOR,0,NULL);
 
@@ -140,13 +203,17 @@ void empezar_comunicacion_coordinador(){
 	destruir_paquete(paquete);
 }
 
-void enviar_paquete_coordinador(){
+void enviar_paquete_coordinador(char* mensaje){
 
-	char * mensaje = "S1N V0C4L3S P4P4 XD";
-	enviar(socket_coordinador, 500, strlen(mensaje), (void *)mensaje); // STRING_SENT = 500 ; en el protocolo del coord :3
+	enviar(socket_coordinador, 500, strlen(mensaje), (void *)mensaje); // STRING_S	ENT = 500 ; en el protocolo del coord :3
 
 	t_paquete* paquete = recibir(socket_coordinador);
-	if(paquete->codigo_operacion == 500)
-		printf(" A ver que mando el troller: %s", (char *)paquete->data);
+
+	if(paquete->tamanio !=strlen((char*)paquete->data) && paquete->codigo_operacion!=500){
+		puts("Error al recibir");
+	}
+
+	printf("Recibi: %s", (char *)paquete->data);
 	destruir_paquete(paquete);
 }
+*/
