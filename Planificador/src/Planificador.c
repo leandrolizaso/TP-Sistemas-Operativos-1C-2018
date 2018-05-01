@@ -17,9 +17,9 @@
 #include <commons/log.h>
 
 char* ip_coordinador;
-int puerto_coordinador;
-int socket_coordinador;
+char* puerto_coordinador;
 char* puerto_escucha;
+int socket_coordinador;
 t_log* logger;
 t_config* config;
 
