@@ -1,3 +1,4 @@
+
 /*
  * protocolo.h
  *
@@ -15,5 +16,7 @@
 #define HANDSHAKE_PLANIFICADOR 102
 #define HANDSHAKE_INSTANCIA 103
 
+/* OPERACION GENERICA*/
+#define STRING_SENT 500
 
 #endif /* PROTOCOLO_H_ */

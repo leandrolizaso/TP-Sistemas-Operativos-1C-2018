@@ -16,6 +16,9 @@
 #include <commons/config.h>
 #include <commons/log.h>
 
+#define CONTINUE_COMMUNICATION  1
+#define END_CONNECTION -1
+
 char* ip_coordinador;
 int puerto_coordinador;
 int socket_coordinador;
@@ -100,13 +103,15 @@ int main(void) {
 
 	}
 
+	inicializar("Planificador.cfg");
+
 	// Me conecto al Coordinador
 
 	socket_coordinador = conectar_a_server(ip_coordinador,puerto_coordinador);
 
 	log_info(logger, "Conexión exitosa al Coordinador");
 
-	multiplexar(puerto_escucha,(*procesar_mensaje)(int));   //falta definir la funcion que procesa el mensaje
+	multiplexar(puerto_escucha,(void *) procesar_mensaje);   //falta definir la funcion que procesa el mensaje
 
 	return EXIT_SUCCESS;
 }
@@ -158,6 +163,29 @@ void finalizar(){
 	config_destroy(config);
 	log_destroy(logger);
 }
+
+int procesar_mensaje(int socket) {
+		t_paquete* paquete = recibir(socket);
+
+		switch (paquete->codigo_operacion) {
+
+		case HANDSHAKE_ESI: {
+			enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
+			break;
+		}
+		case STRING_SENT: {
+			char* recibido = (char*) (paquete->data);
+			printf("%s", recibido);
+			break;
+		}
+		default:
+			destruir_paquete(paquete);
+			return END_CONNECTION;
+		}
+		destruir_paquete(paquete);
+		return CONTINUE_COMMUNICATION;
+}
+
 
 //Funciones auxiliares
 
