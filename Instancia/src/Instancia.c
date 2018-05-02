@@ -24,12 +24,59 @@
 #define CFG_INTERVAL  "interval"
 
 
+t_log* logger;
+t_config* config_aux;
+int socket_coordinador;
+int socket_planificador;
 
-int main(void) {
+int main(int argc, char* argv[])  {
 	char* mensaje_recibido;
 
-	puts("!!!Soy el proceso instancia!!!");
 
+	puts("!!!INICIANDO-Soy el proceso instancia!!!");
+
+	// Creo log
+	logger = log_create("instancia.log","INSTANCIA",false,LOG_LEVEL_TRACE);
+
+	// Cargo la configuración
+	t_config* config = leer_config(argc, argv);
+	if (config_incorrecta(config)) {
+			config_destroy(config);
+			return EXIT_FAILURE;
+		}
+
+	if(!config_has_property(config, CFG_IP)){
+		log_error(logger, "No se encuentra la ip del Coordinador");
+					finalizar();
+					exit(EXIT_FAILURE);
+		}
+
+	if(!config_has_property(config, CFG_PORT)){
+		log_error(logger, "No se encuentra el puerto del Coordinador");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+
+	log_info(logger, "Se cargó exitosamente la configuración");
+
+	// Me conecto al Coordinador
+	socket_coordinador = conectar_a_server(CFG_IP, CFG_PORT);
+	log_info(logger, "Conexión exitosa al Coordinador");
+
+	//ENVIAR MENSAJE
+	enviar_string(socket_coordinador, STRING_SENT);
+
+	mensaje_recibido = recibir_string(socket_coordinador);
+	if(mensaje_recibido == HANDSHAKE_COORDINADOR){
+		log_info(logger, "Mensaje recibido");
+		}else{
+			log_info(logger, "Error al recibir mensaje");
+		}
+	//finalizar
+	log_info(logger, "Fin ejecución");
+	config_destroy(config);
+	log_destroy(logger);
+	free(mensaje_recibido);
 
 	/*int conexion_coordinador = conectar_a_server("127.0.0.1","9999");
 	mensaje_recibido = recibir_string(conexion_coordinador);
@@ -41,66 +88,9 @@ int main(void) {
 		enviar_string(conexion_coordinador, STRING_SENT);
 	}*/
 
-	free(mensaje_recibido);
+
 	return EXIT_SUCCESS;
 }
 
-void inicializar(char* path){
-
-	// Creo log
-
-	logger = log_create("esi.log","ESI",false,LOG_LEVEL_TRACE);
-
-	// Cargo la configuración
-
-	config_aux = config_create(path);
-
-	if(config_has_property(config_aux, "IP_COORDINADOR")){
-		config.ip_coordinador = config_get_string_value(config_aux, "IP_COORDINADOR");
-	}else{
-		log_error(logger, "No se encuentra la ip del Coordinador");
-		finalizar();
-		exit(EXIT_FAILURE);
-	}
-
-	if(config_has_property(config_aux, "PUERTO_COORDINADOR")){
-		config.puerto_coordinador = config_get_string_value(config_aux, "PUERTO_COORDINADOR");
-	}else{
-		log_error(logger, "No se encuentra el puerto del Coordinador");
-		finalizar();
-		exit(EXIT_FAILURE);
-	}
-
-	if(config_has_property(config_aux, "IP_PLANIFICADOR")){
-		config.ip_planificador = config_get_string_value(config_aux, "IP_PLANIFICADOR");
-	}else{
-		log_error(logger, "No se encuentra la ip del Planificador");
-		finalizar();
-		exit(EXIT_FAILURE);
-	}
-
-	if(config_has_property(config_aux, "PUERTO_PLANIFICADOR")){
-		config.puerto_planificador = config_get_string_value(config_aux, "PUERTO_PLANIFICADOR");
-	}else{
-		log_error(logger, "No se encuentra el puerto del Planificador");
-		finalizar();
-		exit(EXIT_FAILURE);
-	}
-
-	log_info(logger, "Se cargó exitosamente la configuración");
-
-	// Me conecto al Coordinador y Planificador
-
-	socket_coordinador = conectar_a_server(config.ip_coordinador, config.puerto_coordinador);
-	socket_planificador = conectar_a_server(config.ip_planificador, config.puerto_planificador);
-
-	log_info(logger, "Conexión exitosa al Coordinador y Planificador");
-}
-
-void finalizar(){
-	log_info(logger, "Fin ejecución");
-	config_destroy(config_aux);
-	log_destroy(logger);
-}
 
 
