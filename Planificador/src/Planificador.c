@@ -88,12 +88,6 @@ int main(void) {
 
 	inicializar("Planificador.cfg");
 
-	// Me conecto al Coordinador
-
-	socket_coordinador = conectar_a_server(ip_coordinador,puerto_coordinador);
-
-	log_info(logger, "Conexión exitosa al Coordinador");
-
 	multiplexar(puerto_escucha,(void *) procesar_mensaje);
 	
 	
