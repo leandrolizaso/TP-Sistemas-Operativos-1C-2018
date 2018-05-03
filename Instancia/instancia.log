@@ -1,0 +1,34 @@
+[INFO] 23:10:33:818 INSTANCIA/(27122:27122): Se cargó exitosamente la configuración
+[INFO] 23:31:51:996 INSTANCIA/(28052:28052): Se cargó exitosamente la configuración
+[INFO] 23:31:53:948 INSTANCIA/(28062:28062): Se cargó exitosamente la configuración
+[INFO] 23:32:44:17 INSTANCIA/(28103:28103): Se cargó exitosamente la configuración
+[INFO] 23:33:04:276 INSTANCIA/(28119:28119): Se cargó exitosamente la configuración
+[INFO] 23:33:05:565 INSTANCIA/(28133:28133): Se cargó exitosamente la configuración
+[INFO] 23:35:01:736 INSTANCIA/(28251:28251): Se cargó exitosamente la configuración
+[INFO] 23:35:03:359 INSTANCIA/(28265:28265): Se cargó exitosamente la configuración
+[INFO] 23:35:06:74 INSTANCIA/(28288:28288): Se cargó exitosamente la configuración
+[INFO] 23:35:06:141 INSTANCIA/(28289:28289): Se cargó exitosamente la configuración
+[ERROR] 23:38:44:3 INSTANCIA/(28406:28406): inicializando
+[INFO] 23:38:44:3 INSTANCIA/(28406:28406): Se cargó exitosamente la configuración
+[ERROR] 23:38:46:311 INSTANCIA/(28416:28416): inicializando
+[INFO] 23:38:46:311 INSTANCIA/(28416:28416): Se cargó exitosamente la configuración
+[INFO] 23:41:10:620 INSTANCIA/(28492:28492): entrar a inicializar
+[ERROR] 23:41:10:620 INSTANCIA/(28492:28492): inicializando
+[INFO] 23:41:10:620 INSTANCIA/(28492:28492): Se cargó exitosamente la configuración
+[INFO] 23:42:01:968 INSTANCIA/(28556:28556): 22
+[ERROR] 23:42:01:968 INSTANCIA/(28556:28556): inicializando
+[INFO] 23:42:01:968 INSTANCIA/(28556:28556): Se cargó exitosamente la configuración
+[INFO] 23:43:13:83 INSTANCIA/(28631:28631): 22
+[ERROR] 23:43:13:83 INSTANCIA/(28631:28631): inicializando
+[INFO] 23:43:13:83 INSTANCIA/(28631:28631): Se cargó exitosamente la configuración
+[INFO] 23:48:02:500 INSTANCIA/(28746:28746): Se cargó exitosamente la configuración
+[INFO] 23:49:04:118 INSTANCIA/(28816:28816): Se cargó exitosamente la configuración
+[INFO] 23:50:48:901 INSTANCIA/(28916:28916): Se cargó exitosamente la configuración
+[INFO] 00:05:38:162 INSTANCIA/(29258:29258): Se cargó exitosamente la configuración
+[INFO] 00:06:04:158 INSTANCIA/(29292:29292): Se cargó exitosamente la configuración
+[INFO] 18:46:19:626 INSTANCIA/(29577:29577): Se cargó exitosamente la configuración
+[INFO] 18:47:14:906 INSTANCIA/(29680:29680): Se cargó exitosamente la configuración
+[INFO] 19:08:20:337 INSTANCIA/(29954:29954): Se cargó exitosamente la configuración
+[INFO] 19:08:20:373 INSTANCIA/(29954:29954): Conexión exitosa al Coordinador
+[INFO] 19:08:20:373 INSTANCIA/(29954:29954): Mensaje recibido de coordinador
+[INFO] 19:08:20:373 INSTANCIA/(29954:29954): Fin ejecución
