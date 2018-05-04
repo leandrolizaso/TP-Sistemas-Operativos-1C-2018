@@ -5,10 +5,10 @@ BUILD_DIR=_build
 SOURCES=$(shell find . -iname "*.c" | tr '\n' ' ')
 OBJS=$(SOURCES:./src/%.c=$(BUILD_DIR)/%.o)
 
-all: $(BUILD_DIR)/Coordinador
+all: $(BUILD_DIR)/Instancia
 
-$(BUILD_DIR)/Coordinador: create-dirs $(OBJS)
-	$(CC)  -o $(BUILD_DIR)/Coordinador $(OBJS) -lpelao -lcommons
+$(BUILD_DIR)/Instancia: create-dirs $(OBJS)
+	$(CC)  -o $(BUILD_DIR)/Instancia $(OBJS) -lpelao -lcommons
 
 $(BUILD_DIR)/%.o: src/%.c
 	$(CC) -c -o "$@" "$<"

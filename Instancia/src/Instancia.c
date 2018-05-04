@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sockets.h>
-#include <protocolo.h>
+#include <pelao/sockets.h>
+#include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/log.h>
 
