@@ -4,4 +4,5 @@ _build
 .settings/
 Debug/
 Release/
+Instancia
 *.log
