@@ -11,8 +11,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sockets.h>
-#include <protocolo.h>
+#include <pelao/sockets.h>
+#include <pelao/protocolo.h>
 #include <commons/config.h>
 
 #define CFG_PORT  "listen_port"
