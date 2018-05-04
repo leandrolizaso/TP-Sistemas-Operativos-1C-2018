@@ -17,43 +17,43 @@ int main(int argc, char* argv[]) {
 	return EXIT_SUCCESS;
 }
 
-void inicializar(char* path){
+void inicializar(char* path) {
 
 	// Creo log
 
-	logger = log_create("esi.log","ESI",false,LOG_LEVEL_TRACE);
+	logger = log_create("esi.log", "ESI", false, LOG_LEVEL_TRACE);
 
 	// Cargo la configuración
 
 	config_aux = config_create(path);
 
-	if(config_has_property(config_aux, "IP_COORDINADOR")){
+	if (config_has_property(config_aux, "IP_COORDINADOR")) {
 		config.ip_coordinador = config_get_string_value(config_aux, "IP_COORDINADOR");
-	}else{
+	} else {
 		log_error(logger, "No se encuentra la ip del Coordinador");
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
 
-	if(config_has_property(config_aux, "PUERTO_COORDINADOR")){
+	if (config_has_property(config_aux, "PUERTO_COORDINADOR")) {
 		config.puerto_coordinador = config_get_string_value(config_aux, "PUERTO_COORDINADOR");
-	}else{
+	} else {
 		log_error(logger, "No se encuentra el puerto del Coordinador");
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
 
-	if(config_has_property(config_aux, "IP_PLANIFICADOR")){
+	if (config_has_property(config_aux, "IP_PLANIFICADOR")) {
 		config.ip_planificador = config_get_string_value(config_aux, "IP_PLANIFICADOR");
-	}else{
+	} else {
 		log_error(logger, "No se encuentra la ip del Planificador");
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
 
-	if(config_has_property(config_aux, "PUERTO_PLANIFICADOR")){
+	if (config_has_property(config_aux, "PUERTO_PLANIFICADOR")) {
 		config.puerto_planificador = config_get_string_value(config_aux, "PUERTO_PLANIFICADOR");
-	}else{
+	} else {
 		log_error(logger, "No se encuentra el puerto del Planificador");
 		finalizar();
 		exit(EXIT_FAILURE);
@@ -64,28 +64,42 @@ void inicializar(char* path){
 	// Me conecto al Coordinador y Planificador
 
 	socket_coordinador = conectar_a_server(config.ip_coordinador, config.puerto_coordinador);
+
+	enviar(socket_coordinador, HANDSHAKE_ESI, 0, NULL);
+
+	t_paquete* rs;
+
+	rs = recibir(socket_coordinador);
+
+	if (rs->codigo_operacion != HANDSHAKE_COORDINADOR) {
+		log_error(logger, "Falló el handshake con el Coordinador");
+		destruir_paquete(rs);
+		finalizar();
+	} else {
+		log_info(logger, "Handshake exitoso con el Coordinador");
+		destruir_paquete(rs);
+	}
+
 	socket_planificador = conectar_a_server(config.ip_planificador, config.puerto_planificador);
 
-	log_info(logger, "Conexión exitosa al Coordinador y Planificador");
+	enviar(socket_planificador, HANDSHAKE_ESI, 0, NULL);
+
+	rs = recibir(socket_planificador);
+
+	if (rs->codigo_operacion != HANDSHAKE_PLANIFICADOR) {
+		log_error(logger, "Falló el handshake con el Planificador");
+		destruir_paquete(rs);
+		finalizar();
+	} else {
+		log_info(logger, "Handshake exitoso con el Planificador");
+		destruir_paquete(rs);
+	}
+
 }
 
-void finalizar(){
+void finalizar() {
 	log_info(logger, "Fin ejecución");
 	config_destroy(config_aux);
 	log_destroy(logger);
 }
 
-/*
-
-void empezar_comunicacion_planificador(){
-	int socket_planificador = conectar_a_server((char *)ip_planificador,(char *) puerto_planificador);
-
-	puts("Esperando accept del Planificador");
-
-	int result = enviar_string(socket_planificador, "Hola, soy un ESI");
-
-	if(result != strlen("Hola, soy un ESI")){
-			puts("Error al enviar");
-	};
-}
-*/
