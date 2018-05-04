@@ -10,11 +10,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sockets.h>
+#include <pelao/sockets.h>
 #include <pthread.h>
-#include "protocolo.h"
+#include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include "Planificador.h"
 
 char* ip_coordinador;
 char* puerto_coordinador;
