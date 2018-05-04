@@ -15,7 +15,23 @@
 #define HANDSHAKE_PLANIFICADOR 300
 #define HANDSHAKE_INSTANCIA 400
 
+/* Planificador a ESI */
+
+#define EJECUTAR_LINEA 101
+
+/* ESI a Coordinador */
+
+#define OPERACION_GET 102
+#define OPERACION_SET 103
+#define OPERACION_STORE 104
+
+/* Coordinador a ESI y ESI a Planificador */
+
+#define ERROR_OPERACION 105
+#define EXITO_OPERACION 106
+
 /* OPERACION GENERICA*/
+
 #define STRING_SENT 500
 
 #endif /* PROTOCOLO_H_ */

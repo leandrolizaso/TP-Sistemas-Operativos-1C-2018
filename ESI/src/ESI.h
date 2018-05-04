@@ -14,6 +14,7 @@
 #include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include <commons/string.h>
 #include <parsi/parser.h>
 
 typedef struct {
@@ -30,6 +31,10 @@ int socket_coordinador;
 int socket_planificador;
 
 void inicializar(char* path);
+void ejecutar();
 void finalizar();
+int enviar_get(t_esi_operacion sentencia);
+int enviar_set(t_esi_operacion sentencia);
+int enviar_store(t_esi_operacion sentencia);
 
 #endif /* ESI_H_ */
