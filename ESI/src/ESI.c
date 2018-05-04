@@ -74,3 +74,18 @@ void finalizar(){
 	config_destroy(config_aux);
 	log_destroy(logger);
 }
+
+/*
+
+void empezar_comunicacion_planificador(){
+	int socket_planificador = conectar_a_server((char *)ip_planificador,(char *) puerto_planificador);
+
+	puts("Esperando accept del Planificador");
+
+	int result = enviar_string(socket_planificador, "Hola, soy un ESI");
+
+	if(result != strlen("Hola, soy un ESI")){
+			puts("Error al enviar");
+	};
+}
+*/
