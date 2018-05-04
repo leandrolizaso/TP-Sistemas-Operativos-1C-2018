@@ -75,6 +75,7 @@ void inicializar(char* path) {
 		log_error(logger, "Falló el handshake con el Coordinador");
 		destruir_paquete(rs);
 		finalizar();
+		exit(EXIT_FAILURE);
 	} else {
 		log_info(logger, "Handshake exitoso con el Coordinador");
 		destruir_paquete(rs);
@@ -90,6 +91,7 @@ void inicializar(char* path) {
 		log_error(logger, "Falló el handshake con el Planificador");
 		destruir_paquete(rs);
 		finalizar();
+		exit(EXIT_FAILURE);
 	} else {
 		log_info(logger, "Handshake exitoso con el Planificador");
 		destruir_paquete(rs);

@@ -14,6 +14,7 @@
 #include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include <parsi/parser.h>
 
 typedef struct {
 	char* ip_coordinador;
