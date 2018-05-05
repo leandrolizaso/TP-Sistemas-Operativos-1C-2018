@@ -210,7 +210,7 @@ void ejecutar(char* script){
             destruir_paquete(paquete);
 
         } else {
-        	char* error = string_from_format("La linea %s no es válida", line);
+        	error = string_from_format("La linea %s no es válida", line);
             log_error(logger, error);
             free(error);
             finalizar();
