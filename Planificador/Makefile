@@ -1,3 +1,4 @@
+APPLICATION=Planificador
 CC=gcc
 
 BUILD_DIR=_build
@@ -5,10 +6,10 @@ BUILD_DIR=_build
 SOURCES=$(shell find . -iname "*.c" | tr '\n' ' ')
 OBJS=$(SOURCES:./src/%.c=$(BUILD_DIR)/%.o)
 
-all: $(BUILD_DIR)/Planificador
+all: $(APPLICATION)
 
-$(BUILD_DIR)/Planificador: create-dirs $(OBJS)
-	$(CC)  -o $(BUILD_DIR)/Planificador $(OBJS) -lpelao -lcommons -lpthread
+$(APPLICATION): create-dirs $(OBJS)
+	$(CC)  -o $(APPLICATION) $(OBJS) -lpelao -lcommons -lpthread
 
 $(BUILD_DIR)/%.o: src/%.c
 	$(CC) -c -o "$@" "$<"
@@ -16,10 +17,11 @@ $(BUILD_DIR)/%.o: src/%.c
 create-dirs:
 	mkdir --parents $(BUILD_DIR)
 
-debug: CC += -DDEBUG -g
+debug: CC += -DDEBUG -g3 -Wall -O0
 debug: all
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm $(APPLICATION)
 
 .PHONY: all create-dirs clean debug
