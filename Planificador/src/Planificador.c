@@ -171,9 +171,6 @@ void planificar (){
 
 		}
 	}
-/*
-	enviar(socket,EJECUTAR_LINEA,0,NULL); //ver a cual ESI le estoy enviando
-*/
 
 }
 
