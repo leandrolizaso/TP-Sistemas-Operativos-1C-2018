@@ -21,11 +21,164 @@ char* ip_coordinador;
 char* puerto_coordinador;
 char* puerto_escucha;
 int socket_coordinador;
+int algoritmo;
+proceso_esi_t esi_ejecutando;
 t_log* logger;
 t_config* config;
 
 
+int main(void) {
 
+	puts("Hola, soy el planificador ;)");
+
+	inicializar("Planificador.cfg");
+
+	//Creo el hilo de la consola
+	pthread_t consola_thread;
+
+	if(pthread_create(&consola_thread, NULL, &consola,NULL)){
+		puts("Error al crear el hilo");
+		return 0;
+	}
+
+
+	multiplexar(puerto_escucha,(void *) procesar_mensaje);
+
+
+	if(pthread_join(consola_thread, NULL)) {
+
+		puts("Error joining");
+		return 0;
+
+	}
+	
+	return EXIT_SUCCESS;
+}
+
+
+void inicializar(char* path){
+
+	//Creo log y cargo configuracion inicial
+
+	logger = log_create("planificador.log","PLANIFICADOR",false,LOG_LEVEL_TRACE);
+
+	config = config_create(path);
+
+	if(config_has_property(config, "IP_COORDINADOR")){
+		ip_coordinador = config_get_string_value(config, "IP_COORDINADOR");
+	}else{
+		log_error(logger, "No se encuentra la ip del Coordinador");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+
+	if(config_has_property(config, "PUERTO_COORDINADOR")){
+		puerto_coordinador = config_get_string_value(config, "PUERTO_COORDINADOR");
+	}else{
+		log_error(logger, "No se encuentra el puerto del Coordinador");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+
+	if(config_has_property(config, "PUERTO")){
+			puerto_escucha= config_get_string_value(config, "PUERTO");
+		}else{
+			log_error(logger, "No se encuentra el puerto_escucha del Coordinador");
+			finalizar();
+			exit(EXIT_FAILURE);
+		}
+
+	log_info(logger, "Se cargó exitosamente la configuración");
+
+	// Me conecto al Coordinador
+
+	socket_coordinador = conectar_a_server(ip_coordinador,puerto_coordinador);
+
+	enviar(socket_coordinador, HANDSHAKE_PLANIFICADOR, 0, NULL);
+
+	t_paquete respuesta = recibir(socket_coordinador);
+
+	if(respuesta->codigo_operacion!=HANDSHAKE_COORDINADOR){
+		log_error(logger, "Fallo comunicaacion con el coordinador");
+		destruir_paquete(respuesta);
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+
+	log_info(logger, "Conexión exitosa al Coordinador");
+	destruir_paquete(respuesta);
+
+}
+
+void finalizar(){
+	log_info(logger, "Fin ejecución");
+	config_destroy(config);
+	log_destroy(logger);
+}
+
+int procesar_mensaje(int socket) {
+		t_paquete* paquete = recibir(socket);
+
+		switch (paquete->codigo_operacion) {
+
+			case HANDSHAKE_ESI: {
+				enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
+				proceso_esi_t nuevo_esi = nuevo_processo_esi(paquete->data);
+				enviar_ready_q(nuevo_esi);
+				planificar();
+				break;
+			}
+
+			case STRING_SENT: {
+				char* recibido = (char*) (paquete->data);
+				printf("%s", recibido);
+				break;
+			}
+
+			case ESI_BLOQUEADO: {
+				send_waiting_q(esi_ejecutando);
+				break;
+			}
+
+			case EXITO_OPERACION: {
+				//habria que sacar el primero de ready_q y decirle que ejecute
+				break;
+			}
+
+			default:
+				destruir_paquete(paquete);
+				return -1;
+		}
+
+		destruir_paquete(paquete);
+		return 1;
+}
+
+
+void planificar (){
+
+	switch(algoritmo){
+
+		case FIFO:{
+
+		}
+
+		case SJF:{
+
+		}
+
+		case HRRN:{
+
+		}
+	}
+/*
+	enviar(socket,EJECUTAR_LINEA,0,NULL); //ver a cual ESI le estoy enviando
+*/
+
+}
+
+
+//consola planificador
 void* consola(void* no_use){
 	puts("Bienvenido a la consola");
 
@@ -82,104 +235,6 @@ void* consola(void* no_use){
 	return NULL;
 }
 
-
-int main(void) {
-
-	puts("Hola, soy el planificador ;)");
-
-	inicializar("Planificador.cfg");
-
-	multiplexar(puerto_escucha,(void *) procesar_mensaje);
-	
-	
-	//Creo el hilo de la consola
-	pthread_t consola_thread;
-
-	if(pthread_create(&consola_thread, NULL, &consola,NULL)){
-		puts("Error al crear el hilo");
-		return 0;
-	}
-
-	if(pthread_join(consola_thread, NULL)) {
-
-		puts("Error joining");
-		return 0;
-
-	}
-	
-	return EXIT_SUCCESS;
-}
-
-
-void inicializar(char* path){
-
-	//Creo log y cargo configuracion inicial
-
-	logger = log_create("planificador.log","PLANIFICADOR",false,LOG_LEVEL_TRACE);
-
-	config = config_create(path);
-
-	if(config_has_property(config, "IP_COORDINADOR")){
-		ip_coordinador = config_get_string_value(config, "IP_COORDINADOR");
-	}else{
-		log_error(logger, "No se encuentra la ip del Coordinador");
-		finalizar();
-		exit(EXIT_FAILURE);
-	}
-
-	if(config_has_property(config, "PUERTO_COORDINADOR")){
-		puerto_coordinador = config_get_string_value(config, "PUERTO_COORDINADOR");
-	}else{
-		log_error(logger, "No se encuentra el puerto del Coordinador");
-		finalizar();
-		exit(EXIT_FAILURE);
-	}
-
-	if(config_has_property(config, "PUERTO")){
-			puerto_escucha= config_get_string_value(config, "PUERTO");
-		}else{
-			log_error(logger, "No se encuentra el puerto_escucha del Coordinador");
-			finalizar();
-			exit(EXIT_FAILURE);
-		}
-
-	log_info(logger, "Se cargó exitosamente la configuración");
-
-	// Me conecto al Coordinador
-
-	socket_coordinador = conectar_a_server(ip_coordinador,puerto_coordinador);
-
-	log_info(logger, "Conexión exitosa al Coordinador");
-
-}
-
-void finalizar(){
-	log_info(logger, "Fin ejecución");
-	config_destroy(config);
-	log_destroy(logger);
-}
-
-int procesar_mensaje(int socket) {
-		t_paquete* paquete = recibir(socket);
-
-		switch (paquete->codigo_operacion) {
-
-		case HANDSHAKE_ESI: {
-			enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
-			break;
-		}
-		case STRING_SENT: {
-			char* recibido = (char*) (paquete->data);
-			printf("%s", recibido);
-			break;
-		}
-		default:
-			destruir_paquete(paquete);
-			return -1;
-		}
-		destruir_paquete(paquete);
-		return 1;
-}
 
 
 //Funciones auxiliares
@@ -239,4 +294,5 @@ void enviar_paquete_coordinador(char* mensaje){
 	printf("Recibi: %s", (char *)paquete->data);
 	destruir_paquete(paquete);
 }
+
 */
