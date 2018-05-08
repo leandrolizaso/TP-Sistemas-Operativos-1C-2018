@@ -96,7 +96,7 @@ void inicializar(char* path){
 
 	enviar(socket_coordinador, HANDSHAKE_PLANIFICADOR, 0, NULL);
 
-	t_paquete respuesta = recibir(socket_coordinador);
+	t_paquete* respuesta = recibir(socket_coordinador);
 
 	if(respuesta->codigo_operacion!=HANDSHAKE_COORDINADOR){
 		log_error(logger, "Fallo comunicaacion con el coordinador");
@@ -123,9 +123,9 @@ int procesar_mensaje(int socket) {
 
 			case HANDSHAKE_ESI: {
 				enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
-				proceso_esi_t nuevo_esi = nuevo_processo_esi(paquete->data);
-				enviar_ready_q(nuevo_esi);
-				planificar();
+				//proceso_esi_t nuevo_esi = nuevo_processo_esi(paquete->data);
+				//send_ready_q(nuevo_esi);
+				//planificar();
 				break;
 			}
 
@@ -136,7 +136,7 @@ int procesar_mensaje(int socket) {
 			}
 
 			case ESI_BLOQUEADO: {
-				send_waiting_q(esi_ejecutando);
+				//send_waiting_q(esi_ejecutando);
 				break;
 			}
 
@@ -155,24 +155,24 @@ int procesar_mensaje(int socket) {
 }
 
 
-void planificar (){
-
-	switch(algoritmo){
-
-		case FIFO:{
-
-		}
-
-		case SJF:{
-
-		}
-
-		case HRRN:{
-
-		}
-	}
-
-}
+//void planificar (){
+//
+//	switch(algoritmo){
+//
+//		case FIFO:{
+//
+//		}
+//
+//		case SJF:{
+//
+//		}
+//
+//		case HRRN:{
+//
+//		}
+//	}
+//
+//}
 
 
 //consola planificador
