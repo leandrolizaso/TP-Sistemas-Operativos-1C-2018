@@ -31,7 +31,7 @@ int socket_coordinador;
 int socket_planificador;
 
 void inicializar(char* path);
-void ejecutar();
+void ejecutar(char* script);
 void finalizar();
 int enviar_get(t_esi_operacion sentencia);
 int enviar_set(t_esi_operacion sentencia);
