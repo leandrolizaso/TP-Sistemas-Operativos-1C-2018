@@ -117,6 +117,8 @@ void ejecutar(char* script){
     size_t len = 0;
     ssize_t read;
     t_paquete* paquete;
+    char* error;
+    char* msg;
 
     fp = fopen(script, "r");
     if (fp == NULL){
@@ -137,35 +139,39 @@ void ejecutar(char* script){
             switch(sentencia.keyword){
                 case GET:
                     if(enviar_get(sentencia) < 0){
-                    	perror("Error de comunicacion con el Coordinador");
-                    	log_error("Error de comunicacion con el Coordinador");
+                    	perror("Error de comunicación con el Coordinador");
+                    	log_error(logger, "Error de comunicación con el Coordinador");
                         finalizar();
                         exit(EXIT_FAILURE);
                     };
                     break;
                 case SET:
                     if(enviar_set(sentencia) < 0){
-                    	perror("Error de comunicacion con el Coordinador");
-                    	log_error("Error de comunicacion con el Coordinador");
+                    	perror("Error de comunicación con el Coordinador");
+                    	log_error(logger, "Error de comunicación con el Coordinador");
                         finalizar();
                         exit(EXIT_FAILURE);
                     };
                     break;
                 case STORE:
                     if(enviar_store(sentencia) < 0){
-                    	perror("Error de comunicacion con el Coordinador");
-                    	log_error("Error de comunicacion con el Coordinador");
+                    	perror("Error de comunicación con el Coordinador");
+                    	log_error(logger, "Error de comunicación con el Coordinador");
                         finalizar();
                         exit(EXIT_FAILURE);
                     };
                     break;
                 default:
-                	char* error = string_from_format("La linea %s no se pudo interpretar", line);
+                	error = string_from_format("La línea %s no se pudo interpretar", line);
                     log_error(logger, error);
                     free(error);
                     finalizar();
                     exit(EXIT_FAILURE);
             }
+
+            msg = string_from_format("Línea %s enviada al Coordinador", line);
+            log_info(logger, msg);
+            free(msg);
 
             destruir_operacion(sentencia);
 
@@ -174,30 +180,30 @@ void ejecutar(char* script){
             switch(paquete->codigo_operacion){
                 case EXITO_OPERACION:
                     if(enviar(socket_planificador, EXITO_OPERACION, 0, NULL) < 0){
-                    	perror("Error de comunicacion con el Planificador");
-                    	log_error("Error de comunicacion con el Planificador");
+                    	perror("Error de comunicación con el Planificador");
+                    	log_error(logger, "Error de comunicación con el Planificador");
                     	destruir_paquete(paquete);
                         finalizar();
                         exit(EXIT_FAILURE);
                     };
-                    char* msg = string_from_format("Linea %s ejecutada exitosamente", line);
+                    msg = string_from_format("Línea %s ejecutada exitosamente", line);
                     log_info(logger, msg);
                     free(msg);
                     break;
                 case ERROR_OPERACION:
                 	if(enviar(socket_planificador, ERROR_OPERACION, 0, NULL) < 0){
-                		perror("Error de comunicacion con el Planificador");
-                    	log_error("Error de comunicacion con el Planificador");
+                		perror("Error de comunicación con el Planificador");
+                    	log_error(logger, "Error de comunicación con el Planificador");
                     	destruir_paquete(paquete);
                         finalizar();
                         exit(EXIT_FAILURE);
                 	};
-                    char* msg = string_from_format("Linea %s fallo en su ejecucion", line);
+                    msg = string_from_format("Línea %s falló en su ejecución", line);
                     log_info(logger, msg);
                     free(msg);
                 	break;
                 default:
-                	char* error = string_from_format("El codigo de operacion %d no es valido", paquete->codigo_operacion);
+                	error = string_from_format("El codigo de operación %d no es válido", paquete->codigo_operacion);
                     log_error(logger, error);
                     free(error);
                     destruir_paquete(paquete);
@@ -208,7 +214,7 @@ void ejecutar(char* script){
             destruir_paquete(paquete);
 
         } else {
-        	char* error = string_from_format("La linea %s no es válida", line);
+        	error = string_from_format("La línea %s no es válida", line);
             log_error(logger, error);
             free(error);
             finalizar();
@@ -234,7 +240,7 @@ void finalizar() {
 int enviar_get(t_esi_operacion sentencia){
 
 	char* clave = string_duplicate(sentencia.argumentos.GET.clave);
-	int len = string_length(clave);
+	int len = string_length(clave) + 1;
 
 	int rs = enviar(socket_coordinador, OPERACION_GET, len, (void*)clave);
 
@@ -247,8 +253,8 @@ int enviar_set(t_esi_operacion sentencia){
 
 	char* clave = string_duplicate(sentencia.argumentos.SET.clave);
 	char* valor = string_duplicate(sentencia.argumentos.SET.valor);
-	int len_clave = string_length(clave);
-	int len_valor = string_length(valor);
+	int len_clave = string_length(clave) + 1;
+	int len_valor = string_length(valor) + 1;
 	int len_buffer = 2 * sizeof(int) + len_clave + len_valor;
 	void* buffer = malloc(len_buffer);
 
@@ -269,7 +275,7 @@ int enviar_set(t_esi_operacion sentencia){
 int enviar_store(t_esi_operacion sentencia){
 
 	char* clave = string_duplicate(sentencia.argumentos.STORE.clave);
-	int len = string_length(clave);
+	int len = string_length(clave) + 1;
 
 	int rs = enviar(socket_coordinador, OPERACION_STORE, len, (void*)clave);
 
