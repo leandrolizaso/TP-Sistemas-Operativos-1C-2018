@@ -4,7 +4,9 @@
 typedef struct {
 	int socket;
 	int ID;
-	int estimacion_ant;
+	double estimacion_ant;
+	double duracion_raf_ant;
+	char* recursoBloqueante;
 
 } proceso_esi_t;
 
@@ -13,15 +15,18 @@ void inicializar(char* path);
 void finalizar();
 int procesar_mensaje(int socket);
 void agregar_espacio(char* buffer);
-proceso_esi_t nuevo_processo_esi(void* data);
+proceso_esi_t* nuevo_processo_esi(double estimacionConfig,int socket);
 void send_ready_q(proceso_esi_t esi);
 void send_waiting_q(proceso_esi_t esi);
 void planificar();
 void definirAlgoritmo(char* algoritmoString);
+void levantoConfig(char* path);
+double estimar_proxima_rafaga(proceso_esi_t* esi);
+bool bloqueadoPorRecurso(proceso_esi_t* esi,char* recurso);
 
-const int FIFO = 600;
-const int SJFCD = 601;
-const int SJFSD = 602;
-const int HRRN = 602;
+#define FIFO 600
+#define SJFCD 601
+#define SJFSD 602
+#define HRRN 603
 
 #endif /* PLANIFICADOR_H_ */

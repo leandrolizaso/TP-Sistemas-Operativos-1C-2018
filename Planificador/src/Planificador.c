@@ -26,10 +26,15 @@ char* puerto_coordinador;
 char* puerto_escucha;
 int socket_coordinador;
 int algoritmo;
-proceso_esi_t esi_ejecutando;
+double estimacionInicial;
+double alfa;
+int id_base = 0;
+proceso_esi_t * esi_ejecutando;
 t_log* logger;
 t_config* config;
-t_list* ESIs;
+t_list* ready_q;
+t_list* blocked_q;
+t_list* rip_q;
 
 
 int main(void) {
@@ -53,15 +58,15 @@ int main(void) {
 	if(pthread_join(consola_thread, NULL)) {
 
 		puts("Error joining");
+		finalizar();
 		return 0;
 
 	}
-	
+	finalizar();
 	return EXIT_SUCCESS;
 }
 
-
-void inicializar(char* path){
+void levantoConfig(char* path){
 
 	//Creo log y cargo configuracion inicial
 
@@ -86,12 +91,13 @@ void inicializar(char* path){
 	}
 
 	if(config_has_property(config, "PUERTO_ESCUCHA")){
-			puerto_escucha= config_get_string_value(config, "PUERTO");
+			puerto_escucha= config_get_string_value(config, "PUERTO_ESCUCHA");
 		}else{
 			log_error(logger, "No se encuentra el puerto_escucha del Coordinador");
 			finalizar();
 			exit(EXIT_FAILURE);
 		}
+
 	if(config_has_property(config, "ALGORITMO_PLANIFICACION")){
 		char* algoritmoString = config_get_string_value(config,"ALGORITMO_PLANIFICACION");
 		definirAlgoritmo(algoritmoString);
@@ -102,7 +108,23 @@ void inicializar(char* path){
 		exit(EXIT_FAILURE);
 	}
 
-	log_info(logger, "Se cargó exitosamente la configuración");
+	if(config_has_property(config, "ESTIMACION_INICIAL")){
+			estimacionInicial= config_get_double_value(config, "ESTIMACION_INICIAL");
+		}else{
+			log_error(logger, "No se encuentra la estimacion inicial");
+			finalizar();
+			exit(EXIT_FAILURE);
+		}
+
+
+	log_info(logger, "Se cargó exitosamente la configuración");}
+
+void inicializar(char* path){
+
+	levantoConfig(path);
+
+	ready_q = list_create();
+	blocked_q = list_create();
 
 	// Me conecto al Coordinador
 
@@ -137,9 +159,8 @@ int procesar_mensaje(int socket) {
 
 			case HANDSHAKE_ESI: {
 				enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
-				//proceso_esi_t nuevo_esi = nuevo_processo_esi(paquete->data);
-				//send_ready_q(nuevo_esi);
-				//planificar();
+				proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
+				planificar(nuevo_esi);
 				break;
 			}
 
@@ -150,12 +171,21 @@ int procesar_mensaje(int socket) {
 			}
 
 			case ESI_BLOQUEADO: {
-				//send_waiting_q(esi_ejecutando);
+				list_add(blocked_q, (void*) esi_ejecutando);
 				break;
 			}
 
 			case EXITO_OPERACION: {
-				//habria que sacar el primero de ready_q y decirle que ejecute
+				list_add(rip_q,esi_ejecutando);
+				if(list_is_empty(ready_q) != 0){
+					esi_ejecutando = (proceso_esi_t *)list_get(ready_q, 0);
+					list_remove(ready_q,0);
+					enviar(esi_ejecutando->socket,EJECUTAR_LINEA,0,NULL);
+					}else{
+						log_info(logger, "No hay ESI para ejecutar");
+					}
+
+
 				break;
 			}
 
@@ -169,24 +199,33 @@ int procesar_mensaje(int socket) {
 }
 
 
-//void planificar (){
-//
-//	switch(algoritmo){
-//
-//		case FIFO:{
-//
-//		}
-//
-//		case SJF:{
-//
-//		}
-//
-//		case HRRN:{
-//
-//		}
-//	}
-//
-//}
+void planificar (proceso_esi_t nuevo_esi){
+
+	switch(algoritmo){
+
+		case FIFO:{
+			list_add(ready_q, (void*) nuevo_esi);
+			break;
+/* por lo que pusiste en exito operacion en realidad el planificar de FIFO no haria nada..
+ * y en exito operacion hago esto de fijarme si esta vacio y le mando ejecutate puto. not good at all
+			*/
+		}
+
+		case SJFCD:{
+		break;
+		}
+
+
+		case SJFSD:{
+		break;
+		}
+
+		case HRRN:{
+		break;
+		}
+	}
+
+}
 
 
 //consola planificador
@@ -262,10 +301,24 @@ void definirAlgoritmo(char* algoritmoString){
 			}
 }
 
-proceso_esi_t nuevo_processo_esi(void* data){proceso_esi_t lala; return lala;}
-void send_ready_q(proceso_esi_t esi){}
-void send_waiting_q(proceso_esi_t esi){}
+double estimar_proxima_rafaga(proceso_esi_t* esi){
+	return alfa*esi->duracion_raf_ant + (1-alfa)*esi->estimacion_ant;
+}
 
+bool bloqueadoPorRecurso(proceso_esi_t* esi,char* recurso){
+	return string_equals_ignore_case(esi->recursoBloqueante,recurso);
+}
+
+proceso_esi_t* nuevo_processo_esi(int socket_esi){
+	proceso_esi_t* nuevo_esi = malloc(sizeof(proceso_esi_t));
+	id_base++;
+	nuevo_esi->ID = id_base;
+	nuevo_esi->estimacion_ant = estimacionInicial;
+	nuevo_esi->duracion_raf_ant = 0;
+	nuevo_esi->recursoBloqueante = NULL;
+	nuevo_esi->socket = socket_esi;
+	return nuevo_esi;
+}
 
 
 //Funciones auxiliares
