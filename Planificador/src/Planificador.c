@@ -8,6 +8,7 @@
  ============================================================================
  */
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pelao/sockets.h>
@@ -15,7 +16,10 @@
 #include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include <commons/collections/list.h>
+#include <commons/string.h>
 #include "Planificador.h"
+
 
 char* ip_coordinador;
 char* puerto_coordinador;
@@ -25,6 +29,7 @@ int algoritmo;
 proceso_esi_t esi_ejecutando;
 t_log* logger;
 t_config* config;
+t_list* ESIs;
 
 
 int main(void) {
@@ -80,13 +85,22 @@ void inicializar(char* path){
 		exit(EXIT_FAILURE);
 	}
 
-	if(config_has_property(config, "PUERTO")){
+	if(config_has_property(config, "PUERTO_ESCUCHA")){
 			puerto_escucha= config_get_string_value(config, "PUERTO");
 		}else{
 			log_error(logger, "No se encuentra el puerto_escucha del Coordinador");
 			finalizar();
 			exit(EXIT_FAILURE);
 		}
+	if(config_has_property(config, "ALGORITMO_PLANIFICACION")){
+		char* algoritmoString = config_get_string_value(config,"ALGORITMO_PLANIFICACION");
+		definirAlgoritmo(algoritmoString);
+	}
+	else{
+		log_error(logger, "No se encuentra el algoritmo");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
 
 	log_info(logger, "Se cargó exitosamente la configuración");
 
@@ -231,6 +245,26 @@ void* consola(void* no_use){
 
 	return NULL;
 }
+
+void definirAlgoritmo(char* algoritmoString){
+	if(string_equals_ignore_case(algoritmoString,"FIFO"))
+		algoritmo = FIFO;
+	else if(string_equals_ignore_case(algoritmoString,"SJF-CD"))
+			algoritmo = SJFCD;
+		else if(string_equals_ignore_case(algoritmoString,"SJF-SD"))
+				algoritmo = SJFSD;
+			else if(string_equals_ignore_case(algoritmoString,"HRRN"))
+					algoritmo = HRRN;
+			else {
+				log_error(logger, "El algoritmo no esta contemplado");
+				finalizar();
+				exit(EXIT_FAILURE);
+			}
+}
+
+proceso_esi_t nuevo_processo_esi(void* data){proceso_esi_t lala; return lala;}
+void send_ready_q(proceso_esi_t esi){}
+void send_waiting_q(proceso_esi_t esi){}
 
 
 
