@@ -176,7 +176,7 @@ int procesar_mensaje(int socket) {
 			}
 
 			case EXITO_OPERACION: {
-				list_add(rip_q,esi_ejecutando);
+				//list_add(rip_q,esi_ejecutando); cuando finaliza un esi?
 				if(list_is_empty(ready_q) != 0){
 					esi_ejecutando = (proceso_esi_t *)list_get(ready_q, 0);
 					list_remove(ready_q,0);
@@ -190,7 +190,7 @@ int procesar_mensaje(int socket) {
 			}
 
 			default:
-				destruir_paquete(paquete);
+ 				destruir_paquete(paquete);
 				return -1;
 		}
 
@@ -206,9 +206,6 @@ void planificar (proceso_esi_t nuevo_esi){
 		case FIFO:{
 			list_add(ready_q, (void*) nuevo_esi);
 			break;
-/* por lo que pusiste en exito operacion en realidad el planificar de FIFO no haria nada..
- * y en exito operacion hago esto de fijarme si esta vacio y le mando ejecutate puto. not good at all
-			*/
 		}
 
 		case SJFCD:{
