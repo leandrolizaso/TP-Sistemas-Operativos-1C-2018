@@ -150,6 +150,9 @@ void finalizar(){
 	log_info(logger, "Fin ejecución");
 	config_destroy(config);
 	log_destroy(logger);
+	list_destroy_and_destroy_elements(ready_q);
+	list_destroy_and_destroy_elements(rip_q);
+	list_destroy_and_destroy_elements(blocked_q);
 }
 
 int procesar_mensaje(int socket) {
@@ -171,21 +174,21 @@ int procesar_mensaje(int socket) {
 			}
 
 			case ESI_BLOQUEADO: {
-				list_add(blocked_q, (void*) esi_ejecutando);
+				//bloqueado por que recurso?
+				list_add(blocked_q, esi_ejecutando);
+				esi_ejecutando = (proceso_esi_t *)list_get(ready_q, 0);
+				list_remove(ready_q,0);
 				break;
 			}
 
 			case EXITO_OPERACION: {
-				//list_add(rip_q,esi_ejecutando); cuando finaliza un esi?
-				if(list_is_empty(ready_q) != 0){
-					esi_ejecutando = (proceso_esi_t *)list_get(ready_q, 0);
-					list_remove(ready_q,0);
-					enviar(esi_ejecutando->socket,EJECUTAR_LINEA,0,NULL);
-					}else{
-						log_info(logger, "No hay ESI para ejecutar");
-					}
-
-
+				enviar(esi_ejecutando->socket,EJECUTAR_LINEA,0,NULL);
+				//y si es el primer esi?
+				break;
+			}
+			case ESI_FINALIZADO:{
+				list_add(rip_q, esi_ejecutando);
+				//El esi que finaliza es el que estaba ejecutando actualmente?
 				break;
 			}
 
@@ -199,12 +202,12 @@ int procesar_mensaje(int socket) {
 }
 
 
-void planificar (proceso_esi_t nuevo_esi){
+void planificar (proceso_esi_t* nuevo_esi){
 
 	switch(algoritmo){
 
 		case FIFO:{
-			list_add(ready_q, (void*) nuevo_esi);
+			list_add(ready_q,(void*) nuevo_esi);
 			break;
 		}
 
@@ -298,8 +301,8 @@ void definirAlgoritmo(char* algoritmoString){
 			}
 }
 
-double estimar_proxima_rafaga(proceso_esi_t* esi){
-	return alfa*esi->duracion_raf_ant + (1-alfa)*esi->estimacion_ant;
+void estimar_proxima_rafaga(proceso_esi_t* esi){
+	esi->estimacion_ant = alfa*esi->duracion_raf_ant + (1-alfa)*esi->estimacion_ant;
 }
 
 bool bloqueadoPorRecurso(proceso_esi_t* esi,char* recurso){
@@ -307,7 +310,7 @@ bool bloqueadoPorRecurso(proceso_esi_t* esi,char* recurso){
 }
 
 proceso_esi_t* nuevo_processo_esi(int socket_esi){
-	proceso_esi_t* nuevo_esi = malloc(sizeof(proceso_esi_t));
+	proceso_esi_t* nuevo_esi; //= malloc(sizeof(proceso_esi_t));
 	id_base++;
 	nuevo_esi->ID = id_base;
 	nuevo_esi->estimacion_ant = estimacionInicial;
