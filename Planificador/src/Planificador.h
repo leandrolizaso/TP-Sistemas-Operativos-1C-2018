@@ -19,8 +19,7 @@ proceso_esi_t* nuevo_processo_esi(int socket);
 void planificar();
 void definirAlgoritmo(char* algoritmoString);
 void levantoConfig(char* path);
-double estimar_proxima_rafaga(proceso_esi_t* esi);
-bool bloqueadoPorRecurso(proceso_esi_t* esi,char* recurso);
+void estimar_proxima_rafaga(proceso_esi_t* esi);
 
 #define FIFO 600
 #define SJFCD 601

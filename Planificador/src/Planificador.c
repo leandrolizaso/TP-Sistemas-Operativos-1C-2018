@@ -29,6 +29,7 @@ int algoritmo;
 double estimacionInicial;
 double alfa;
 int id_base = 0;
+_Bool ejecutando=false;
 proceso_esi_t * esi_ejecutando;
 t_log* logger;
 t_config* config;
@@ -150,9 +151,12 @@ void finalizar(){
 	log_info(logger, "Fin ejecución");
 	config_destroy(config);
 	log_destroy(logger);
-	list_destroy_and_destroy_elements(ready_q);
-	list_destroy_and_destroy_elements(rip_q);
-	list_destroy_and_destroy_elements(blocked_q);
+	void destructor(void *elem) {
+		free(elem);
+	}
+	list_destroy_and_destroy_elements(ready_q, destructor);
+	list_destroy_and_destroy_elements(rip_q, destructor);
+	list_destroy_and_destroy_elements(blocked_q, destructor);
 }
 
 int procesar_mensaje(int socket) {
@@ -163,7 +167,8 @@ int procesar_mensaje(int socket) {
 			case HANDSHAKE_ESI: {
 				enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
 				proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
-				planificar(nuevo_esi);
+				list_add(ready_q,(void*)nuevo_esi);
+				planificar();
 				break;
 			}
 
@@ -176,19 +181,23 @@ int procesar_mensaje(int socket) {
 			case ESI_BLOQUEADO: {
 				//bloqueado por que recurso?
 				list_add(blocked_q, esi_ejecutando);
-				esi_ejecutando = (proceso_esi_t *)list_get(ready_q, 0);
-				list_remove(ready_q,0);
+				esi_ejecutando = NULL;
+				planificar();
 				break;
 			}
 
 			case EXITO_OPERACION: {
+				/*
 				enviar(esi_ejecutando->socket,EJECUTAR_LINEA,0,NULL);
-				//y si es el primer esi?
+				mail a gastoncito
+				*/
 				break;
 			}
+
 			case ESI_FINALIZADO:{
 				list_add(rip_q, esi_ejecutando);
-				//El esi que finaliza es el que estaba ejecutando actualmente?
+				esi_ejecutando=NULL;
+				planificar();
 				break;
 			}
 
@@ -202,29 +211,33 @@ int procesar_mensaje(int socket) {
 }
 
 
-void planificar (proceso_esi_t* nuevo_esi){
+void planificar (){
 
-	switch(algoritmo){
+	if(esi_ejecutando==NULL){
 
-		case FIFO:{
-			list_add(ready_q,(void*) nuevo_esi);
+		switch(algoritmo){
+
+			case FIFO:{
+				esi_ejecutando = list_get(ready_q,0);
+				list_remove(ready_q,0);
+				enviar(esi_ejecutando->socket,EJECUTAR_LINEA,0,NULL);
+				break;
+			}
+
+			case SJFCD:{
+				break;
+			}
+
+
+			case SJFSD:{
+				break;
+			}
+
+			case HRRN:{
 			break;
-		}
-
-		case SJFCD:{
-		break;
-		}
-
-
-		case SJFSD:{
-		break;
-		}
-
-		case HRRN:{
-		break;
+			}
 		}
 	}
-
 }
 
 
@@ -310,7 +323,7 @@ bool bloqueadoPorRecurso(proceso_esi_t* esi,char* recurso){
 }
 
 proceso_esi_t* nuevo_processo_esi(int socket_esi){
-	proceso_esi_t* nuevo_esi; //= malloc(sizeof(proceso_esi_t));
+	proceso_esi_t* nuevo_esi = malloc(sizeof(proceso_esi_t));
 	id_base++;
 	nuevo_esi->ID = id_base;
 	nuevo_esi->estimacion_ant = estimacionInicial;
