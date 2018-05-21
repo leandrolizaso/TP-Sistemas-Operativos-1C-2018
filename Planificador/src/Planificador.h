@@ -1,12 +1,14 @@
 #ifndef PLANIFICADOR_H_
 #define PLANIFICADOR_H_
+#include <commons/string.h>
 
 typedef struct {
 	int socket;
 	int ID;
 	double estimacion_ant;
 	double duracion_raf_ant;
-	char* recursoBloqueante;
+	char* recurso_bloqueante;
+	_Bool bloqueado_por_consola;
 
 } proceso_esi_t;
 
@@ -20,6 +22,9 @@ void planificar();
 void definirAlgoritmo(char* algoritmoString);
 void levantoConfig(char* path);
 void estimar_proxima_rafaga(proceso_esi_t* esi);
+void imprimir(t_list* esis_a_imprimir);
+void bloquear(proceso_esi_t* esi, char* string,_Bool por_consola);
+void destructor(void *elem);
 
 #define FIFO 600
 #define SJFCD 601

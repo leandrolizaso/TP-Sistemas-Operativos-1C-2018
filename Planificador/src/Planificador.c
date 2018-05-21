@@ -30,12 +30,14 @@ double estimacionInicial;
 double alfa;
 int id_base = 0;
 _Bool ejecutando=false;
+_Bool pausado;
 proceso_esi_t * esi_ejecutando;
 t_log* logger;
 t_config* config;
 t_list* ready_q;
 t_list* blocked_q;
 t_list* rip_q;
+
 
 
 int main(void) {
@@ -126,6 +128,7 @@ void inicializar(char* path){
 
 	ready_q = list_create();
 	blocked_q = list_create();
+	rip_q = list_create();
 
 	// Me conecto al Coordinador
 
@@ -151,12 +154,9 @@ void finalizar(){
 	log_info(logger, "Fin ejecución");
 	config_destroy(config);
 	log_destroy(logger);
-	void destructor(void *elem) {
-		free(elem);
-	}
-	list_destroy_and_destroy_elements(ready_q, destructor);
-	list_destroy_and_destroy_elements(rip_q, destructor);
-	list_destroy_and_destroy_elements(blocked_q, destructor);
+	list_destroy_and_destroy_elements(ready_q, &destructor);
+	list_destroy_and_destroy_elements(rip_q, &destructor);
+	list_destroy_and_destroy_elements(blocked_q, &destructor);
 }
 
 int procesar_mensaje(int socket) {
@@ -180,17 +180,15 @@ int procesar_mensaje(int socket) {
 
 			case ESI_BLOQUEADO: {
 				//bloqueado por que recurso?
-				list_add(blocked_q, esi_ejecutando);
+				char* recurso = "Habria que recibirlo en el payload"; //Ver esto
+				bloquear(esi_ejecutando, recurso,false);
 				esi_ejecutando = NULL;
 				planificar();
 				break;
 			}
 
 			case EXITO_OPERACION: {
-				/*
 				enviar(esi_ejecutando->socket,EJECUTAR_LINEA,0,NULL);
-				mail a gastoncito
-				*/
 				break;
 			}
 
@@ -212,7 +210,7 @@ int procesar_mensaje(int socket) {
 
 
 void planificar (){
-
+	if(pausado) return;
 	if(esi_ejecutando==NULL){
 
 		switch(algoritmo){
@@ -261,21 +259,75 @@ void* consola(void* no_use){
 	while(!string_equals_ignore_case(token[0],"salir")){
 
 		if(string_equals_ignore_case(token[0],"pausar")){
-			//pausar(token[1]);
+			pausado=true;
 		}
 
 		if(string_equals_ignore_case(token[0],"continuar")){
-			//continuar(token[1]);
+			pausado=false;
+			planificar();
 		}
+
 		if(string_equals_ignore_case(token[0],"bloquear")){
-			//bloquear_por_consola(token[1],token[2]);
-		}
-		if(string_equals_ignore_case(token[0],"desbloquear")){
-			//desbloquear_por_consola(token[1]);
-		}
-		if(string_equals_ignore_case(token[0],"listar")){
+
+			_Bool id_equals(void* pointer){
+				proceso_esi_t* esi = pointer;
+
+				if(esi!=NULL){
+					char* id = string_itoa(esi->ID);
+					return string_equals_ignore_case(id,token[2]);
+				} else {
+					puts("El esi no esta ejecutando ni en ready");
+					return false;
+				}
+			}
+
+			if(id_equals(esi_ejecutando)){
+				bloquear(esi_ejecutando,token[1],true);
+				esi_ejecutando=NULL;
+				planificar(); //Es necesario?
+			}
+
+			else{
+				proceso_esi_t* esi_a_bloquear = list_find(ready_q, &id_equals);
+				list_remove_by_condition(ready_q, &id_equals);
+				bloquear(esi_a_bloquear, token[1],true);
+
+			}
+
 
 		}
+
+		if(string_equals_ignore_case(token[0],"desbloquear")){
+
+			_Bool key_equals(void* pointer){
+				proceso_esi_t* esi = pointer;
+				if(esi->bloqueado_por_consola){
+					return esi->recurso_bloqueante == token[1];
+				}else{
+					return false;
+				}
+			}
+			proceso_esi_t* esi = list_find(blocked_q, &key_equals);
+			list_remove_by_condition(blocked_q, &key_equals);
+			list_add(ready_q,esi);
+			planificar(); //Es necesario?
+
+		}
+
+
+		if(string_equals_ignore_case(token[0],"listar")){
+
+			_Bool bloqueadoPorRecurso(void* parametro){
+				proceso_esi_t* esi = parametro;
+				return string_equals_ignore_case(esi->recurso_bloqueante,token[1]);
+			}
+
+			t_list* esis_a_imprimir = list_filter(blocked_q, &bloqueadoPorRecurso); //Hay que contemplar si ninguno esta bloqueado?
+			imprimir(esis_a_imprimir);
+			list_destroy_and_destroy_elements(esis_a_imprimir, &destructor);
+
+		}
+
 		if(string_equals_ignore_case(token[0],"kill")){
 			//kill(token[1]);
 		}
@@ -318,9 +370,7 @@ void estimar_proxima_rafaga(proceso_esi_t* esi){
 	esi->estimacion_ant = alfa*esi->duracion_raf_ant + (1-alfa)*esi->estimacion_ant;
 }
 
-bool bloqueadoPorRecurso(proceso_esi_t* esi,char* recurso){
-	return string_equals_ignore_case(esi->recursoBloqueante,recurso);
-}
+
 
 proceso_esi_t* nuevo_processo_esi(int socket_esi){
 	proceso_esi_t* nuevo_esi = malloc(sizeof(proceso_esi_t));
@@ -328,11 +378,26 @@ proceso_esi_t* nuevo_processo_esi(int socket_esi){
 	nuevo_esi->ID = id_base;
 	nuevo_esi->estimacion_ant = estimacionInicial;
 	nuevo_esi->duracion_raf_ant = 0;
-	nuevo_esi->recursoBloqueante = NULL;
+	nuevo_esi->recurso_bloqueante = NULL;
 	nuevo_esi->socket = socket_esi;
 	return nuevo_esi;
 }
 
+void imprimir(t_list* esis_a_imprimir){
+	if(!list_is_empty(esis_a_imprimir)){
+		for(int i=0;i<list_size(esis_a_imprimir);i++){
+			printf ("%i\n",((proceso_esi_t*) list_get(esis_a_imprimir,i))->ID);
+		}
+	} else {
+		puts("No hay esis bloqueados por ese recurso");
+	}
+}
+
+void bloquear(proceso_esi_t* esi, char* string,_Bool por_consola){
+	esi->bloqueado_por_consola = por_consola;
+	esi->recurso_bloqueante = string;
+	list_add(blocked_q,esi);
+}
 
 //Funciones auxiliares
 
@@ -346,6 +411,9 @@ void agregar_espacio(char* buffer){
 	buffer[i]='\0';
 }
 
+void destructor(void *elem) {
+		free(elem);
+}
 
 /*
 
