@@ -29,7 +29,16 @@
 
 #define ERROR_OPERACION 105
 #define EXITO_OPERACION 106
-#define ESI_BLOQUEADO 107
+#define ESI_FINALIZADO 107
+
+
+/* Coodinador a Planificador */
+#define GET_CLAVE 108
+#define STORE_CLAVE 109
+
+/* Planificador a coordinador */
+#define CLAVE_TOMADA 110
+
 
 /* OPERACION GENERICA*/
 
