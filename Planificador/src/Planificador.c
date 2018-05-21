@@ -170,8 +170,7 @@ int procesar_mensaje(int socket) {
 				break;
 			}
 
-			case ESI_BLOQUEADO: {
-				list_add(blocked_q, (void*) esi_ejecutando);
+			case ESI_FINALIZADO: {
 				break;
 			}
 
@@ -199,7 +198,7 @@ int procesar_mensaje(int socket) {
 }
 
 
-void planificar (proceso_esi_t nuevo_esi){
+void planificar (proceso_esi_t* nuevo_esi){
 
 	switch(algoritmo){
 
