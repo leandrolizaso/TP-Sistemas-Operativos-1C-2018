@@ -37,7 +37,7 @@ t_config* config;
 t_list* ready_q;
 t_list* blocked_q;
 t_list* rip_q;
-
+t_list* blocked_key;
 
 
 int main(void) {
@@ -129,6 +129,7 @@ void inicializar(char* path){
 	ready_q = list_create();
 	blocked_q = list_create();
 	rip_q = list_create();
+	blocked_key = list_create();
 
 	// Me conecto al Coordinador
 
@@ -157,6 +158,7 @@ void finalizar(){
 	list_destroy_and_destroy_elements(ready_q, &destructor);
 	list_destroy_and_destroy_elements(rip_q, &destructor);
 	list_destroy_and_destroy_elements(blocked_q, &destructor);
+	list_destroy_and_destroy_elements(blocked_key, &destructor);
 }
 
 int procesar_mensaje(int socket) {
@@ -178,12 +180,30 @@ int procesar_mensaje(int socket) {
 				break;
 			}
 
-			case ESI_BLOQUEADO: {
+			case GET_CLAVE: {
 				//bloqueado por que recurso?
 				char* recurso = "Habria que recibirlo en el payload"; //Ver esto
-				bloquear(esi_ejecutando, recurso,false);
-				esi_ejecutando = NULL;
-				planificar();
+				if(esta_clave(recurso)){
+					bloquear(esi_ejecutando,recurso,false);
+					enviar(socket_coordinador,CLAVE_TOMADA,0,NULL);
+					esi_ejecutando = NULL;
+					planificar();
+				} else{
+					bloquear_key(recurso);
+				}
+				break;
+			}
+
+			case STORE_CLAVE: {
+				char* recurso = "Habria que recibirlo en el payload"; //Ver esto
+				_Bool key_equals(void* clave){
+					return string_equals_ignore_case(((t_clave*)clave)->valor,recurso);
+				}
+				if(esi_esperando(recurso)){
+					desbloquear(recurso);
+				}
+				list_remove_and_destroy_by_condition(blocked_key,&key_equals,&destructor);
+
 				break;
 			}
 
@@ -270,10 +290,9 @@ void* consola(void* no_use){
 		if(string_equals_ignore_case(token[0],"bloquear")){
 
 			_Bool id_equals(void* pointer){
-				proceso_esi_t* esi = pointer;
 
-				if(esi!=NULL){
-					char* id = string_itoa(esi->ID);
+				if(pointer!=NULL){
+					char* id = string_itoa(((proceso_esi_t*)pointer)->ID);
 					return string_equals_ignore_case(id,token[2]);
 				} else {
 					puts("El esi no esta ejecutando ni en ready");
@@ -397,6 +416,31 @@ void bloquear(proceso_esi_t* esi, char* string,_Bool por_consola){
 	esi->bloqueado_por_consola = por_consola;
 	esi->recurso_bloqueante = string;
 	list_add(blocked_q,esi);
+}
+
+void desbloquar(char* recurso){
+	_Bool recurso_eq(void* unEsi){
+		return string_equals_ignore_case(((proceso_esi_t*)unEsi)->recurso_bloqueante,recurso);
+	}
+
+	proceso_esi_t* esi = list_find(blocked_q,&recurso_eq);
+	list_add(ready_q,esi);
+	list_remove_by_condition(blocked_q,&recurso_eq);
+	planificar(); //es necesario?
+}
+
+void bloquear_key(char* clave){
+	t_clave* nueva_clave = malloc(sizeof(t_clave)); //ver donde hacer el free
+	nueva_clave->valor = clave;
+	nueva_clave->ID_esi = esi_ejecutando->ID;
+	list_add(blocked_key,clave);
+}
+
+_Bool esi_esperando(char* recurso){
+	_Bool esta(void* esi){
+		return string_equals_ignore_case(((proceso_esi_t*)esi)->recurso_bloqueante,recurso);
+	}
+	return list_any_satisfy(blocked_q,&esta);
 }
 
 //Funciones auxiliares

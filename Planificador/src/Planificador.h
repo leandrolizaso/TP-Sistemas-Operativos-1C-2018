@@ -12,6 +12,11 @@ typedef struct {
 
 } proceso_esi_t;
 
+typedef struct {
+	char* valor;
+	int ID_esi;
+} t_clave;
+
 void* consola(void* no_use);
 void inicializar(char* path);
 void finalizar();
@@ -25,6 +30,10 @@ void estimar_proxima_rafaga(proceso_esi_t* esi);
 void imprimir(t_list* esis_a_imprimir);
 void bloquear(proceso_esi_t* esi, char* string,_Bool por_consola);
 void destructor(void *elem);
+_Bool esi_esperando(char* recurso);
+void desbloquear(char* recurso);
+void bloquear_key(char* clave);
+bool esta_clave(char* clave);
 
 #define FIFO 600
 #define SJFCD 601
