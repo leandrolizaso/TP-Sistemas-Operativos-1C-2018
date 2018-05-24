@@ -7,7 +7,7 @@ typedef struct {
 	int ID;
 	double estimacion_ant;
 	double duracion_raf_ant;
-	char* recurso_bloqueante;
+	char recurso_bloqueante[40];
 	_Bool bloqueado_por_consola;
 
 } proceso_esi_t;
