@@ -18,6 +18,7 @@
 #include <commons/collections/list.h>
 #include <commons/string.h>
 #include "Planificador.h"
+#include <semaphore.h>
 
 char* ip_coordinador;
 char* puerto_coordinador;
@@ -36,6 +37,11 @@ t_list* ready_q;
 t_list* blocked_q;
 t_list* rip_q;
 t_list* blocked_key;
+sem_t* m_esi;
+sem_t* m_rip;
+sem_t* m_ready;
+sem_t* m_blocked;
+sem_t* m_key;
 
 int main(void) {
 
@@ -129,10 +135,10 @@ void inicializar(char* path) {
 	rip_q = list_create();
 	blocked_key = list_create();
 
+	init_semaphores();
+
 	// Me conecto al Coordinador
-
 	socket_coordinador = conectar_a_server(ip_coordinador, puerto_coordinador);
-
 	enviar(socket_coordinador, HANDSHAKE_PLANIFICADOR, 0, NULL);
 
 	t_paquete* respuesta = recibir(socket_coordinador);
@@ -149,6 +155,29 @@ void inicializar(char* path) {
 
 }
 
+void init_semaphores(){
+	m_ready = malloc(sizeof(sem_t));
+	m_key = malloc(sizeof(sem_t));
+	m_esi= malloc(sizeof(sem_t));
+	m_blocked = malloc(sizeof(sem_t));
+	m_rip = malloc(sizeof(sem_t));
+	if(sem_init(m_ready,0,1)){
+		log_info(logger, "Error al inicializar mutex ready");
+	}
+	if(sem_init(m_esi,0,1)){
+		log_info(logger, "Error al inicializar mutex esi");
+	}
+	if(sem_init(m_rip,0,1)){
+		log_info(logger, "Error al inicializar mutex rip");
+	}
+	if(sem_init(m_blocked,0,1)){
+		log_info(logger, "Error al inicializar mutex blocked");
+	}
+	if(sem_init(m_key,0,1)){
+		log_info(logger, "Error al inicializar mutex key");
+	}
+}
+
 void finalizar() {
 	log_info(logger, "Fin ejecución");
 	config_destroy(config);
@@ -158,6 +187,12 @@ void finalizar() {
 	list_destroy_and_destroy_elements(rip_q, &destructor);
 	list_destroy_and_destroy_elements(blocked_q, &destructor);
 	list_destroy_and_destroy_elements(blocked_key, &destructor);
+
+	free(m_ready);
+	free(m_key);
+	free(m_esi);
+	free(m_blocked);
+	free(m_rip);
 }
 
 void definirAlgoritmo(char* algoritmoString) {
@@ -184,8 +219,12 @@ int procesar_mensaje(int socket) {
 	case HANDSHAKE_ESI: {
 		enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
 		proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
+		sem_wait(m_ready);
 		list_add(ready_q, (void*) nuevo_esi);
+		sem_wait(m_esi);
 		planificar();
+		sem_post(m_esi);
+		sem_post(m_ready);
 		break;
 	}
 
@@ -199,14 +238,22 @@ int procesar_mensaje(int socket) {
 		char* recurso = malloc(sizeof(char) * paquete->tamanio);
 		recurso = string_duplicate((char*) paquete->data);
 
+		sem_wait(m_key);
+		sem_wait(m_esi);
 		if (esta_clave(recurso)) {
+			sem_wait(m_blocked);
 			bloquear(esi_ejecutando, recurso, false);
 			enviar(socket_coordinador, CLAVE_TOMADA, 0, NULL);
+			sem_post(m_blocked);
+			sem_wait(m_ready);
 			esi_ejecutando = NULL;
 			planificar();
+			sem_post(m_ready);
 		} else {
 			bloquear_key(recurso);
 		}
+		sem_wait(m_esi);
+		sem_post(m_key);
 
 		free(recurso);
 		break;
@@ -219,11 +266,19 @@ int procesar_mensaje(int socket) {
 			return string_equals_ignore_case(((t_clave*) clave)->valor, recurso);
 		}
 		// no hay que verificar que el esi que hizo get es el mismo que hace store ?
+
+		sem_wait(m_ready);
+		sem_wait(m_blocked);
 		if (esi_esperando(recurso)) {
 			desbloquear(recurso);
 		}
+		sem_post(m_blocked);
+		sem_post(m_ready);
 
+		sem_wait(m_key);
 		list_remove_and_destroy_by_condition(blocked_key, &key_equals,&destructor);
+		sem_post(m_key);
+
 		free(recurso);
 		break;
 	}
@@ -234,9 +289,15 @@ int procesar_mensaje(int socket) {
 	}
 
 	case ESI_FINALIZADO: {
+		sem_wait(m_rip);
+		sem_wait(m_esi);
 		list_add(rip_q, esi_ejecutando);
+		sem_post(m_rip);
+		sem_wait(m_ready);
 		esi_ejecutando = NULL;
 		planificar();
+		sem_post(m_ready);
+		sem_post(m_esi);
 		break;
 	}
 
@@ -291,7 +352,7 @@ void* consola(void* no_use) {
 
 	char** token;
 
-	buffer = (char *) calloc(50, sizeof(char));
+	buffer = (char *) calloc(100, sizeof(char));
 
 	size_t tamanio = 100;
 
@@ -306,8 +367,10 @@ void* consola(void* no_use) {
 		}
 
 		if (string_equals_ignore_case(token[0], "continuar")) {
+			sem_wait(m_ready);
 			pausado = false;
 			planificar();
+			sem_post(m_ready);
 		}
 
 		if (string_equals_ignore_case(token[0], "bloquear")) {
@@ -322,7 +385,7 @@ void* consola(void* no_use) {
 					return false;
 				}
 			}
-
+			sem_wait(m_esi);
 			if (id_equals(esi_ejecutando)) {
 				bloquear(esi_ejecutando, token[1], true);
 				esi_ejecutando = NULL;
@@ -330,11 +393,15 @@ void* consola(void* no_use) {
 			}
 
 			else {
+				sem_wait(m_ready);
 				proceso_esi_t* esi_a_bloquear = list_find(ready_q, &id_equals);
 				list_remove_by_condition(ready_q, &id_equals);
+				sem_post(m_ready);
+				sem_wait(m_blocked);
 				bloquear(esi_a_bloquear, token[1], true);
-
+				sem_post(m_blocked);
 			}
+			sem_post(m_esi);
 
 		}
 
@@ -348,10 +415,15 @@ void* consola(void* no_use) {
 					return false;
 				}
 			}
+			sem_wait(m_blocked);
 			proceso_esi_t* esi = list_find(blocked_q, &key_equals);
 			list_remove_by_condition(blocked_q, &key_equals);
+			sem_post(m_blocked);
+
+			sem_wait(m_ready);
 			list_add(ready_q, esi);
 			planificar(); //Es necesario?
+			sem_post(m_ready);
 
 		}
 
@@ -362,8 +434,9 @@ void* consola(void* no_use) {
 				return string_equals_ignore_case(esi->recurso_bloqueante,
 						token[1]);
 			}
-
+			sem_wait(m_blocked);
 			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso); //Hay que contemplar si ninguno esta bloqueado?
+			sem_post(m_blocked);
 			imprimir(esis_a_imprimir);
 			list_destroy_and_destroy_elements(esis_a_imprimir, &destructor);
 
@@ -423,7 +496,6 @@ void desbloquear(char* recurso) {
 		return string_equals_ignore_case(
 				((proceso_esi_t*) unEsi)->recurso_bloqueante, recurso);
 	}
-
 	proceso_esi_t* esi = list_find(blocked_q, &recurso_eq);
 	list_add(ready_q, esi);
 	list_remove_by_condition(blocked_q, &recurso_eq);
@@ -442,7 +514,9 @@ _Bool esi_esperando(char* recurso) {
 		return string_equals_ignore_case(
 				((proceso_esi_t*) esi)->recurso_bloqueante, recurso);
 	}
+
 	return list_any_satisfy(blocked_q, &esta);
+
 }
 
 //Funciones auxiliares
@@ -469,6 +543,7 @@ bool esta_clave(char* clave) {
 	}
 
 	return list_any_satisfy(blocked_key, bloqueadoPorClave);
+
 }
 
 /*

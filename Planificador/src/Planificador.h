@@ -34,6 +34,7 @@ _Bool esi_esperando(char* recurso);
 void desbloquear(char* recurso);
 void bloquear_key(char* clave);
 bool esta_clave(char* clave);
+void init_semaphores();
 
 #define FIFO 600
 #define SJFCD 601
