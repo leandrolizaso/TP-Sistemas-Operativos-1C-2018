@@ -15,6 +15,10 @@
 #define HANDSHAKE_PLANIFICADOR 300
 #define HANDSHAKE_INSTANCIA 400
 
+/* ESI a Planificador*/
+
+#define SIGUIENTE 111
+
 /* Planificador a ESI */
 
 #define EJECUTAR_LINEA 101
