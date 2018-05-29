@@ -29,6 +29,7 @@ t_config* config_aux;
 t_config_esi config;
 int socket_coordinador;
 int socket_planificador;
+int ID;
 
 void inicializar(char* path);
 void ejecutar(char* script);
@@ -36,5 +37,14 @@ void finalizar();
 int enviar_get(t_esi_operacion sentencia);
 int enviar_set(t_esi_operacion sentencia);
 int enviar_store(t_esi_operacion sentencia);
+
+
+// Encapsulamiento
+
+void crearLog();
+void levantarConfig(char* path);
+void conectarPlanificador();
+void conectarCoordinador();
+
 
 #endif /* ESI_H_ */
