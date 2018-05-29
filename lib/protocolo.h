@@ -22,6 +22,11 @@
 /* Planificador a ESI */
 
 #define EJECUTAR_LINEA 101
+#define FINALIZAR 112
+
+/* Coordinador a ESI */
+
+#define DONE 113
 
 /* ESI a Coordinador */
 
