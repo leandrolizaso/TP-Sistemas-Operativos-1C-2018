@@ -14,6 +14,8 @@
 #include <pelao/sockets.h>
 #include <pelao/protocolo.h>
 #include <commons/config.h>
+#include <commons/collections/dictionary.h>
+#include "msghandlers.h"
 
 #define CFG_PORT  "listen_port"
 #define CFG_ALGO  "distribution_algorithm"
@@ -32,7 +34,7 @@ t_config* leer_config(int argc, char* argv[]) {
 	while ((opt = getopt(argc, argv, "c:")) != -1) {
 		switch (opt) {
 		case 'c':
-			printf("Levantando config... %s\n", optarg);
+			printf("Levantando config: %s\n", optarg);
 			config = config_create(optarg);
 			break;
 		case ':':
@@ -80,6 +82,49 @@ int config_incorrecta(t_config* config) {
 	return EXIT_SUCCESS;
 }
 
+int recibir_mensaje(int socket) {
+	static t_dictionary* conexiones = NULL;
+	if (conexiones == NULL) {
+		conexiones = dictionary_create();
+	}
+
+	t_paquete* paquete = recibir(socket);
+
+	int continue_communication = true;
+
+	switch (paquete->codigo_operacion) {
+	case HANDSHAKE_ESI:
+	case HANDSHAKE_INSTANCIA:
+	case HANDSHAKE_PLANIFICADOR:
+		registrar_conexion(conexiones, socket, paquete->codigo_operacion);
+		do_handhsake(socket);
+		return CONTINUE_COMMUNICATION;
+	}
+
+	//Si llegamos hasta aca, no es un handshake. Validamos
+	if (conexion_invalida(conexiones, socket, HANDSHAKE_ESI)) {
+		return END_CONNECTION;
+	}
+
+	//Ok, cool cool. Procesamos mensaje
+	switch (paquete->codigo_operacion) {
+	case OPERACION_GET:
+	case OPERACION_SET:
+	case OPERACION_STORE:
+		do_esi_request(conexiones, socket, paquete);
+		break;
+	case STRING_SENT: {
+		do_dummy_string(socket, paquete);
+		break;
+	}
+	default: //WTF? no gracias.
+		destruir_paquete(paquete);
+		return END_CONNECTION;
+	}
+	destruir_paquete(paquete);
+	return CONTINUE_COMMUNICATION;
+}
+
 int main(int argc, char* argv[]) {
 	t_config* config = leer_config(argc, argv);
 	if (config_incorrecta(config)) {
@@ -87,46 +132,7 @@ int main(int argc, char* argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	int recibir_mensaje(int socket) {
-		t_paquete* paquete = recibir(socket);
-
-		switch (paquete->codigo_operacion) {
-		case HANDSHAKE_ESI:
-		case HANDSHAKE_INSTANCIA:
-		case HANDSHAKE_PLANIFICADOR: {
-			enviar(socket, HANDSHAKE_COORDINADOR, 0, NULL);
-			break;
-		}
-		case STRING_SENT: {
-			char* recibido = (char*) (paquete->data);
-			printf("%s", recibido);
-
-			int len = strlen(recibido);
-
-			char* enviado = malloc(len);
-			strcpy(enviado, recibido);
-
-			int i;
-			for (i = 0; i < len; i++) {
-				switch (enviado[i]) {
-				case 'a':
-				case 'e':
-				case 'o':
-				case 'u':
-					enviado[i] = 'i'; //ñiñiñiñi
-				}
-			}
-			enviar(socket, STRING_SENT, len, enviado);
-			break;
-		}
-		default: //WTF? no gracias.
-			destruir_paquete(paquete);
-			return END_CONNECTION;
-		}
-		destruir_paquete(paquete);
-		return CONTINUE_COMMUNICATION;
-	}
-
+	printf("Comenzando a atender peticiones.");
 	multiplexar(config_get_string_value(config, CFG_PORT),
 			(void*) recibir_mensaje);
 	return EXIT_SUCCESS;
