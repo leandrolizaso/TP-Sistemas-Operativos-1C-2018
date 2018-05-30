@@ -56,9 +56,7 @@ void ejecutar(char* script) {
 
 	paquete = recibir(socket_planificador);
 
-	while ((read = getline(&line, &len, fp)) != -1
-			&& paquete->codigo_operacion == EJECUTAR_LINEA
-			&& paquete->codigo_operacion != FINALIZAR) {
+	while ((read = getline(&line, &len, fp)) != -1 && paquete->codigo_operacion == EJECUTAR_LINEA) {
 
 		destruir_paquete(paquete);
 
