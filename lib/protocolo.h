@@ -17,40 +17,34 @@
 
 /* ESI a Planificador*/
 
-#define SIGUIENTE 111
+#define SIGUIENTE 301
 
 /* Planificador a ESI */
 
-#define EJECUTAR_LINEA 101
-#define FINALIZAR 112
+#define EJECUTAR_LINEA 302
+#define FINALIZAR 303
 
 /* Coordinador a ESI */
-
-#define DONE 113
+#define ERROR_OPERACION 201 // string con fallo
+#define EXITO_OPERACION 202 // void
+#define VOLVE 203
 
 /* ESI a Coordinador */
+#define OPERACION 101 // paquetote
 
-#define OPERACION_GET 102
-#define OPERACION_SET 103
-#define OPERACION_STORE 104
-
-/* Coordinador a ESI y ESI a Planificador */
-
-#define ERROR_OPERACION 105
-#define EXITO_OPERACION 106
-#define ESI_FINALIZADO 107
+/*ESI a Planificador */
+#define ESI_FINALIZADO 102 // renombrar ESI_EOF
 
 
 /* Coodinador a Planificador */
-#define GET_CLAVE 108
-#define STORE_CLAVE 109
+#define GET_CLAVE 203 //string
+#define STORE_CLAVE 204 //string
+#define SET_CLAVE 205 //string
 
 /* Planificador a coordinador */
-#define CLAVE_TOMADA 110
+#define CLAVE_TOMADA 114 // <- habria que borrar dado que ESI_INVALIDA generaliza esto
+#define OPERACION_ESI_VALIDA 304
+#define OPERACION_ESI_INVALIDA 305
 
-
-/* OPERACION GENERICA*/
-
-#define STRING_SENT 500
 
 #endif /* PROTOCOLO_H_ */
