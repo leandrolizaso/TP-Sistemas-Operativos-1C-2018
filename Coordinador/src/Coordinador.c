@@ -15,16 +15,32 @@
 #include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/collections/dictionary.h>
+#include <commons/log.h>
+#include "Coordinador.h"
 #include "msghandlers.h"
 
-#define CFG_PORT  "listen_port"
-#define CFG_ALGO  "distribution_algorithm"
-#define CFG_ENTRYCANT  "entry_cant"
-#define CFG_ENTRYSIZE  "entry_size"
-#define CFG_DELAY  "delay"
+t_log* log_operaciones;
+t_log* log_app;
 
-#define CONTINUE_COMMUNICATION  1
-#define END_CONNECTION -1
+int main(int argc, char* argv[]) {
+	log_app = log_create("coordinador.log", "COORDINADOR", true,
+			LOG_LEVEL_TRACE); //TODO: el log level seria parametro (por archivo de config?)
+	log_operaciones = log_create("operaciones.log", "COORDINADOR", false,
+			LOG_LEVEL_INFO);
+
+	t_config* config = leer_config(argc, argv);
+	if (config_incorrecta(config)) {
+		config_destroy(config);
+		return EXIT_FAILURE;
+	}
+
+	char* port = config_get_string_value(config, CFG_PORT);
+	log_info(log_app, "Comenzando a atender peticiones en el puerto %s\n",
+			port);
+	multiplexar(port, recibir_mensaje);
+	printf("Finalizado");
+	return EXIT_SUCCESS;
+}
 
 t_config* leer_config(int argc, char* argv[]) {
 	int opt;
@@ -34,16 +50,16 @@ t_config* leer_config(int argc, char* argv[]) {
 	while ((opt = getopt(argc, argv, "c:")) != -1) {
 		switch (opt) {
 		case 'c':
-			printf("Levantando config: %s\n", optarg);
+			log_info(log_app, "Levantando config: %s\n", optarg);
 			config = config_create(optarg);
 			break;
 		case ':':
-			fprintf(stderr, "El parametro '-%c' requiere un argumento.\n",
+			log_error(log_app, "El parametro '-%c' requiere un argumento.\n",
 					optopt);
 			break;
 		case '?':
 		default:
-			fprintf(stderr, "El parametro '-%c' es invalido. Ignorado.\n",
+			log_error(log_app, "El parametro '-%c' es invalido. Ignorado.\n",
 					optopt);
 			break;
 		}
@@ -54,17 +70,15 @@ t_config* leer_config(int argc, char* argv[]) {
 
 int config_incorrecta(t_config* config) {
 	if (config == NULL) {
-		// PARA CORRER DESDE ECLIPSE
-		// AGREGAR EN "Run Configurations.. > Arguments"
-		// -c ${workspace_loc:/Coordinador/src/coord.cfg}
-		puts("El parametro -c <config_file> es obligatorio.\n");
-		return EXIT_FAILURE;
+		log_warning(log_app,
+				"El parametro -c <config_file> es obligatorio. Se intentará cargar la configuracion por defecto.\n");
+		config = config_create("src/coord.cfg");
 	}
 
 	int failures = 0;
 	void validar(char* key) { //TODO validar tipos?
 		if (!config_has_property(config, key)) {
-			printf("Se requiere configurar \"%s\"\n", key);
+			log_error(log_app, "Se requiere configurar \"%s\"\n", key);
 			failures++;
 		}
 	}
@@ -76,7 +90,8 @@ int config_incorrecta(t_config* config) {
 	validar(CFG_DELAY);
 
 	if (failures > 0) {
-		printf("Por favor revisar el archivo \"%s\"\n", config->path);
+		log_error(log_app, "Por favor revisar el archivo \"%s\"\n",
+				config->path);
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
@@ -90,8 +105,6 @@ int recibir_mensaje(int socket) {
 
 	t_paquete* paquete = recibir(socket);
 
-	int continue_communication = true;
-
 	switch (paquete->codigo_operacion) {
 	case HANDSHAKE_ESI:
 	case HANDSHAKE_INSTANCIA:
@@ -101,10 +114,7 @@ int recibir_mensaje(int socket) {
 		return CONTINUE_COMMUNICATION;
 	}
 
-	//Si llegamos hasta aca, no es un handshake. Validamos
-	if (conexion_invalida(conexiones, socket, HANDSHAKE_ESI)) {
-		return END_CONNECTION;
-	}
+	operacion_cliente_valida(conexiones, socket, paquete->codigo_operacion);
 
 	//Ok, cool cool. Procesamos mensaje
 	switch (paquete->codigo_operacion) {
@@ -113,10 +123,7 @@ int recibir_mensaje(int socket) {
 	case OPERACION_STORE:
 		do_esi_request(conexiones, socket, paquete);
 		break;
-	case STRING_SENT: {
-		do_dummy_string(socket, paquete);
-		break;
-	}
+		// case COORDINADOR_GET_CONFIG:
 	default: //WTF? no gracias.
 		destruir_paquete(paquete);
 		return END_CONNECTION;
@@ -125,15 +132,35 @@ int recibir_mensaje(int socket) {
 	return CONTINUE_COMMUNICATION;
 }
 
-int main(int argc, char* argv[]) {
-	t_config* config = leer_config(argc, argv);
-	if (config_incorrecta(config)) {
-		config_destroy(config);
-		return EXIT_FAILURE;
+char* itos(int numero) {
+	char* str = malloc(12);
+	sprintf(str, "%d", numero);
+	return str;
+}
+
+void registrar_conexion(t_dictionary* conexiones, int socket, int operacion) {
+	char* key = itos(socket);
+	dictionary_put(conexiones, key, (void*) operacion);
+	free(key);
+}
+
+int operacion_cliente_valida(t_dictionary* conexiones, int socket, int codigo_operacion) {
+	int handshake_valido;
+	switch (codigo_operacion) {
+	case OPERACION_GET:
+	case OPERACION_SET:
+	case OPERACION_STORE:
+		handshake_valido = HANDSHAKE_ESI;
 	}
 
-	printf("Comenzando a atender peticiones.");
-	multiplexar(config_get_string_value(config, CFG_PORT),
-			(void*) recibir_mensaje);
-	return EXIT_SUCCESS;
+	char* key = itos(socket);
+	int hanshake = (int) dictionary_get(conexiones, key);
+	free(key);
+
+	if (hanshake == handshake_valido) {
+		return true;
+	}
+	return false;
+
 }
+
