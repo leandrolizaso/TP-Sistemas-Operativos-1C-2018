@@ -27,14 +27,15 @@ void definirAlgoritmo(char* algoritmoString);
 void levantoConfig(char* path);
 void estimar_proxima_rafaga(proceso_esi_t* esi);
 void imprimir(t_list* esis_a_imprimir);
-void bloquear(proceso_esi_t* esi, char* string,_Bool por_consola);
+void bloquear(proceso_esi_t* esi, char* string);
 void destructor(void *elem);
 _Bool esi_esperando(char* recurso);
 void desbloquear(char* recurso);
 void bloquear_key(char* clave);
 bool esta_clave(char* clave);
 void init_semaphores();
-void menor_tiempo(void*,void*);
+bool menor_tiempo(void*,void*);
+
 
 #define FIFO 600
 #define SJFCD 601
