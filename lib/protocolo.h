@@ -65,6 +65,6 @@ typedef struct{
 } t_mensaje_esi;
 
 void* serializar_mensaje_esi(t_mensaje_esi mensaje_esi);
-t_mensaje_esi* deserializar_mensaje_esi(void* buffer);
+t_mensaje_esi deserializar_mensaje_esi(void* buffer);
 
 #endif /* PROTOCOLO_H_ */

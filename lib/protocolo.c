@@ -20,10 +20,10 @@ void* serializar_clavevalor(t_clavevalor cv) {
 }
 
 t_clavevalor deserializar_clavevalor(void* buffer) {
-	int* l_clave = (int*)buffer;
-	int* l_valor = l_clave+1;
-	char* clave = (char*)l_valor+1;
-	char* valor = clave+*l_clave;
+	int* l_clave = buffer;
+	int* l_valor = l_clave + 1;
+	char* clave = (char*) l_valor + 1;
+	char* valor = clave + *l_clave;
 
 	t_clavevalor cv;
 	cv.clave = clave;
@@ -31,10 +31,29 @@ t_clavevalor deserializar_clavevalor(void* buffer) {
 	return cv;
 }
 
-void* serializar_mensaje_esi(t_mensaje_esi mensaje_esi) {
-
+int sizeof_mensaje_esi(t_mensaje_esi mensaje_esi) {
+	return sizeof(int) * 2 + sizeof_clavevalor(mensaje_esi.clave_valor);
 }
 
-t_mensaje_esi* deserializar_mensaje_esi(void* buffer) {
+void* serializar_mensaje_esi(t_mensaje_esi mensaje_esi) {
+	void* buffer = malloc(sizeof_mensaje_esi(mensaje_esi));
 
+	memcpy(buffer, &mensaje_esi.id_esi, sizeof(int));
+	memcpy(buffer + sizeof(int), &mensaje_esi.keyword, sizeof(int));
+	memcpy(buffer + sizeof(int) * 2, serializar_clavevalor(mensaje_esi.clave_valor), sizeof_clavevalor(mensaje_esi.clave_valor));
+
+	return buffer;
+}
+
+t_mensaje_esi deserializar_mensaje_esi(void* buffer) {
+	int* id_esi = buffer;
+	int* keyword = id_esi+1;
+	t_clavevalor* clave_valor = (t_clavevalor*) keyword+1;
+
+	t_mensaje_esi mensaje_esi;
+	mensaje_esi.id_esi = *id_esi;
+	mensaje_esi.keyword = *keyword;
+	mensaje_esi.clave_valor = deserializar_clavevalor(clave_valor);
+
+	return mensaje_esi;
 }
