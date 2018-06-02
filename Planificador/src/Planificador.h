@@ -8,7 +8,6 @@ typedef struct {
 	double estimacion_ant;
 	double duracion_raf_ant;
 	char recurso_bloqueante[40];
-	_Bool bloqueado_por_consola;
 
 } proceso_esi_t;
 
@@ -35,6 +34,7 @@ void desbloquear(char* recurso);
 void bloquear_key(char* clave);
 bool esta_clave(char* clave);
 void init_semaphores();
+void menor_tiempo(void*,void*);
 
 #define FIFO 600
 #define SJFCD 601
