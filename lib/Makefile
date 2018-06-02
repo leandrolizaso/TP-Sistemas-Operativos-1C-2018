@@ -1,7 +1,7 @@
 CC=gcc
 
 BUILD_DIR=_build
-SOURCES=sockets.c
+SOURCES=sockets.c protocolo.c
 HEADERS=sockets.h protocolo.h
 OBJS=$(SOURCES:%.c=$(BUILD_DIR)/%.o)
 

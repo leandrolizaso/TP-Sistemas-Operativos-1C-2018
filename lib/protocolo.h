@@ -47,4 +47,24 @@
 #define OPERACION_ESI_INVALIDA 305
 
 
+/* Serializacion/Desserializacion */
+
+typedef struct {
+	char* clave;
+	char* valor;
+} t_clavevalor;
+
+void* serializar_clavevalor(t_clavevalor clave_valor);
+t_clavevalor deserializar_clavevalor(void* buffer);
+
+
+typedef struct{
+	int id_esi;
+	int keyword;
+	t_clavevalor clave_valor;
+} t_mensaje_esi;
+
+void* serializar_mensaje_esi(t_mensaje_esi mensaje_esi);
+t_mensaje_esi* deserializar_mensaje_esi(void* buffer);
+
 #endif /* PROTOCOLO_H_ */
