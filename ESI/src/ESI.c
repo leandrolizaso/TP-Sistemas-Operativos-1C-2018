@@ -113,19 +113,6 @@ void ejecutar(char* script) {
 
 			switch (paquete->codigo_operacion) {
 
-			case DONE:
-				if (enviar(socket_planificador, EXITO_OPERACION, 0, NULL) < 0) {
-					perror("Error de comunicación con el Planificador");
-					log_error(logger, "Error de comunicación con el Planificador");
-					destruir_paquete(paquete);
-					finalizar();
-					exit(EXIT_FAILURE);
-				}
-				;
-				msg = string_from_format("Línea %s ejecutada exitosamente",line);
-				log_info(logger, msg);
-				free(msg);
-				break;
 			case EXITO_OPERACION:
 				if (enviar(socket_planificador, EXITO_OPERACION, 0, NULL) < 0) {
 					perror("Error de comunicación con el Planificador");
