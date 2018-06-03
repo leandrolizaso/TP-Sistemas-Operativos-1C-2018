@@ -34,10 +34,12 @@ int ID;
 void inicializar(char* path);
 void ejecutar(char* script);
 void finalizar();
-int enviar_get(t_esi_operacion sentencia);
-int enviar_set(t_esi_operacion sentencia);
-int enviar_store(t_esi_operacion sentencia);
 
+
+void enviar_operacion(t_mensaje_esi mensaje_esi);
+void verificarEnvioCoordinador(int envio);
+void liberarClaveValor(t_clavevalor claveValor);
+t_clavevalor extraerClaveValor(t_esi_operacion sentencia,t_paquete* paquete);// recibe paquete para destruir por si falla
 
 // Encapsulamiento
 
@@ -45,6 +47,5 @@ void crearLog();
 void levantarConfig(char* path);
 void conectarPlanificador();
 void conectarCoordinador();
-
 
 #endif /* ESI_H_ */
