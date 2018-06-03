@@ -20,7 +20,7 @@
 #include "Planificador.h"
 #include <semaphore.h>
 
-/*confi*/
+/*config*/
 
 char* ip_coordinador;
 char* puerto_coordinador;
@@ -38,6 +38,7 @@ t_config* config;
 int id_base = 0;
 _Bool ejecutando = false;
 _Bool pausado;
+char recurso_bloqueante[40];
 proceso_esi_t * esi_ejecutando;
 
 /*Listas*/
@@ -231,8 +232,8 @@ int procesar_mensaje(int socket) {
 	switch (paquete->codigo_operacion) {
 
 	case HANDSHAKE_ESI: {
-		enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
 		proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
+		enviar(socket, HANDSHAKE_PLANIFICADOR, sizeof(int*),(int*) nuevo_esi->ID);
 		sem_wait(m_ready);
 		list_add(ready_q, (void*) nuevo_esi);
 		sem_wait(m_esi);
@@ -302,10 +303,22 @@ int procesar_mensaje(int socket) {
 	}
 
 	case EXITO_OPERACION: {
-		if(algoritmo!=SJFCD){
-			enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-			aumentar_rafaga(esi_ejecutando);
-		} else {
+		if(pausado) break;
+
+		if(!esi_ejecutando->a_blocked){
+			if(algoritmo!=SJFCD){
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				aumentar_rafaga(esi_ejecutando);
+			} else {
+				sem_wait(m_ready);
+				sem_wait(m_esi);
+				planificar();
+				sem_post(m_esi);
+				sem_post(m_ready);
+			}
+		}else{
+			bloquear(esi_ejecutando, recurso_bloqueante);
+			esi_ejecutando = NULL;
 			sem_wait(m_ready);
 			sem_wait(m_esi);
 			planificar();
@@ -315,7 +328,7 @@ int procesar_mensaje(int socket) {
 		break;
 	}
 
-	case ESI_FINALIZADO: {
+	case ERROR_OPERACION: {
 		sem_wait(m_rip);
 		sem_wait(m_esi);
 		list_add(rip_q, esi_ejecutando);
@@ -337,15 +350,20 @@ int procesar_mensaje(int socket) {
 	return 1;
 }
 
-void estimar_proxima_rafaga(void* pointer) {
-	proceso_esi_t* esi = (proceso_esi_t*) pointer;
-	esi->estimacion_ant = alfa * esi->duracion_raf_ant
-			+ (1 - alfa) * esi->estimacion_ant;
-}
 
 void planificar() {
-	if (pausado)
+	if (pausado){
+		/* cuando se pausa, vuelve al mismo esi??
+		if(esi_ejecutando!=NULL){
+			list_add(ready_q,esi_ejecutando);
+			esi_ejecutando=NULL;
+		}
+		*/
 		return;
+	}
+
+
+
 	if (algoritmo!=SJFCD) {
 		if(esi_ejecutando == NULL){
 			switch (algoritmo) {
@@ -358,7 +376,6 @@ void planificar() {
 			}
 
 			case SJFSD: {
-				ready_q = list_map(ready_q,&estimar_proxima_rafaga);
 				list_sort(ready_q,&menor_tiempo);
 				esi_ejecutando = list_get(ready_q, 0);
 				list_remove(ready_q, 0);
@@ -372,12 +389,8 @@ void planificar() {
 			}
 			}
 		}else {
-			ready_q = list_map(ready_q,&estimar_proxima_rafaga);
-			int temp=esi_ejecutando->estimacion_ant;
-			esi_ejecutando->estimacion_ant-= esi_ejecutando->duracion_raf_ant;
-			list_add(ready_q,esi_ejecutando);
+			if(esi_ejecutando!=NULL){list_add(ready_q,esi_ejecutando);}
 			list_sort(ready_q,&menor_tiempo);
-			esi_ejecutando->estimacion_ant=temp;
 			esi_ejecutando = list_get(ready_q, 0);
 			list_remove(ready_q, 0);
 			enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
@@ -410,8 +423,14 @@ void* consola(void* no_use) {
 
 		if (string_equals_ignore_case(token[0], "continuar")) {
 			sem_wait(m_ready);
+			sem_wait(m_esi);
 			pausado = false;
-			planificar();
+			if(algoritmo==FIFO&&esi_ejecutando!=NULL){
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+			} else{
+				planificar(); //como se que volvio el ultimo esi? si habia un esi en ejecucion
+			}
+			sem_post(m_esi);
 			sem_post(m_ready);
 		}
 
@@ -427,11 +446,11 @@ void* consola(void* no_use) {
 					return false;
 				}
 			}
+
 			sem_wait(m_esi);
 			if (id_equals(esi_ejecutando)) {
-				bloquear(esi_ejecutando, token[1]);
-				esi_ejecutando = NULL;
-				planificar(); //Es necesario?
+				esi_ejecutando->a_blocked = true;
+				strcpy(recurso_bloqueante,token[1]);
 			}
 
 			else {
@@ -451,7 +470,7 @@ void* consola(void* no_use) {
 
 			_Bool key_equals(void* pointer) {
 				proceso_esi_t* esi = pointer;
-				return esi->recurso_bloqueante == token[1];
+				return string_equals_ignore_case(esi->recurso_bloqueante,token[1]);
 
 			}
 
@@ -461,8 +480,11 @@ void* consola(void* no_use) {
 			sem_post(m_blocked);
 
 			sem_wait(m_ready);
+			esi->a_blocked=false;
 			list_add(ready_q, esi);
+			sem_wait(m_esi);
 			planificar(); //Es necesario?
+			sem_post(m_esi);
 			sem_post(m_ready);
 
 		}
@@ -510,6 +532,7 @@ proceso_esi_t* nuevo_processo_esi(int socket_esi) {
 	nuevo_esi->ID = id_base;
 	nuevo_esi->estimacion_ant = estimacionInicial;
 	nuevo_esi->duracion_raf_ant = 0;
+	nuevo_esi->ejecuto_ant = 0;
 	strcpy(nuevo_esi->recurso_bloqueante,"");
 	nuevo_esi->socket = socket_esi;
 	nuevo_esi->viene_de_blocked = false;
@@ -528,6 +551,9 @@ void imprimir(t_list* esis_a_imprimir) {
 
 void bloquear(proceso_esi_t* esi, char* recurso) {
 	esi->viene_de_blocked = true;
+	esi->duracion_raf_ant=esi->ejecuto_ant;
+	esi->ejecuto_ant=0;
+	estimar_proxima_rafaga(esi);
 	strcpy(esi->recurso_bloqueante,recurso);
 	list_add(blocked_q, esi);
 }
@@ -538,6 +564,7 @@ void desbloquear(char* recurso) {
 				((proceso_esi_t*) unEsi)->recurso_bloqueante, recurso);
 	}
 	proceso_esi_t* esi = list_find(blocked_q, &recurso_eq);
+	esi->a_blocked=false;
 	list_add(ready_q, esi);
 	list_remove_by_condition(blocked_q, &recurso_eq);
 	planificar(); //es necesario?
@@ -561,16 +588,29 @@ _Bool esi_esperando(char* recurso) {
 }
 
 _Bool menor_tiempo(void* pointer1, void* pointer2){
-	return ((proceso_esi_t*)pointer1)->estimacion_ant < ((proceso_esi_t*)pointer2)->estimacion_ant;
+
+	int sort_number(void* pointer){
+		return ((proceso_esi_t*)pointer)->estimacion_ant - ((proceso_esi_t*)pointer)->ejecuto_ant;
+
+	}
+
+	return sort_number(pointer1) < sort_number(pointer2);
 }
 
 //Funciones auxiliares
+
+void estimar_proxima_rafaga(void* pointer) {
+	proceso_esi_t* esi = (proceso_esi_t*) pointer;
+	esi->estimacion_ant = alfa * esi->duracion_raf_ant
+			+ (1 - alfa) * esi->estimacion_ant;
+}
+
 void aumentar_rafaga(proceso_esi_t* esi){
 	if(esi->viene_de_blocked){
 		esi->viene_de_blocked=false;
-		esi->duracion_raf_ant=1;
+		esi->ejecuto_ant=1;
 	}else{
-		esi->duracion_raf_ant++;
+		esi->ejecuto_ant++;
 	}
 }
 
