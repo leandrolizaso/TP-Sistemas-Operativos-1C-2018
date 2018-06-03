@@ -8,6 +8,7 @@ typedef struct {
 	double estimacion_ant;
 	double duracion_raf_ant;
 	char recurso_bloqueante[40];
+	_Bool viene_de_blocked;
 
 } proceso_esi_t;
 

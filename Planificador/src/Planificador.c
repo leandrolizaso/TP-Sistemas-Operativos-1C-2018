@@ -40,7 +40,6 @@ _Bool ejecutando = false;
 _Bool pausado;
 proceso_esi_t * esi_ejecutando;
 
-
 /*Listas*/
 
 t_list* ready_q;
@@ -253,6 +252,7 @@ int procesar_mensaje(int socket) {
 		sem_wait(m_esi);
 		if (esta_clave(recurso)) {
 			sem_wait(m_blocked);
+			esi_ejecutando->viene_de_blocked = true;
 			bloquear(esi_ejecutando, recurso);
 			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
 			sem_post(m_blocked);
@@ -264,7 +264,7 @@ int procesar_mensaje(int socket) {
 			bloquear_key(recurso);
 			enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
 		}
-		sem_wait(m_esi);
+		sem_post(m_esi);
 		sem_post(m_key);
 
 		free(recurso);
@@ -298,16 +298,20 @@ int procesar_mensaje(int socket) {
 		break;
 	}
 
-	case STORE_CLAVE:{
+	case SET_CLAVE:{
 		break;
 	}
 
 	case EXITO_OPERACION: {
 		if(algoritmo!=SJFCD){
 			enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-			esi_ejecutando->duracion_raf_ant++;
+			aumentar_rafaga(esi_ejecutando);
 		} else {
+			sem_wait(m_ready);
+			sem_wait(m_esi);
 			planificar();
+			sem_post(m_esi);
+			sem_post(m_ready);
 		}
 		break;
 	}
@@ -343,34 +347,42 @@ void estimar_proxima_rafaga(void* pointer) {
 void planificar() {
 	if (pausado)
 		return;
-	if (esi_ejecutando == NULL) {  //va a cambiar en el caso de con desalojo
+	if (algoritmo!=SJFCD) {
+		if(esi_ejecutando == NULL){
+			switch (algoritmo) {
 
-		switch (algoritmo) {
+			case FIFO: {
+				esi_ejecutando = list_get(ready_q, 0);
+				list_remove(ready_q, 0);
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				break;
+			}
 
-		case FIFO: {
-			esi_ejecutando = list_get(ready_q, 0);
-			list_remove(ready_q, 0);
-			enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-			break;
-		}
+			case SJFSD: {
+				ready_q = list_map(ready_q,&estimar_proxima_rafaga);
+				list_sort(ready_q,&menor_tiempo);
+				esi_ejecutando = list_get(ready_q, 0);
+				list_remove(ready_q, 0);
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				aumentar_rafaga(esi_ejecutando);
+				break;
+			}
 
-		case SJFCD: {
-			break;
-		}
-
-		case SJFSD: {
+			case HRRN: {
+				break;
+			}
+			}
+		}else {
 			ready_q = list_map(ready_q,&estimar_proxima_rafaga);
+			int temp=esi_ejecutando->estimacion_ant;
+			esi_ejecutando->estimacion_ant-= esi_ejecutando->duracion_raf_ant;
+			list_add(ready_q,esi_ejecutando);
 			list_sort(ready_q,&menor_tiempo);
+			esi_ejecutando->estimacion_ant=temp;
 			esi_ejecutando = list_get(ready_q, 0);
 			list_remove(ready_q, 0);
 			enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-			esi_ejecutando->duracion_raf_ant++;
-			break;
-		}
-
-		case HRRN: {
-			break;
-		}
+			aumentar_rafaga(esi_ejecutando);
 		}
 	}
 }
@@ -501,6 +513,7 @@ proceso_esi_t* nuevo_processo_esi(int socket_esi) {
 	nuevo_esi->duracion_raf_ant = 0;
 	strcpy(nuevo_esi->recurso_bloqueante,"");
 	nuevo_esi->socket = socket_esi;
+	nuevo_esi->viene_de_blocked = false;
 	return nuevo_esi;
 }
 
@@ -552,7 +565,14 @@ _Bool menor_tiempo(void* pointer1, void* pointer2){
 }
 
 //Funciones auxiliares
-
+void aumentar_rafaga(proceso_esi_t* esi){
+	if(esi->viene_de_blocked){
+		esi->viene_de_blocked=false;
+		esi->duracion_raf_ant=1;
+	}else{
+		esi->duracion_raf_ant++;
+	}
+}
 
 void agregar_espacio(char* buffer) {
 	int i = 0;
