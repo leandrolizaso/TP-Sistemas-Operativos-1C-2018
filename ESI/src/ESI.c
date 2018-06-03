@@ -64,36 +64,7 @@ void ejecutar(char* script) {
 
 		if (sentencia.valido) {
 
-			t_clavevalor extraerClaveValor(t_esi_operacion sentencia){
-				t_clavevalor clavevalor;
-				switch (sentencia.keyword) {
-				case GET:
-					clavevalor.clave = string_duplicate(sentencia.argumentos.GET.clave);
-					clavevalor.valor = NULL;
-					return clavevalor;
-					break;
-				case SET:
-					clavevalor.clave = string_duplicate(sentencia.argumentos.SET.clave);
-					clavevalor.valor = string_duplicate(sentencia.argumentos.SET.valor);
-					return clavevalor;
-					break;
-				case STORE:
-					clavevalor.clave = string_duplicate(sentencia.argumentos.STORE.clave);
-					clavevalor.valor = NULL;
-					return clavevalor;
-					break;
-				default:
-					error = string_from_format("La keyword %d del esi %d no es válida",sentencia.keyword, ID);
-					log_error(logger, error);
-					free(error);
-					destruir_paquete(paquete);
-					finalizar();
-					exit(EXIT_FAILURE);
-				}
-			}
-
-			t_clavevalor claveValor = extraerClaveValor(sentencia);
-
+			t_clavevalor claveValor = extraerClaveValor(sentencia,paquete);
 			t_mensaje_esi mensaje_esi;
 
 			mensaje_esi.clave_valor = claveValor;
@@ -103,7 +74,7 @@ void ejecutar(char* script) {
 			enviar_operacion(mensaje_esi);
 			liberarClaveValor(claveValor);
 
-			msg = string_from_format("Línea %s fue enviada al Coordinador", line);
+			msg = string_from_format("Línea %s fue enviada al Coordinador por el ESI%d", line,ID);
 			log_info(logger, msg);
 			free(msg);
 
@@ -128,7 +99,7 @@ void ejecutar(char* script) {
 				break;
 			case ERROR_OPERACION:
 				log_error(logger,paquete->data);
-				if (enviar(socket_planificador, ERROR_OPERACION, 0, NULL) < 0) {
+				if (enviar(socket_planificador, ERROR_OPERACION, paquete->tamanio, paquete->data) < 0) {
 					perror("Error de comunicación con el Planificador");
 					log_error(logger,"Error de comunicación con el Planificador");
 					destruir_paquete(paquete);
@@ -138,9 +109,6 @@ void ejecutar(char* script) {
 				msg = string_from_format("Línea %s falló en su ejecución",line);
 				log_info(logger, msg);
 				free(msg);
-				break;
-
-			case VOLVE:
 				break;
 			default:
 				error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
@@ -206,6 +174,35 @@ void enviar_operacion(t_mensaje_esi mensaje_esi){
 			sizeof_mensaje_esi(mensaje_esi),serializar_mensaje_esi(mensaje_esi));
 
 	verificarEnvioCoordinador(envio);
+}
+
+t_clavevalor extraerClaveValor(t_esi_operacion sentencia,t_paquete* paquete){
+	t_clavevalor clavevalor;
+	char* error;
+	switch (sentencia.keyword) {
+	case GET:
+		clavevalor.clave = string_duplicate(sentencia.argumentos.GET.clave);
+		clavevalor.valor = NULL;
+		return clavevalor;
+		break;
+	case SET:
+		clavevalor.clave = string_duplicate(sentencia.argumentos.SET.clave);
+		clavevalor.valor = string_duplicate(sentencia.argumentos.SET.valor);
+		return clavevalor;
+		break;
+	case STORE:
+		clavevalor.clave = string_duplicate(sentencia.argumentos.STORE.clave);
+		clavevalor.valor = NULL;
+		return clavevalor;
+		break;
+	default:
+		error = string_from_format("La keyword %d del esi %d no es válida",sentencia.keyword, ID);
+		log_error(logger, error);
+		free(error);
+		destruir_paquete(paquete);
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
 }
 
 void verificarEnvioCoordinador(int envio){
