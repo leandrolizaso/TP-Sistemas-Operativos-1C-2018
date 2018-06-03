@@ -63,47 +63,47 @@ void ejecutar(char* script) {
 		t_esi_operacion sentencia = parse(line);
 
 		if (sentencia.valido) {
-			switch (sentencia.keyword) {
-			case GET:
-				if (enviar_get(sentencia) < 0) {
-					perror("Error de comunicación con el Coordinador");
-					log_error(logger,
-							"Error de comunicación con el Coordinador");
+
+			t_clavevalor extraerClaveValor(t_esi_operacion sentencia){
+				t_clavevalor clavevalor;
+				switch (sentencia.keyword) {
+				case GET:
+					clavevalor.clave = string_duplicate(sentencia.argumentos.GET.clave);
+					clavevalor.valor = NULL;
+					return clavevalor;
+					break;
+				case SET:
+					clavevalor.clave = string_duplicate(sentencia.argumentos.SET.clave);
+					clavevalor.valor = string_duplicate(sentencia.argumentos.SET.valor);
+					return clavevalor;
+					break;
+				case STORE:
+					clavevalor.clave = string_duplicate(sentencia.argumentos.STORE.clave);
+					clavevalor.valor = NULL;
+					return clavevalor;
+					break;
+				default:
+					error = string_from_format("La keyword %d del esi %d no es válida",sentencia.keyword, ID);
+					log_error(logger, error);
+					free(error);
+					destruir_paquete(paquete);
 					finalizar();
 					exit(EXIT_FAILURE);
 				}
-				;
-				break;
-			case SET:
-				if (enviar_set(sentencia) < 0) {
-					perror("Error de comunicación con el Coordinador");
-					log_error(logger,
-							"Error de comunicación con el Coordinador");
-					finalizar();
-					exit(EXIT_FAILURE);
-				}
-				;
-				break;
-			case STORE:
-				if (enviar_store(sentencia) < 0) {
-					perror("Error de comunicación con el Coordinador");
-					log_error(logger,
-							"Error de comunicación con el Coordinador");
-					finalizar();
-					exit(EXIT_FAILURE);
-				}
-				;
-				break;
-			default:
-				error = string_from_format("La línea %s no se pudo interpretar",
-						line);
-				log_error(logger, error);
-				free(error);
-				finalizar();
-				exit(EXIT_FAILURE);
 			}
 
-			msg = string_from_format("Línea %s enviada al Coordinador", line);
+			t_clavevalor claveValor = extraerClaveValor(sentencia);
+
+			t_mensaje_esi mensaje_esi;
+
+			mensaje_esi.clave_valor = claveValor;
+			mensaje_esi.id_esi = ID;
+			mensaje_esi.keyword = sentencia.keyword;
+
+			enviar_operacion(mensaje_esi);
+			liberarClaveValor(claveValor);
+
+			msg = string_from_format("Línea %s fue enviada al Coordinador", line);
 			log_info(logger, msg);
 			free(msg);
 
@@ -127,6 +127,7 @@ void ejecutar(char* script) {
 				free(msg);
 				break;
 			case ERROR_OPERACION:
+				log_error(logger,paquete->data);
 				if (enviar(socket_planificador, ERROR_OPERACION, 0, NULL) < 0) {
 					perror("Error de comunicación con el Planificador");
 					log_error(logger,"Error de comunicación con el Planificador");
@@ -137,6 +138,9 @@ void ejecutar(char* script) {
 				msg = string_from_format("Línea %s falló en su ejecución",line);
 				log_info(logger, msg);
 				free(msg);
+				break;
+
+			case VOLVE:
 				break;
 			default:
 				error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
@@ -180,52 +184,29 @@ void finalizar() {
 	log_destroy(logger);
 }
 
-int enviar_get(t_esi_operacion sentencia) {
+void enviar_operacion(t_mensaje_esi mensaje_esi){
+	int envio = enviar(socket_coordinador, OPERACION,
+			sizeof_mensaje_esi(mensaje_esi),serializar_mensaje_esi(mensaje_esi));
 
-	char* clave = string_duplicate(sentencia.argumentos.GET.clave);
-	int len = string_length(clave) + 1;
-
-	int rs = enviar(socket_coordinador, OPERACION_GET, len, (void*) clave);
-
-	free(clave);
-
-	return rs;
+	verificarEnvioCoordinador(envio);
 }
 
-int enviar_set(t_esi_operacion sentencia) {
-
-	char* clave = string_duplicate(sentencia.argumentos.SET.clave);
-	char* valor = string_duplicate(sentencia.argumentos.SET.valor);
-	int len_clave = string_length(clave) + 1;
-	int len_valor = string_length(valor) + 1;
-	int len_buffer = 2 * sizeof(int) + len_clave + len_valor;
-	void* buffer = malloc(len_buffer);
-
-	memcpy(buffer, &len_clave, sizeof(int));
-	memcpy(buffer + sizeof(int), clave, len_clave);
-	memcpy(buffer + sizeof(int) + len_clave, &len_valor, sizeof(int));
-	memcpy(buffer + 2 * sizeof(int) + len_clave, valor, len_valor);
-
-	int rs = enviar(socket_coordinador, OPERACION_SET, len_buffer, buffer);
-
-	free(clave);
-	free(valor);
-	free(buffer);
-
-	return rs;
+void verificarEnvioCoordinador(int envio){
+	if (envio < 0) {
+		perror("Error de comunicación con el Coordinador");
+		log_error(logger,"Error de comunicación con el Coordinador");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
 }
 
-int enviar_store(t_esi_operacion sentencia) {
-
-	char* clave = string_duplicate(sentencia.argumentos.STORE.clave);
-	int len = string_length(clave) + 1;
-
-	int rs = enviar(socket_coordinador, OPERACION_STORE, len, (void*) clave);
-
-	free(clave);
-
-	return rs;
+void liberarClaveValor(t_clavevalor claveValor){
+	free(claveValor.clave);
+	if(claveValor.valor != NULL)
+		free(claveValor.valor);
 }
+
+
 
 // Encapsulamiento
 void crearLog() {
