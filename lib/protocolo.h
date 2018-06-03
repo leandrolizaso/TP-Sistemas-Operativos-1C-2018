@@ -15,25 +15,25 @@
 #define HANDSHAKE_PLANIFICADOR 300
 #define HANDSHAKE_INSTANCIA 400
 
-/* ESI a Planificador*/
-
-#define SIGUIENTE 301
-
 /* Planificador a ESI */
 
 #define EJECUTAR_LINEA 302
 #define FINALIZAR 303
+#define ABORTAR 304
+#define VOLVE 305
 
 /* Coordinador a ESI */
 #define ERROR_OPERACION 201 // string con fallo
 #define EXITO_OPERACION 202 // void
-#define VOLVE 203
+
 
 /* ESI a Coordinador */
-#define OPERACION 101 // paquetote
+#define OPERACION 101 // serializacion
 
 /*ESI a Planificador */
 #define ESI_FINALIZADO 102 // renombrar ESI_EOF
+// ERROR_OPERACION
+// EXITO_OPERACION
 
 
 /* Coodinador a Planificador */
@@ -43,8 +43,8 @@
 
 /* Planificador a coordinador */
 #define CLAVE_TOMADA 114 // <- habria que borrar dado que ESI_INVALIDA generaliza esto
-#define OPERACION_ESI_VALIDA 304
-#define OPERACION_ESI_INVALIDA 305
+#define OPERACION_ESI_VALIDA 306
+#define OPERACION_ESI_INVALIDA 307
 
 
 /* Serializacion/Desserializacion */
