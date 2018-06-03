@@ -252,7 +252,6 @@ int procesar_mensaje(int socket) {
 		sem_wait(m_esi);
 		if (esta_clave(recurso)) {
 			sem_wait(m_blocked);
-			esi_ejecutando->viene_de_blocked = true;
 			bloquear(esi_ejecutando, recurso);
 			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
 			sem_post(m_blocked);
@@ -528,6 +527,7 @@ void imprimir(t_list* esis_a_imprimir) {
 }
 
 void bloquear(proceso_esi_t* esi, char* recurso) {
+	esi->viene_de_blocked = true;
 	strcpy(esi->recurso_bloqueante,recurso);
 	list_add(blocked_q, esi);
 }
