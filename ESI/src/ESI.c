@@ -163,12 +163,29 @@ void ejecutar(char* script) {
 
 		paquete = recibir(socket_planificador);
 	}
-	if(paquete->codigo_operacion == FINALIZAR){
-	destruir_paquete(paquete);
-	msg= string_from_format("El ESI %d fue finalizado por consola.",ID);
-	log_info(logger,msg);
-	free(msg);
-	finalizar();
+
+	switch(paquete->codigo_operacion){
+
+		case FINALIZAR:
+			destruir_paquete(paquete);
+			msg= string_from_format("El ESI %d fue finalizado por consola.",ID);
+			log_info(logger,msg);
+			free(msg);
+			finalizar();
+			break;
+		case ABORTAR:
+			log_info(logger,paquete->data);
+			destruir_paquete(paquete);
+			free(msg);
+			finalizar();
+			break;
+		default:
+			error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
+			log_error(logger, error);
+			free(error);
+			destruir_paquete(paquete);
+			finalizar();
+			exit(EXIT_FAILURE);
 	}
 
 	fclose(fp);
