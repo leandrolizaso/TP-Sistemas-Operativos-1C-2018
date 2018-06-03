@@ -47,14 +47,4 @@ void levantarConfig(char* path);
 void conectarPlanificador();
 void conectarCoordinador();
 
-
-
-// Encapsulamiento
-
-void crearLog();
-void levantarConfig(char* path);
-void conectarPlanificador();
-void conectarCoordinador();
-
-
 #endif /* ESI_H_ */
