@@ -47,6 +47,12 @@
 #define OPERACION_ESI_INVALIDA 307
 
 
+/* Instancia a Coordinador */
+#define SOLICITAR_CONFIG 206
+
+/* Coordinador a Instancia */
+#define ENVIAR_CONFIG 207 // este mensaje tambien lo usa planificador luego del handshake para enviar al coordinador
+
 /* Serializacion/Desserializacion */
 
 typedef struct {
