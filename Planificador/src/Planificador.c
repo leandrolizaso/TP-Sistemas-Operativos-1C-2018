@@ -250,12 +250,12 @@ int procesar_mensaje(int socket) {
 
 
 	case GET_CLAVE: {
-		t_mensaje_plani* esi_recibido = (t_mensaje_plani*)(paquete->data);
+		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
 		//Necesito liberarlo aca?
 
-		char* recurso = esi_recibido->clave;/*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
-		recurso = string_duplicate(esi_recibido->clave);
-		int id_recibido = esi_recibido->id_esi;
+		char* recurso; /*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		recurso = string_duplicate(esi_recibido.clave_valor.clave);
+		int id_recibido = esi_recibido.id_esi;
 
 		sem_wait(m_esi);
 		if(id_recibido!=esi_ejecutando->ID){
@@ -291,12 +291,12 @@ int procesar_mensaje(int socket) {
 	}
 
 	case STORE_CLAVE: {
-		t_mensaje_plani* esi_recibido = (t_mensaje_plani*)(paquete->data);
+		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
 		//Necesito liberarlo aca?
 
-		char* recurso = esi_recibido->clave;/*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
-		recurso = string_duplicate(esi_recibido->clave);
-		int id_recibido = esi_recibido->id_esi;
+		char* recurso; /*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		recurso = string_duplicate(esi_recibido.clave_valor.clave);
+		int id_recibido = esi_recibido.id_esi;
 
 
 		_Bool key_equals(void* clave) {
@@ -354,12 +354,13 @@ int procesar_mensaje(int socket) {
 	}
 
 	case SET_CLAVE:{
-		t_mensaje_plani* esi_recibido = (t_mensaje_plani*)(paquete->data);
+		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
+		//Necesito liberarlo aca?
 
+		char* recurso; /*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		recurso = string_duplicate(esi_recibido.clave_valor.clave);
+		int id_recibido = esi_recibido.id_esi;
 
-		char* recurso = esi_recibido->clave;/*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
-		recurso = string_duplicate(esi_recibido->clave);
-		int id_recibido = esi_recibido->id_esi;
 
 		sem_wait(m_esi);
 		if(!hizo_get(esi_ejecutando,recurso)){
