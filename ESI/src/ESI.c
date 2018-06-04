@@ -148,11 +148,24 @@ void ejecutar(char* script) {
 	}
 
 	verificarMuerte:
-	if(paquete->codigo_operacion == FINALIZAR){
-		log_info(logger,paquete->data);
+	switch(paquete->codigo_operacion ){
+
+
+	case FINALIZAR:
+		msg = string_duplicate("Me mataron por consola, soy el ESI%d",ID);
+		log_info(logger,msg);
 		destruir_paquete(paquete);
+		free(msg);
 		finalizar();
-		}else{
+		break;
+	case ABORTAR:
+		msg = string_duplicate("Me mataron por consola, soy el ESI%d",ID);
+		log_info(logger,msg);
+		destruir_paquete(paquete);
+		free(msg);
+		finalizar();
+		break;
+	default:
 		esiFinalizado(read,paquete);
 		error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
 		log_error(logger, error);
