@@ -6,7 +6,6 @@ Nombre | Curso | Horario | Mail | Github
 ---|---|---|---|---
 Cristian Egüez | k3013 | Sabados a la mañana | cristian.personal2704@gmail.com | cristianEguez
 Leandro Lizaso | k3011 | Martes a la mañana | llizaso@est.frba.utn.edu.ar | leandrolizaso
-Alexander Ortega | k3113 | Sabados a la mañana | alexorte03@gmail.com | alexorte03
 David Perez | k3113 | Sabados a la mañana | davidperez@est.frba.utn.edu.ar | davidosvaldoperez
 
 ## Ayudantes
