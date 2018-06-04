@@ -109,11 +109,11 @@ void ejecutar(char* script) {
 			paquete = recibir(socket_coordinador);
 
 			switch (paquete->codigo_operacion) {
+
 			void loggear(char* mensaje){
 				msg = string_from_format(mensaje,line);
 				log_info(logger, msg);
 				free(msg);
-
 			}
 
 			case EXITO_OPERACION:
@@ -169,7 +169,6 @@ void ejecutar(char* script) {
 }
 
 void finalizar() {
-
 	liberarUltimaClaveValor();
 	log_info(logger, "Fin ejecución");
 	config_destroy(config_aux);
@@ -181,7 +180,6 @@ void esiFinalizado(ssize_t read, t_paquete* paquete){
 		int envio = enviar(socket_planificador, ESI_FINALIZADO,0, NULL);
 		verificarEnvioPlanificador(envio,paquete);
 	}
-
 }
 
 void verificarEnvioPlanificador(int envio,t_paquete* paquete){
@@ -204,14 +202,9 @@ void verificarEnvioCoordinador(int envio){
 }
 
 void enviar_operacion(t_mensaje_esi mensaje_esi){
-
 	void* buffer = serializar_mensaje_esi(mensaje_esi);
-
-	int envio = enviar(socket_coordinador, OPERACION,sizeof_mensaje_esi(mensaje_esi), buffer);
-
+	verificarEnvioCoordinador(enviar(socket_coordinador, OPERACION,sizeof_mensaje_esi(mensaje_esi), buffer));
 	free(buffer);
-
-	verificarEnvioCoordinador(envio);
 }
 
 t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
