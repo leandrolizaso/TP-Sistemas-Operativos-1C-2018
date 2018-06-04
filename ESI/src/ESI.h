@@ -42,6 +42,9 @@ void verificarEnvioCoordinador(int envio);
 void liberarClaveValor(t_clavevalor claveValor);
 t_clavevalor extraerClaveValor(t_esi_operacion sentencia,t_paquete* paquete);// recibe paquete para destruir por si falla
 
+void verificarEnvioPlanificador(int envio,t_paquete* paquete);
+void esiFinalizado(ssize_t read, t_paquete* paquete);
+
 void liberarUltimaClaveValor();
 void actualizarUltimoMensaje(t_mensaje_esi mensajeEnviado);
 

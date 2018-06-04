@@ -109,32 +109,21 @@ void ejecutar(char* script) {
 			paquete = recibir(socket_coordinador);
 
 			switch (paquete->codigo_operacion) {
-
-			case EXITO_OPERACION:
-				if (enviar(socket_planificador, EXITO_OPERACION, 0, NULL) < 0) {
-					perror("Error de comunicación con el Planificador");
-					log_error(logger,"Error de comunicación con el Planificador");
-					destruir_paquete(paquete);
-					finalizar();
-					exit(EXIT_FAILURE);
-				}
-				;
-				msg = string_from_format("Línea %s ejecutada exitosamente",line);
+			void loggear(char* mensaje){
+				msg = string_from_format(mensaje,line);
 				log_info(logger, msg);
 				free(msg);
+
+			}
+
+			case EXITO_OPERACION:
+				verificarEnvioPlanificador(enviar(socket_planificador, EXITO_OPERACION, 0, NULL),paquete);
+				loggear("Línea %s ejecutada exitosamente");
 				break;
 			case ERROR_OPERACION:
 				log_error(logger,paquete->data);
-				if (enviar(socket_planificador, ERROR_OPERACION, paquete->tamanio, paquete->data) < 0) {
-					perror("Error de comunicación con el Planificador");
-					log_error(logger,"Error de comunicación con el Planificador");
-					destruir_paquete(paquete);
-					finalizar();
-					exit(EXIT_FAILURE);
-				};
-				msg = string_from_format("Línea %s falló en su ejecución",line);
-				log_info(logger, msg);
-				free(msg);
+				verificarEnvioPlanificador(enviar(socket_planificador, ERROR_OPERACION, paquete->tamanio, paquete->data),paquete);
+				loggear("Línea %s falló en su ejecución");
 				break;
 			default:
 				error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
@@ -164,6 +153,7 @@ void ejecutar(char* script) {
 		destruir_paquete(paquete);
 		finalizar();
 		}else{
+		esiFinalizado(read,paquete);
 		error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
 		log_error(logger, error);
 		free(error);
@@ -184,6 +174,33 @@ void finalizar() {
 	log_info(logger, "Fin ejecución");
 	config_destroy(config_aux);
 	log_destroy(logger);
+}
+
+void esiFinalizado(ssize_t read, t_paquete* paquete){
+	if(read == -1){
+		int envio = enviar(socket_planificador, ESI_FINALIZADO,0, NULL);
+		verificarEnvioPlanificador(envio,paquete);
+	}
+
+}
+
+void verificarEnvioPlanificador(int envio,t_paquete* paquete){
+	if (envio < 0) {
+		perror("Error de comunicación con el Planificador");
+		log_error(logger, "Error de comunicación con el Planificador");
+		destruir_paquete(paquete);
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+}
+
+void verificarEnvioCoordinador(int envio){
+	if (envio < 0) {
+		perror("Error de comunicación con el Coordinador");
+		log_error(logger,"Error de comunicación con el Coordinador");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
 }
 
 void enviar_operacion(t_mensaje_esi mensaje_esi){
@@ -221,15 +238,6 @@ t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 		log_error(logger, error);
 		free(error);
 		destruir_paquete(paquete);
-		finalizar();
-		exit(EXIT_FAILURE);
-	}
-}
-
-void verificarEnvioCoordinador(int envio){
-	if (envio < 0) {
-		perror("Error de comunicación con el Coordinador");
-		log_error(logger,"Error de comunicación con el Coordinador");
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
