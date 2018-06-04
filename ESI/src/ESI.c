@@ -132,29 +132,18 @@ void ejecutar(char* script) {
 		paquete = recibir(socket_planificador);
 	}
 
-	switch(paquete->codigo_operacion){
-
-		case FINALIZAR:
-			destruir_paquete(paquete);
-			msg= string_from_format("El ESI %d fue finalizado por consola.",ID);
-			log_info(logger,msg);
-			free(msg);
-			finalizar();
-			break;
-		case ABORTAR:
-			log_info(logger,paquete->data);
-			destruir_paquete(paquete);
-			free(msg);
-			finalizar();
-			break;
-		default:
-			error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
-			log_error(logger, error);
-			free(error);
-			destruir_paquete(paquete);
-			finalizar();
-			exit(EXIT_FAILURE);
-	}
+	if(paquete->codigo_operacion == FINALIZAR){
+		log_info(logger,paquete->data);
+		destruir_paquete(paquete);
+		finalizar();
+		}else{
+		error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
+		log_error(logger, error);
+		free(error);
+		qdestruir_paquete(paquete);
+		finalizar();
+		exit(EXIT_FAILURE);
+		}
 
 	fclose(fp);
 
@@ -170,8 +159,12 @@ void finalizar() {
 }
 
 void enviar_operacion(t_mensaje_esi mensaje_esi){
-	int envio = enviar(socket_coordinador, OPERACION,
-			sizeof_mensaje_esi(mensaje_esi),serializar_mensaje_esi(mensaje_esi));
+
+	void* buffer = serializar_mensaje_esi(mensaje_esi);
+
+	int envio = enviar(socket_coordinador, OPERACION,sizeof_mensaje_esi(mensaje_esi), buffer);
+
+	free(buffer);
 
 	verificarEnvioCoordinador(envio);
 }
