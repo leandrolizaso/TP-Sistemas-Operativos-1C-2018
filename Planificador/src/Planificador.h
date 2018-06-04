@@ -19,6 +19,8 @@ typedef struct {
 	int ID_esi;
 } t_clave;
 
+
+
 void* consola(void* no_use);
 void inicializar(char* path);
 void finalizar();

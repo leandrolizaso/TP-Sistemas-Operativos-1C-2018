@@ -56,7 +56,6 @@ sem_t* m_blocked;
 sem_t* m_key;
 
 
-
 int main(void) {
 
 	puts("Hola, soy el planificador ;)");
@@ -114,7 +113,7 @@ void levantoConfig(char* path) {
 	if (config_has_property(config, "PUERTO_ESCUCHA")) {
 		puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 	} else {
-		log_error(logger, "No se encuentra el puerto_escucha del Coordinador");
+		log_error(logger, "No se encuentra el puerto_escucha");
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
@@ -164,6 +163,8 @@ void inicializar(char* path) {
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
+
+	enviar(socket_coordinador,ENVIAR_CONFIG,sizeof(char)*strlen(puerto_escucha),puerto_escucha);
 
 	log_info(logger, "Conexión exitosa al Coordinador");
 	destruir_paquete(respuesta);
@@ -253,14 +254,14 @@ int procesar_mensaje(int socket) {
 		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
 		//Necesito liberarlo aca?
 
-		char* recurso; /*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		char* recurso;
 		recurso = string_duplicate(esi_recibido.clave_valor.clave);
 		int id_recibido = esi_recibido.id_esi;
 
 		sem_wait(m_esi);
 		if(id_recibido!=esi_ejecutando->ID){
-			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
-			/*decir por que fallo? aborto el esi?*/
+			char* mensaje = "El esi no esta en ejecucion";
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), mensaje);
 			sem_post(m_esi);
 			free(recurso);
 			break;
@@ -268,10 +269,12 @@ int procesar_mensaje(int socket) {
 
 		sem_wait(m_key);
 		if (esta_clave(recurso)) {
+			char* mensaje = "El recurso no esta disponible";
 			sem_wait(m_blocked);
 			bloquear(esi_ejecutando, recurso);
 			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
 			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje),mensaje);
 			sem_post(m_blocked);
 			sem_wait(m_ready);
 			esi_ejecutando = NULL;
@@ -294,7 +297,7 @@ int procesar_mensaje(int socket) {
 		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
 		//Necesito liberarlo aca?
 
-		char* recurso; /*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		char* recurso;
 		recurso = string_duplicate(esi_recibido.clave_valor.clave);
 		int id_recibido = esi_recibido.id_esi;
 
@@ -305,24 +308,37 @@ int procesar_mensaje(int socket) {
 
 		sem_wait(m_esi);
 		if(id_recibido!=esi_ejecutando->ID){
-			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
+			char* mensaje = "El esi no esta en ejecucion";
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0,"");
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje),mensaje);
 			/*falla por no ser el mismo esi en ejecucion*/
 			free(recurso);
 			sem_post(m_esi);
 			break;
 		}
 
-		//repito logica pero me permite separar los fallos
+		/*
+		sem_wait(m_key);
 		if(!list_find(blocked_key,&key_equals)){
 			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
-			//Error de Clave no Identificada
-			//kill(esi_ejecutando);
+			enviar_string(socket_coordinador,"Error: Clave no identificada");
+			list_add(rip_q,esi_ejecutando);
+			sem_wait(m_ready);
+			esi_ejecutando=NULL;
+			planificar();
+			free(recurso);
+			sem_post(m_ready);
 			sem_post(m_esi);
+			sem_post(m_key);
 			break;
 		}
+		sem_post(m_key);
+	*/
 
 		if(!hizo_get(esi_ejecutando,recurso)){
+			char* mensaje = "El esi no hizo GET";
 			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje),mensaje);
 			/*decir por que fallo? aborto el esi?*/
 			//Error clave no tomada
 			//kill(esi_ejecutando);
@@ -333,7 +349,6 @@ int procesar_mensaje(int socket) {
 
 		sem_post(m_esi);
 
-		// no hay que verificar que el esi que hizo get es el mismo que hace store ?
 
 		sem_wait(m_ready);
 		sem_wait(m_blocked);
@@ -357,7 +372,7 @@ int procesar_mensaje(int socket) {
 		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
 		//Necesito liberarlo aca?
 
-		char* recurso; /*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		char* recurso;
 		recurso = string_duplicate(esi_recibido.clave_valor.clave);
 		int id_recibido = esi_recibido.id_esi;
 
@@ -573,7 +588,7 @@ void* consola(void* no_use) {
 						token[1]);
 			}
 			sem_wait(m_blocked);
-			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso); //Hay que contemplar si ninguno esta bloqueado?
+			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
 			sem_post(m_blocked);
 			imprimir(esis_a_imprimir);
 			list_destroy_and_destroy_elements(esis_a_imprimir, &destructor);
@@ -647,7 +662,7 @@ void desbloquear(char* recurso) {
 }
 
 void bloquear_key(char* clave) {
-	t_clave* nueva_clave = malloc(sizeof(t_clave)); // malloc(sizeof(t_clave))
+	t_clave* nueva_clave = malloc(sizeof(t_clave));
 	nueva_clave->valor = clave;
 	nueva_clave->ID_esi = esi_ejecutando->ID;
 	list_add(blocked_key, clave);
@@ -680,6 +695,21 @@ _Bool menor_tiempo(void* pointer1, void* pointer2){
 
 	return sort_number(pointer1) < sort_number(pointer2);
 }
+//sincronizar kill
+/* Para la consola
+void kill(proceso_esi_t* esi,int mensaje){
+	enviar(esi->socket,mensaje,0,NULL);
+	if(esi==esi_ejecutando){
+		list_add(rip_q,esi_ejecutando);
+		esi_ejecutando=NULL;
+		planificar();
+	}else{
+
+	}
+
+}
+
+*/
 
 //Funciones auxiliares
 
