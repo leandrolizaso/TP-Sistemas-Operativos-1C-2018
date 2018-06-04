@@ -46,6 +46,7 @@ void ejecutar(char* script) {
 	t_paquete* paquete;
 	char* error;
 	char* msg;
+	ultimo_mensaje.clave_valor.clave = NULL;
 
 	fp = fopen(script, "r");
 	if (fp == NULL) {
@@ -56,29 +57,54 @@ void ejecutar(char* script) {
 
 	paquete = recibir(socket_planificador);
 
-	while ((read = getline(&line, &len, fp)) != -1 && paquete->codigo_operacion == EJECUTAR_LINEA) {
+	while ((read = getline(&line, &len, fp)) != -1
+			&& (paquete->codigo_operacion == EJECUTAR_LINEA || paquete->codigo_operacion == VOLVE)) {
 
+		t_mensaje_esi mensaje_esi;
+
+		if(paquete->codigo_operacion == VOLVE){
+			mensaje_esi.keyword = ultimo_mensaje.keyword;
+			mensaje_esi.id_esi = ultimo_mensaje.id_esi;
+			mensaje_esi.clave_valor.clave = string_duplicate(ultimo_mensaje.clave_valor.clave);
+			mensaje_esi.clave_valor.valor = string_duplicate(ultimo_mensaje.clave_valor.valor);
+
+			esperoEjecutarDePlanif:
+
+			destruir_paquete(paquete);
+			paquete = recibir(socket_planificador);
+
+			switch(paquete->codigo_operacion){
+				case VOLVE:
+					goto esperoEjecutarDePlanif;
+					break; // ni llega aca me parece xd
+				case EJECUTAR_LINEA:
+					goto envioUltimo;
+					break; // ni llega aca me parece * 2 xd
+				default:
+					goto verificarMuerte;
+					break; // ni llega aca me parece * 3 xd
+			}
+		}
 		destruir_paquete(paquete);
 
-		t_esi_operacion sentencia = parse(line);
+		t_esi_operacion operacion = parse(line);
 
-		if (sentencia.valido) {
+		if (operacion.valido) {
 
-			t_clavevalor claveValor = extraerClaveValor(sentencia,paquete);
-			t_mensaje_esi mensaje_esi;
-
-			mensaje_esi.clave_valor = claveValor;
+			mensaje_esi.clave_valor = extraerClaveValor(operacion,paquete);;
 			mensaje_esi.id_esi = ID;
-			mensaje_esi.keyword = sentencia.keyword;
+			mensaje_esi.keyword = operacion.keyword;
 
+			envioUltimo:
 			enviar_operacion(mensaje_esi);
-			liberarClaveValor(claveValor);
+			actualizarUltimoMensaje(mensaje_esi);
+			liberarClaveValor(mensaje_esi.clave_valor);
 
 			msg = string_from_format("Línea %s fue enviada al Coordinador por el ESI%d", line,ID);
 			log_info(logger, msg);
 			free(msg);
 
-			destruir_operacion(sentencia);
+			destruir_operacion(operacion);
 
 			paquete = recibir(socket_coordinador);
 
@@ -132,6 +158,7 @@ void ejecutar(char* script) {
 		paquete = recibir(socket_planificador);
 	}
 
+	verificarMuerte:
 	if(paquete->codigo_operacion == FINALIZAR){
 		log_info(logger,paquete->data);
 		destruir_paquete(paquete);
@@ -140,7 +167,7 @@ void ejecutar(char* script) {
 		error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
 		log_error(logger, error);
 		free(error);
-		qdestruir_paquete(paquete);
+		destruir_paquete(paquete);
 		finalizar();
 		exit(EXIT_FAILURE);
 		}
@@ -153,6 +180,7 @@ void ejecutar(char* script) {
 
 void finalizar() {
 
+	liberarUltimaClaveValor();
 	log_info(logger, "Fin ejecución");
 	config_destroy(config_aux);
 	log_destroy(logger);
@@ -169,27 +197,27 @@ void enviar_operacion(t_mensaje_esi mensaje_esi){
 	verificarEnvioCoordinador(envio);
 }
 
-t_clavevalor extraerClaveValor(t_esi_operacion sentencia,t_paquete* paquete){
+t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 	t_clavevalor clavevalor;
 	char* error;
-	switch (sentencia.keyword) {
+	switch (operacion.keyword) {
 	case GET:
-		clavevalor.clave = string_duplicate(sentencia.argumentos.GET.clave);
+		clavevalor.clave = string_duplicate(operacion.argumentos.GET.clave);
 		clavevalor.valor = NULL;
 		return clavevalor;
 		break;
 	case SET:
-		clavevalor.clave = string_duplicate(sentencia.argumentos.SET.clave);
-		clavevalor.valor = string_duplicate(sentencia.argumentos.SET.valor);
+		clavevalor.clave = string_duplicate(operacion.argumentos.SET.clave);
+		clavevalor.valor = string_duplicate(operacion.argumentos.SET.valor);
 		return clavevalor;
 		break;
 	case STORE:
-		clavevalor.clave = string_duplicate(sentencia.argumentos.STORE.clave);
+		clavevalor.clave = string_duplicate(operacion.argumentos.STORE.clave);
 		clavevalor.valor = NULL;
 		return clavevalor;
 		break;
 	default:
-		error = string_from_format("La keyword %d del esi %d no es válida",sentencia.keyword, ID);
+		error = string_from_format("La keyword %d del esi %d no es válida",operacion.keyword, ID);
 		log_error(logger, error);
 		free(error);
 		destruir_paquete(paquete);
@@ -207,13 +235,26 @@ void verificarEnvioCoordinador(int envio){
 	}
 }
 
+void actualizarUltimoMensaje(t_mensaje_esi mensajeEnviado){
+
+	liberarUltimaClaveValor();
+	ultimo_mensaje.clave_valor.clave = string_duplicate(mensajeEnviado.clave_valor.clave);
+	ultimo_mensaje.clave_valor.valor= string_duplicate(mensajeEnviado.clave_valor.valor);
+	ultimo_mensaje.id_esi = ID;
+	ultimo_mensaje.keyword = mensajeEnviado.keyword;
+
+}
+
+void liberarUltimaClaveValor(){
+	if(ultimo_mensaje.clave_valor.clave != NULL)
+		liberarClaveValor(ultimo_mensaje.clave_valor);
+}
+
 void liberarClaveValor(t_clavevalor claveValor){
 	free(claveValor.clave);
 	if(claveValor.valor != NULL)
 		free(claveValor.valor);
 }
-
-
 
 // Encapsulamiento
 void crearLog() {

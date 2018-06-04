@@ -30,6 +30,7 @@ t_config_esi config;
 int socket_coordinador;
 int socket_planificador;
 int ID;
+t_mensaje_esi ultimo_mensaje;
 
 void inicializar(char* path);
 void ejecutar(char* script);
@@ -40,6 +41,9 @@ void enviar_operacion(t_mensaje_esi mensaje_esi);
 void verificarEnvioCoordinador(int envio);
 void liberarClaveValor(t_clavevalor claveValor);
 t_clavevalor extraerClaveValor(t_esi_operacion sentencia,t_paquete* paquete);// recibe paquete para destruir por si falla
+
+void liberarUltimaClaveValor();
+void actualizarUltimoMensaje(t_mensaje_esi mensajeEnviado);
 
 // Encapsulamiento
 
