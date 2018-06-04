@@ -227,6 +227,10 @@ void definirAlgoritmo(char* algoritmoString) {
 }
 
 int procesar_mensaje(int socket) {
+
+	//ver logica repetida
+
+
 	t_paquete* paquete = recibir(socket);
 
 	switch (paquete->codigo_operacion) {
@@ -246,14 +250,27 @@ int procesar_mensaje(int socket) {
 
 
 	case GET_CLAVE: {
-		char* recurso /*= malloc(sizeof(char) * paquete->tamanio)*/;
-		recurso = string_duplicate((char*) paquete->data);
+		t_mensaje_plani* esi_recibido = (t_mensaje_plani*)(paquete->data);
+		//Necesito liberarlo aca?
+
+		char* recurso = esi_recibido->clave;/*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		recurso = string_duplicate(esi_recibido->clave);
+		int id_recibido = esi_recibido->id_esi;
+
+		sem_wait(m_esi);
+		if(id_recibido!=esi_ejecutando->ID){
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
+			/*decir por que fallo? aborto el esi?*/
+			sem_post(m_esi);
+			free(recurso);
+			break;
+		}
 
 		sem_wait(m_key);
-		sem_wait(m_esi);
 		if (esta_clave(recurso)) {
 			sem_wait(m_blocked);
 			bloquear(esi_ejecutando, recurso);
+			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
 			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
 			sem_post(m_blocked);
 			sem_wait(m_ready);
@@ -261,8 +278,10 @@ int procesar_mensaje(int socket) {
 			planificar();
 			sem_post(m_ready);
 		} else {
+			if(id_recibido==esi_ejecutando->ID){
 			bloquear_key(recurso);
 			enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
+			}
 		}
 		sem_post(m_esi);
 		sem_post(m_key);
@@ -272,11 +291,47 @@ int procesar_mensaje(int socket) {
 	}
 
 	case STORE_CLAVE: {
-		char* recurso /*= malloc(sizeof(char) * paquete->tamanio)*/; //Es necesario?
-		recurso = string_duplicate((char*) paquete->data);
+		t_mensaje_plani* esi_recibido = (t_mensaje_plani*)(paquete->data);
+		//Necesito liberarlo aca?
+
+		char* recurso = esi_recibido->clave;/*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		recurso = string_duplicate(esi_recibido->clave);
+		int id_recibido = esi_recibido->id_esi;
+
+
 		_Bool key_equals(void* clave) {
-			return string_equals_ignore_case(((t_clave*) clave)->valor, recurso);
+					return string_equals_ignore_case(((t_clave*) clave)->valor, recurso);
 		}
+
+		sem_wait(m_esi);
+		if(id_recibido!=esi_ejecutando->ID){
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
+			/*falla por no ser el mismo esi en ejecucion*/
+			free(recurso);
+			sem_post(m_esi);
+			break;
+		}
+
+		//repito logica pero me permite separar los fallos
+		if(!list_find(blocked_key,&key_equals)){
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
+			//Error de Clave no Identificada
+			//kill(esi_ejecutando);
+			sem_post(m_esi);
+			break;
+		}
+
+		if(!hizo_get(esi_ejecutando,recurso)){
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
+			/*decir por que fallo? aborto el esi?*/
+			//Error clave no tomada
+			//kill(esi_ejecutando);
+			free(recurso);
+			sem_post(m_esi);
+			break;
+		}
+
+		sem_post(m_esi);
 
 		// no hay que verificar que el esi que hizo get es el mismo que hace store ?
 
@@ -299,6 +354,25 @@ int procesar_mensaje(int socket) {
 	}
 
 	case SET_CLAVE:{
+		t_mensaje_plani* esi_recibido = (t_mensaje_plani*)(paquete->data);
+
+
+		char* recurso = esi_recibido->clave;/*= malloc(sizeof(char) * paquete->tamanio)  hace un malloc el duplicate?*/;
+		recurso = string_duplicate(esi_recibido->clave);
+		int id_recibido = esi_recibido->id_esi;
+
+		sem_wait(m_esi);
+		if(!hizo_get(esi_ejecutando,recurso)){
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA, 0, NULL);
+		//	kill(esi_ejecutando);
+		//  Error de Clave no Bloqueada
+
+		} else {
+			enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
+		}
+		sem_post(m_esi);
+
+		free(recurso);
 		break;
 	}
 
@@ -354,6 +428,7 @@ int procesar_mensaje(int socket) {
 void planificar() {
 	if (pausado){
 		/* cuando se pausa, vuelve al mismo esi??
+		 * como se que volvio? necesito esperar el exito_operacion
 		if(esi_ejecutando!=NULL){
 			list_add(ready_q,esi_ejecutando);
 			esi_ejecutando=NULL;
@@ -585,6 +660,14 @@ _Bool esi_esperando(char* recurso) {
 
 	return list_any_satisfy(blocked_q, &esta);
 
+}
+
+_Bool hizo_get(proceso_esi_t* esi, char* recurso){
+	_Bool mismo_id(void* pointer){
+		t_clave* clave = (t_clave*) pointer;
+		return string_equals_ignore_case(recurso, clave->valor) && (esi->ID == clave->ID_esi);
+	}
+	return list_any_satisfy(blocked_key,&mismo_id);
 }
 
 _Bool menor_tiempo(void* pointer1, void* pointer2){

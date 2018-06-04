@@ -39,6 +39,7 @@ bool esta_clave(char* clave);
 void init_semaphores();
 bool menor_tiempo(void*,void*);
 void aumentar_rafaga(proceso_esi_t* esi);
+_Bool hizo_get(proceso_esi_t* esi, char* recurso);
 
 
 #define FIFO 600
