@@ -6,21 +6,69 @@
 
 extern t_log* log_app;
 extern t_log* log_operaciones;
+extern int socket_planificador;
+
+char* keywordtos(int keyword) {
+	switch (keyword) {
+	case 0:
+		return "GET";
+	case 1:
+		return "SET";
+	case 2:
+		return "STORE";
+	default:
+		return "WTF";
+	}
+}
 
 void do_handhsake(int socket) {
-	log_debug(log_app,"Handshake Recibido (%d). Enviando Handshake.\n", socket);
+	log_debug(log_app, "Handshake Recibido (%d). Enviando Handshake.\n",
+			socket);
 	enviar(socket, HANDSHAKE_COORDINADOR, 0, NULL);
 }
 
-void do_esi_request(t_dictionary* conexiones, int socket, t_paquete* paquete) {
-	//TODO: Implementar
-	//Recibo "get/set/store
-	//Si es "get" o "store" primero le aviso al planificador con GET_CLAVE/STORE_CLAVE
-	//Si el planificador me dice que estamos bien (CLAVE_TOMADA/CLAVE_LIBERADA?), se continua. Sino, se devuelve error al esi (ERROR_OPERACION).
-	//Si es GET, no hago nada mas.
-	//Si es Set o Store, tengo que buscar en "mi estructura" para saber a que instancia hablarle
-	//Validar algoritmo (equitative load por el momento)
-	//Hablar con instancia, recibir resultado
-	//Si la instancia me dice que estamos bien, se devuelve exito al esi
-	//Si instancia me dice que no tiene idea de que le estoy hablando, la clave se perdio. Devolvemos error.
+int do_planificador_config(int socket) {
+	char* ip_puerto = recibir_string(socket);
+	char* separador = strchr(ip_puerto, ':');
+	*separador = '\0'; //al reemplazar el separador, tengo 2 strings null-terminadas
+	int planificador = conectar_a_server(ip_puerto, (separador + 1));
+	//TODO: Definir si le tengo que mandar algo o no.
+	return planificador;
+}
+
+void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
+	log_info(log_operaciones, "ESI %d\t%s %s %s\n", mensaje_esi.id_esi,
+			keywordtos(mensaje_esi.keyword), mensaje_esi.clave_valor.clave,
+			mensaje_esi.clave_valor.valor);
+
+	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
+	switch (mensaje_esi.keyword) {
+	case 0:
+		operacion = GET_CLAVE;
+		break;
+	case 1:
+		operacion = SET_CLAVE;
+		break;
+	case 2:
+		operacion = STORE_CLAVE;
+		break;
+	default:
+		log_error(log_app, "Se recibio una operacion invalida del ESI %d: %d",
+				mensaje_esi.id_esi, mensaje_esi.keyword);
+	}
+
+	int tamanio = sizeof_mensaje_esi(mensaje_esi);
+	enviar(socket_planificador, operacion, tamanio, &mensaje_esi);
+
+	t_paquete* paquete = recibir(socket_planificador);
+	switch (paquete->codigo_operacion) {
+	case OPERACION_ESI_VALIDA:
+		//Aca hablo con las instancias
+		enviar(socket_esi,EXITO_OPERACION,0,NULL);
+		break;
+	case OPERACION_ESI_INVALIDA:
+		enviar(socket_esi, ERROR_OPERACION, paquete->tamanio, paquete->data);
+		break;
+	}
+	destruir_paquete(paquete);
 }

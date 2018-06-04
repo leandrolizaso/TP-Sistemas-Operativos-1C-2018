@@ -21,6 +21,7 @@
 
 t_log* log_operaciones;
 t_log* log_app;
+int socket_planificador;
 
 int main(int argc, char* argv[]) {
 	log_app = log_create("coordinador.log", "COORDINADOR", true,
@@ -76,6 +77,7 @@ int config_incorrecta(t_config* config) {
 	}
 
 	int failures = 0;
+
 	void validar(char* key) { //TODO validar tipos?
 		if (!config_has_property(config, key)) {
 			log_error(log_app, "Se requiere configurar \"%s\"\n", key);
@@ -118,12 +120,13 @@ int recibir_mensaje(int socket) {
 
 	//Ok, cool cool. Procesamos mensaje
 	switch (paquete->codigo_operacion) {
-	case OPERACION_GET:
-	case OPERACION_SET:
-	case OPERACION_STORE:
-		do_esi_request(conexiones, socket, paquete);
+	case OPERACION: {
+		do_esi_request(socket, deserializar_mensaje_esi(paquete->data));
 		break;
-		// case COORDINADOR_GET_CONFIG:
+	}
+	case ENVIAR_CONFIG:
+		socket_planificador = do_planificador_config(socket);
+		break;
 	default: //WTF? no gracias.
 		destruir_paquete(paquete);
 		return END_CONNECTION;
@@ -133,8 +136,8 @@ int recibir_mensaje(int socket) {
 }
 
 char* itos(int numero) {
-	char* str = malloc(12);
-	sprintf(str, "%d", numero);
+	char* str = malloc(12); //en 12 chars entra cualquier int
+	snprintf(str, 12, "%d", numero);
 	return str;
 }
 
@@ -147,9 +150,7 @@ void registrar_conexion(t_dictionary* conexiones, int socket, int operacion) {
 int operacion_cliente_valida(t_dictionary* conexiones, int socket, int codigo_operacion) {
 	int handshake_valido;
 	switch (codigo_operacion) {
-	case OPERACION_GET:
-	case OPERACION_SET:
-	case OPERACION_STORE:
+	case OPERACION:
 		handshake_valido = HANDSHAKE_ESI;
 	}
 
