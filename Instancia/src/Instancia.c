@@ -1,7 +1,7 @@
 /*
  ============================================================================
  Name        : Instancia.c
- Author      : 
+ Author      :
  Version     :
  Copyright   : Your copyright notice
  Description : Hello World in C, Ansi-style
@@ -15,7 +15,7 @@
 #include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/log.h>
-
+#include "Instancia.h"
 
 #define CFG_IP  "ip_coordinador"
 #define CFG_PORT  "port_coordinador"
@@ -23,109 +23,6 @@
 #define CFG_POINT  "point_mount"
 #define CFG_NAME_INST  "name_instancia"
 #define CFG_INTERVAL  "interval"
-
-t_config* leer_config(int argc, char* argv[]) {
-	int opt;
-	t_config* config = NULL;
-	opterr = 1; //ver getopt()
-
-	while ((opt = getopt(argc, argv, "c:")) != -1) {
-		switch (opt) {
-		case 'c':
-			printf("Levantando config... %s\n", optarg);
-			config = config_create(optarg);
-			break;
-		case ':':
-			fprintf(stderr, "El parametro '-%c' requiere un argumento.\n",
-					optopt);
-			break;
-		case '?':
-		default:
-			fprintf(stderr, "El parametro '-%c' es invalido. Ignorado.\n",
-					optopt);
-			break;
-		}
-	}
-
-	return config;
-}
-int config_incorrecta(t_config* config) {
-	if (config == NULL) {
-		// PARA CORRER DESDE ECLIPSE
-		// AGREGAR EN "Run Configurations.. > Arguments"
-		// -c ${workspace_loc:/Instancia/src/inst.cfg}
-		puts("El parametro -c <config_file> es obligatorio.\n");
-		return EXIT_FAILURE;
-	}
-
-	int failures = 0;
-		void validar(char* key) { //TODO validar tipos?
-			if (!config_has_property(config, key)) {
-				printf("Se requiere configurar \"%s\"\n", key);
-				failures++;
-			}
-		}
-
-	validar(CFG_IP);
-	validar(CFG_PORT);
-	validar(CFG_ALGO);
-	validar(CFG_POINT);
-	validar(CFG_NAME_INST);
-	validar(CFG_INTERVAL);
-
-
-	if (failures > 0) {
-		printf("Por favor revisar el archivo \"%s\"\n", config->path);
-		return EXIT_FAILURE;
-	}else{
-		puts("Validacion correcta.\n");
-	}
-	return EXIT_SUCCESS;
-}
-
-
-void finalizar( t_config* config,t_log* logger){
-	log_info(logger, "Fin ejecución");
-	config_destroy(config);
-	log_destroy(logger);
-}
-
-
-void inicializar(t_config* config,t_log* logger){
-
-	int socket_coordinador;
-
-	if(!config_has_property(config, CFG_IP)){
-	log_error(logger, "No se encuentra la ip del Coordinador");
-				finalizar( config,logger);
-				exit(EXIT_FAILURE);
-	}
-
-	if(!config_has_property(config, CFG_PORT)){
-		log_error(logger, "No se encuentra el puerto del Coordinador");
-		finalizar(config,logger);
-		exit(EXIT_FAILURE);
-	}
-
-	log_info(logger, "Se cargó exitosamente la configuración");
-
-	// Me conecto al Coordinador
-	socket_coordinador = conectar_a_server(config_get_string_value(config, CFG_IP), config_get_string_value(config, CFG_PORT));
-	log_info(logger, "Conexión exitosa al Coordinador");
-
-	//ENVIAR MENSAJE
-	enviar(socket_coordinador, HANDSHAKE_INSTANCIA, 0, NULL);
-
-	t_paquete* paquete = recibir(socket_coordinador);
-	if(paquete->codigo_operacion == HANDSHAKE_COORDINADOR){
-		log_info(logger, "Mensaje recibido de coordinador");
-	}else{
-		log_info(logger, "Error al recibir mensaje de corrdinador");
-	}
-
-	destruir_paquete(paquete);
-}
-
 
 
 int main(int argc, char* argv[])  {
