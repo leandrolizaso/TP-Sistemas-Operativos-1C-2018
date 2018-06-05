@@ -123,6 +123,12 @@ void ejecutar(char* script){
 	}
 }
 
+void finalizar() {
+	log_info(logger, "Fin ejecución");
+	config_destroy(config_aux);
+	log_destroy(logger);
+}
+
 void validarAperturaScript(FILE* fp){
 	if (fp == NULL) {
 		log_error(logger, "No se pudo abrir el script.");
@@ -132,16 +138,6 @@ void validarAperturaScript(FILE* fp){
 
 bool codigoBueno(int codigo_operacion){
 	return codigo_operacion == EJECUTAR_LINEA || codigo_operacion == VOLVE;
-}
-
-t_mensaje_esi copiarMensajeEsi(t_mensaje_esi original){
-	t_mensaje_esi copia;
-	copia.keyword = original.keyword;
-	copia.id_esi = original.id_esi;
-	copia.clave_valor.clave = string_duplicate(original.clave_valor.clave);
-	copia.clave_valor.valor = string_duplicate(original.clave_valor.valor);
-
-	return copia;
 }
 
 void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
@@ -194,12 +190,6 @@ void log_mensaje(char* mensaje) {
 void morir(){
 	finalizar();
 	exit(EXIT_FAILURE);
-}
-
-void finalizar() {
-	log_info(logger, "Fin ejecución");
-	config_destroy(config_aux);
-	log_destroy(logger);
 }
 
 void verificarEnvioPlanificador(int envio,t_paquete* paquete){
@@ -263,11 +253,22 @@ t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 	return clavevalor;
 }
 
+
+t_mensaje_esi copiarMensajeEsi(t_mensaje_esi original){
+	t_mensaje_esi copia;
+	copia.keyword = original.keyword;
+	copia.id_esi = original.id_esi;
+	copia.clave_valor.clave = string_duplicate(original.clave_valor.clave);
+	copia.clave_valor.valor = string_duplicate(original.clave_valor.valor);
+
+	return copia;
+} // ya no se usa
+
 void liberarClaveValor(t_clavevalor claveValor){
 	free(claveValor.clave);
 	if(claveValor.valor != NULL)
 		free(claveValor.valor);
-}   //   como al extraerClaveValor ya no reserva memoria ya no es necesario el free.
+}  // ya no se usa
 
 
 void crearLog() {
@@ -281,35 +282,32 @@ void levantarConfig(char* path) {
 		config.ip_coordinador = config_get_string_value(config_aux,"IP_COORDINADOR");
 	} else {
 		log_error(logger, "No se encuentra la ip del Coordinador");
-		finalizar();
-		exit(EXIT_FAILURE);
+		morir();
 	}
 
 	if (config_has_property(config_aux, "PUERTO_COORDINADOR")) {
 		config.puerto_coordinador = config_get_string_value(config_aux,"PUERTO_COORDINADOR");
 	} else {
 		log_error(logger, "No se encuentra el puerto del Coordinador");
-		finalizar();
-		exit(EXIT_FAILURE);
+		morir();
 	}
 
 	if (config_has_property(config_aux, "IP_PLANIFICADOR")) {
 		config.ip_planificador = config_get_string_value(config_aux,"IP_PLANIFICADOR");
 	} else {
 		log_error(logger, "No se encuentra la ip del Planificador");
-		finalizar();
-		exit(EXIT_FAILURE);
+		morir();
 	}
 
 	if (config_has_property(config_aux, "PUERTO_PLANIFICADOR")) {
 		config.puerto_planificador = config_get_string_value(config_aux,"PUERTO_PLANIFICADOR");
 	} else {
 		log_error(logger, "No se encuentra el puerto del Planificador");
-		finalizar();
-		exit(EXIT_FAILURE);
+		morir();
 	}
 
-	log_info(logger, "Se cargó exitosamente la configuración");
+	log_mensaje("Se cargó exitosamente la configuración");
+
 }
 void conectarPlanificador() {
 	socket_planificador = conectar_a_server(config.ip_planificador,config.puerto_planificador);
@@ -320,11 +318,10 @@ void conectarPlanificador() {
 	if (paquete->codigo_operacion != HANDSHAKE_PLANIFICADOR) {
 		log_error(logger, "Falló el handshake con el Planificador");
 		destruir_paquete(paquete);
-		finalizar();
-		exit(EXIT_FAILURE);
+		morir();
 	} else {
 		ID = (int) paquete->data;
-		log_info(logger, "Handshake exitoso con el Planificador");
+		log_mensaje("Handshake exitoso con el Planificador");
 		destruir_paquete(paquete);
 	}
 }
@@ -336,10 +333,9 @@ void conectarCoordinador() {
 	if (paquete->codigo_operacion != HANDSHAKE_COORDINADOR) {
 		log_error(logger, "Falló el handshake con el Coordinador");
 		destruir_paquete(paquete);
-		finalizar();
-		exit(EXIT_FAILURE);
+		morir();
 	} else {
-		log_info(logger, "Handshake exitoso con el Coordinador");
+		log_mensaje("Handshake exitoso con el Coordinador");
 		destruir_paquete(paquete);
 	}
 }
