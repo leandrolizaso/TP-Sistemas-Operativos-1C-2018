@@ -60,6 +60,7 @@ typedef struct {
 	char* valor;
 } t_clavevalor;
 
+int sizeof_clavevalor(t_clavevalor cv);
 void* serializar_clavevalor(t_clavevalor clave_valor);
 t_clavevalor deserializar_clavevalor(void* buffer);
 
@@ -70,6 +71,7 @@ typedef struct{
 	t_clavevalor clave_valor;
 } t_mensaje_esi;
 
+int sizeof_mensaje_esi(t_mensaje_esi mensaje_esi);
 void* serializar_mensaje_esi(t_mensaje_esi mensaje_esi);
 t_mensaje_esi deserializar_mensaje_esi(void* buffer);
 
