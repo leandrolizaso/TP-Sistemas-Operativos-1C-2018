@@ -36,6 +36,165 @@ void inicializar(char* path) {
 	conectarCoordinador();
 
 }
+void ejecutarESI(char* script){
+
+	FILE * fp;
+	char * line = NULL;
+	size_t len = 0;
+	ssize_t read;
+	t_paquete* paquete;
+
+	ultima_linea = NULL;
+	ejecutoUltima = false;
+	correr = true;
+	explotoParsi = false;
+
+	fp = fopen(script, "r");
+
+	validarAperturaScript(fp);
+
+	if((read = getline(&line, &len, fp)) == -1){
+		log_error(logger, "Script vacio.");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+
+	t_esi_operacion operacion;
+
+	paquete = recibir(socket_planificador);
+
+	while (codigoBueno(paquete->codigo_operacion) && correr) {
+
+		t_mensaje_esi mensaje;
+
+		switch (paquete->codigo_operacion) {
+		case VOLVE:
+			ejecutoUltima = true;
+			break;
+
+		case EJECUTAR_LINEA:
+			if (ejecutoUltima) {
+				ejecutoUltima = false;
+			} else {
+
+				if((read = getline(&line, &len, fp)) == -1){
+					log_info(logger, "Script finalizado.");
+					finalizar();
+					exit(EXIT_FAILURE);
+				}
+
+				ultima_linea = realloc(ultima_linea,len);
+				strcpy(ultima_linea,line);
+			}
+
+			operacion = parse(line);
+
+			if (operacion.valido) {
+				mensaje = extraer_mensaje_esi(operacion, paquete);
+				ejecutarMensaje(mensaje, paquete, line);
+				destruir_operacion(operacion);
+			} else {
+
+				// DEJO ACA DEJO ACA DEJO ACA LALALALAALLA
+				char* error;
+				error = string_from_format("La línea %s no es válida", line);
+				log_error(logger, error);
+				free(error);
+				finalizar();
+				exit(EXIT_FAILURE);
+			}
+		break;
+
+		default:
+		break;
+		}
+		if(!ejecutoUltima){
+			if((read = getline(&line, &len, fp)) == -1){
+				log_info(logger, "Se termino el script.");
+				finalizar();
+				exit(EXIT_FAILURE);
+			}
+		}
+		destruir_paquete(paquete);
+		paquete = recibir(socket_planificador);
+	}
+
+}
+
+void validarAperturaScript(FILE* fp){
+	if (fp == NULL) {
+		log_error(logger, "No se pudo abrir el script.");
+		finalizar();
+		exit(EXIT_FAILURE);
+	}
+}
+
+
+bool codigoBueno(int codigo_operacion){
+	return codigo_operacion == EJECUTAR_LINEA || codigo_operacion == VOLVE;
+}
+
+t_mensaje_esi copiarMensajeEsi(t_mensaje_esi original){
+	t_mensaje_esi copia;
+	copia.keyword = original.keyword;
+	copia.id_esi = original.id_esi;
+	copia.clave_valor.clave = string_duplicate(original.clave_valor.clave);
+	copia.clave_valor.valor = string_duplicate(original.clave_valor.valor);
+
+	return copia;
+}
+
+void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
+
+	char* msg;
+	char error;
+
+	enviar_operacion(mensaje_esi);
+	actualizarUltimoMensaje(mensaje_esi);
+	liberarClaveValor(mensaje_esi.clave_valor);
+
+	msg = string_from_format("Línea %s fue enviada al Coordinador por el ESI%d",line, ID);
+	log_info(logger, msg);
+	free(msg);
+
+	destruir_paquete(paquete);
+	paquete = recibir(socket_coordinador);
+
+	switch (paquete->codigo_operacion) {
+
+		case EXITO_OPERACION:
+			verificarEnvioPlanificador(enviar(socket_planificador, EXITO_OPERACION, 0, NULL), paquete);
+			msg = string_from_format("Línea %s ejecutada exitosamente",line);
+			log_mensaje(msg);
+			free(msg);
+			break;
+		case ERROR_OPERACION:
+			msg = string_from_format("ESI%d abortado. %s",ID,paquete->data);
+			log_error(logger, msg);
+			free(msg);
+			//verificarEnvioPlanificador(enviar(socket_planificador, ERROR_OPERACION, paquete->tamanio,paquete->data), paquete);
+			msg = string_from_format("Línea %s falló en su ejecución",line);
+			log_mensaje(msg);
+			free(msg);
+			verificarEnvioPlanificador(enviar(socket_planificador, ESI_FINALIZADO, 0,NULL), paquete);
+			destruir_paquete(paquete);
+			finalizar();
+			exit(EXIT_FAILURE);
+			break;
+		default:
+			error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
+			log_error(logger, error);
+			free(error);
+			finalizar();
+			exit(EXIT_FAILURE);
+		}
+
+}
+
+void log_mensaje(char* mensaje) {
+	log_info(logger, mensaje);
+}
+
 
 void ejecutar(char* script) {
 
@@ -149,17 +308,15 @@ void ejecutar(char* script) {
 
 	verificarMuerte:
 	switch(paquete->codigo_operacion ){
-
-
 	case FINALIZAR:
-		msg = string_duplicate("Me mataron por consola, soy el ESI%d",ID);
+		msg = string_from_format("ESI%d: Me mataron por consola.",ID);
 		log_info(logger,msg);
 		destruir_paquete(paquete);
 		free(msg);
 		finalizar();
 		break;
 	case ABORTAR:
-		msg = string_duplicate("Me mataron por consola, soy el ESI%d",ID);
+		msg = string_from_format("ESI%d: Me abortaron.",ID);
 		log_info(logger,msg);
 		destruir_paquete(paquete);
 		free(msg);
@@ -182,7 +339,6 @@ void ejecutar(char* script) {
 }
 
 void finalizar() {
-	liberarUltimaClaveValor();
 	log_info(logger, "Fin ejecución");
 	config_destroy(config_aux);
 	log_destroy(logger);
@@ -220,6 +376,14 @@ void enviar_operacion(t_mensaje_esi mensaje_esi){
 	free(buffer);
 }
 
+t_mensaje_esi extraer_mensaje_esi(t_esi_operacion operacion,t_paquete* paquete){
+	t_mensaje_esi mensaje;
+	mensaje.clave_valor = extraerClaveValor(operacion,paquete);
+	mensaje.id_esi = ID;
+	mensaje.keyword = operacion.keyword;
+	return mensaje;
+}
+
 t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 	t_clavevalor clavevalor;
 	char* error;
@@ -250,13 +414,8 @@ t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 }
 
 void actualizarUltimoMensaje(t_mensaje_esi mensajeEnviado){
-
 	liberarUltimaClaveValor();
-	ultimo_mensaje.clave_valor.clave = string_duplicate(mensajeEnviado.clave_valor.clave);
-	ultimo_mensaje.clave_valor.valor= string_duplicate(mensajeEnviado.clave_valor.valor);
-	ultimo_mensaje.id_esi = ID;
-	ultimo_mensaje.keyword = mensajeEnviado.keyword;
-
+	ultimo_mensaje = copiarMensajeEsi(mensajeEnviado);
 }
 
 void liberarUltimaClaveValor(){

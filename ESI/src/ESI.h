@@ -30,7 +30,12 @@ t_config_esi config;
 int socket_coordinador;
 int socket_planificador;
 int ID;
-t_mensaje_esi ultimo_mensaje;
+bool ejecutoUltima;
+char* ultima_linea;
+char* motivo;
+bool correr;
+bool explotoParsi;
+
 
 void inicializar(char* path);
 void ejecutar(char* script);
