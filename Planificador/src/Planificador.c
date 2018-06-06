@@ -35,7 +35,9 @@ t_log* logger;
 t_config* config;
 
 /*otras variables*/
-int id_base = 0;
+int id_base = 1;
+int cant_claves;
+_Bool block_config=true;
 _Bool ejecutando = false;
 _Bool pausado;
 char recurso_bloqueante[40];
@@ -136,6 +138,36 @@ void levantoConfig(char* path) {
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
+
+	if (config_has_property(config, "ALFA")) {
+			alfa = config_get_double_value(config,
+					"ALFA");
+		} else {
+			log_error(logger, "No se encuentra el alfa");
+			finalizar();
+			exit(EXIT_FAILURE);
+	}
+
+	if (config_has_property(config, "CANTIDAD_CLAVES")) {
+				cant_claves = config_get_int_value(config,"CANTIDAD_CLAVES");
+
+				for(int i=0;i < cant_claves; i++){
+					if (config_has_property(config, "CLAVE_TOMADA")) {
+						char* clave = config_get_string_value(config,"CLAVE_TOMADA");
+						bloquear_key(clave);
+					} else {
+						log_error(logger, "No se encuentra la clave");
+						finalizar();
+						exit(EXIT_FAILURE);
+					}
+				}
+				block_config=false;
+
+			} else {
+				log_error(logger, "No se encuentra la cantidad de claves");
+				finalizar();
+				exit(EXIT_FAILURE);
+		}
 
 	log_info(logger, "Se cargó exitosamente la configuración");
 }
@@ -633,8 +665,12 @@ void desbloquear(char* recurso) {
 
 void bloquear_key(char* clave) {
 	t_clave* nueva_clave = malloc(sizeof(t_clave));
+	if(block_config){
+		nueva_clave->ID_esi = 0;
+	}else{
+		nueva_clave->ID_esi = esi_ejecutando->ID;
+	}
 	nueva_clave->valor = clave;
-	nueva_clave->ID_esi = esi_ejecutando->ID;
 	list_add(blocked_key, clave);
 }
 
