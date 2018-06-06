@@ -125,7 +125,14 @@ int recibir_mensaje(int socket) {
 		break;
 	}
 	case ENVIAR_CONFIG:
-		socket_planificador = do_planificador_config(socket);
+		socket_planificador = do_planificador_config(socket,
+				(char*) paquete->data);
+		if (socket_planificador == -1) {
+			stop_multiplexar = true;
+		}
+		break;
+	case SOLICITAR_CONFIG:
+		do_instance_config(socket, paquete->data);
 		break;
 	default: //WTF? no gracias.
 		destruir_paquete(paquete);
@@ -147,11 +154,19 @@ void registrar_conexion(t_dictionary* conexiones, int socket, int operacion) {
 	free(key);
 }
 
-int operacion_cliente_valida(t_dictionary* conexiones, int socket, int codigo_operacion) {
+int operacion_cliente_valida(t_dictionary* conexiones, int socket,
+		int codigo_operacion) {
 	int handshake_valido;
 	switch (codigo_operacion) {
 	case OPERACION:
 		handshake_valido = HANDSHAKE_ESI;
+		break;
+	case ENVIAR_CONFIG:
+		handshake_valido = HANDSHAKE_PLANIFICADOR;
+		break;
+	case SOLICITAR_CONFIG:
+		handshake_valido = HANDSHAKE_INSTANCIA;
+		break;
 	}
 
 	char* key = itos(socket);
