@@ -62,7 +62,7 @@ int main(int argc, char*argv[]) {
 
 	puts("Hola, soy el planificador ;)");
 
-	inicializar(argv[0]);
+	inicializar(argv[1]);
 
 	//Creo el hilo de la consola
 	pthread_t consola_thread;
