@@ -47,6 +47,12 @@
 #define OPERACION_ESI_INVALIDA 307
 
 
+/* Instancia a Coordinador */
+#define SOLICITAR_CONFIG 206
+
+/* Coordinador a Instancia */
+#define ENVIAR_CONFIG 207 // este mensaje tambien lo usa planificador luego del handshake para enviar al coordinador
+
 /* Serializacion/Desserializacion */
 
 typedef struct {
@@ -54,6 +60,7 @@ typedef struct {
 	char* valor;
 } t_clavevalor;
 
+int sizeof_clavevalor(t_clavevalor cv);
 void* serializar_clavevalor(t_clavevalor clave_valor);
 t_clavevalor deserializar_clavevalor(void* buffer);
 
@@ -64,6 +71,7 @@ typedef struct{
 	t_clavevalor clave_valor;
 } t_mensaje_esi;
 
+int sizeof_mensaje_esi(t_mensaje_esi mensaje_esi);
 void* serializar_mensaje_esi(t_mensaje_esi mensaje_esi);
 t_mensaje_esi deserializar_mensaje_esi(void* buffer);
 
