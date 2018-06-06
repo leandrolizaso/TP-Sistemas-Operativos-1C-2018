@@ -125,8 +125,18 @@ typedef struct entrada{
 	char* valor;
 	int numero_entrada;
 }entrada;
+entrada* crearEntrada (char* clave, int t_clave, char* valor, int t_val, int numero_entrada){
+	entrada* bloque;
+	bloque = malloc(sizeof(entrada));
+	bloque->clave = malloc(strlen(clave) + 1);
+	//strcpy(bloque->clave, bloque);
+	bloque->numero_entrada = numero_entrada;
+	bloque->t_clave = t_clave;
+	bloque->valor = malloc (strlen(valor) + 1);
+	bloque->t_val = valor;
 
-entrada* crearEntrada (char* clave, int t_clave, char* valor, int t_val, int numero_entrada);
-int destruirEntrada (entrada*);
+	return bloque;
+};
+int destruirEntrada (entrada* bloque);
 
 #endif // INSTANCIA_H_INCLUDED
