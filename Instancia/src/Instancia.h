@@ -137,6 +137,8 @@ entrada* crearEntrada (char* clave, int t_clave, char* valor, int t_val, int num
 
 	return bloque;
 };
-int destruirEntrada (entrada* bloque);
-
+int destruir_entrada (entrada* bloque){
+	free (bloque);
+	return 0;
+};
 #endif // INSTANCIA_H_INCLUDED
