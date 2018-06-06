@@ -34,6 +34,7 @@ int conectar_a_server(char* ip, char* puerto);
 int aceptar_conexion(int socketServidor);
 char* get_ip_socket(int fd);
 void cerrar_socket(int socket);
+extern int stop_multiplexar;
 void multiplexar(char * puerto, int (*procesar_mensaje)(int));
 
 /* Funciones para mandar/recibir mensajes */
