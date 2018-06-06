@@ -20,34 +20,47 @@
 #include "Planificador.h"
 #include <semaphore.h>
 
+/*config*/
+
 char* ip_coordinador;
 char* puerto_coordinador;
 char* puerto_escucha;
 int socket_coordinador;
+
 int algoritmo;
 double estimacionInicial;
 double alfa;
+
+t_log* logger;
+t_config* config;
+
+/*otras variables*/
 int id_base = 0;
 _Bool ejecutando = false;
 _Bool pausado;
+char recurso_bloqueante[40];
 proceso_esi_t * esi_ejecutando;
-t_log* logger;
-t_config* config;
+
+/*Listas*/
+
 t_list* ready_q;
 t_list* blocked_q;
 t_list* rip_q;
 t_list* blocked_key;
+
+/*semaforos*/
 sem_t* m_esi;
 sem_t* m_rip;
 sem_t* m_ready;
 sem_t* m_blocked;
 sem_t* m_key;
 
-int main(void) {
+
+int main(int argc, char*argv[]) {
 
 	puts("Hola, soy el planificador ;)");
 
-	inicializar("Planificador.cfg");
+	inicializar(argv[0]);
 
 	//Creo el hilo de la consola
 	pthread_t consola_thread;
@@ -69,6 +82,7 @@ int main(void) {
 	finalizar();
 	return EXIT_SUCCESS;
 }
+
 
 void levantoConfig(char* path) {
 
@@ -99,7 +113,7 @@ void levantoConfig(char* path) {
 	if (config_has_property(config, "PUERTO_ESCUCHA")) {
 		puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 	} else {
-		log_error(logger, "No se encuentra el puerto_escucha del Coordinador");
+		log_error(logger, "No se encuentra el puerto_escucha");
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
@@ -149,6 +163,8 @@ void inicializar(char* path) {
 		finalizar();
 		exit(EXIT_FAILURE);
 	}
+
+	enviar(socket_coordinador,ENVIAR_CONFIG,sizeof(char)*strlen(puerto_escucha),puerto_escucha);
 
 	log_info(logger, "Conexión exitosa al Coordinador");
 	destruir_paquete(respuesta);
@@ -212,13 +228,17 @@ void definirAlgoritmo(char* algoritmoString) {
 }
 
 int procesar_mensaje(int socket) {
+
+	//ver logica repetida
+
+
 	t_paquete* paquete = recibir(socket);
 
 	switch (paquete->codigo_operacion) {
 
 	case HANDSHAKE_ESI: {
-		enviar(socket, HANDSHAKE_PLANIFICADOR, 0, NULL);
 		proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
+		enviar(socket, HANDSHAKE_PLANIFICADOR, sizeof(int*),(int*) nuevo_esi->ID);
 		sem_wait(m_ready);
 		list_add(ready_q, (void*) nuevo_esi);
 		sem_wait(m_esi);
@@ -228,31 +248,40 @@ int procesar_mensaje(int socket) {
 		break;
 	}
 
-	case STRING_SENT: {
-		char* recibido = (char*) (paquete->data);
-		printf("%s", recibido);
-		break;
-	}
+
 
 	case GET_CLAVE: {
-		char* recurso = malloc(sizeof(char) * paquete->tamanio);
-		recurso = string_duplicate((char*) paquete->data);
+		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
+		//Necesito liberarlo aca?
+
+		char* recurso;
+		recurso = string_duplicate(esi_recibido.clave_valor.clave);
+		int id_recibido = esi_recibido.id_esi;
+
+		sem_wait(m_esi);
+		if(id_recibido!=esi_ejecutando->ID){
+			char* mensaje = "El esi no esta en ejecucion";
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), mensaje);
+			sem_post(m_esi);
+			free(recurso);
+			break;
+		}
 
 		sem_wait(m_key);
-		sem_wait(m_esi);
 		if (esta_clave(recurso)) {
+			char* mensaje = "El recurso no esta disponible";
 			sem_wait(m_blocked);
-			bloquear(esi_ejecutando, recurso, false);
-			enviar(socket_coordinador, CLAVE_TOMADA, 0, NULL);
+			bloquear(esi_ejecutando, recurso);
 			sem_post(m_blocked);
-			sem_wait(m_ready);
-			esi_ejecutando = NULL;
-			planificar();
-			sem_post(m_ready);
+			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
+			error_de_esi(mensaje);
 		} else {
+			if(id_recibido==esi_ejecutando->ID){
 			bloquear_key(recurso);
+			enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
+			}
 		}
-		sem_wait(m_esi);
+		sem_post(m_esi);
 		sem_post(m_key);
 
 		free(recurso);
@@ -260,12 +289,36 @@ int procesar_mensaje(int socket) {
 	}
 
 	case STORE_CLAVE: {
-		char* recurso = malloc(sizeof(char) * paquete->tamanio);
-		recurso = string_duplicate((char*) paquete->data);
+		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
+
+		char* recurso;
+		recurso = string_duplicate(esi_recibido.clave_valor.clave);
+		int id_recibido = esi_recibido.id_esi;
+
+
 		_Bool key_equals(void* clave) {
-			return string_equals_ignore_case(((t_clave*) clave)->valor, recurso);
+					return string_equals_ignore_case(((t_clave*) clave)->valor, recurso);
 		}
-		// no hay que verificar que el esi que hizo get es el mismo que hace store ?
+
+		sem_wait(m_esi);
+		if(id_recibido!=esi_ejecutando->ID){
+			char* mensaje = "El esi no esta en ejecucion";
+			error_de_esi(mensaje);
+			free(recurso);
+			sem_post(m_esi);
+			break;
+		}
+
+		if(!hizo_get(esi_ejecutando,recurso)){
+			char* mensaje = "El esi no hizo GET";
+			error_de_esi(mensaje);
+			free(recurso);
+			sem_post(m_esi);
+			break;
+		}
+
+		sem_post(m_esi);
+
 
 		sem_wait(m_ready);
 		sem_wait(m_blocked);
@@ -279,16 +332,61 @@ int procesar_mensaje(int socket) {
 		list_remove_and_destroy_by_condition(blocked_key, &key_equals,&destructor);
 		sem_post(m_key);
 
+		enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
+
+		free(recurso);
+		break;
+	}
+
+	case SET_CLAVE:{
+		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
+
+		char* recurso;
+		recurso = string_duplicate(esi_recibido.clave_valor.clave);
+		int id_recibido = esi_recibido.id_esi;
+
+
+		sem_wait(m_esi);
+		if(!hizo_get(esi_ejecutando,recurso)){
+			char* mensaje = "El esi no hizo GET";
+			error_de_esi(mensaje);
+
+		} else {
+			enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
+		}
+		sem_post(m_esi);
+
 		free(recurso);
 		break;
 	}
 
 	case EXITO_OPERACION: {
-		enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+		if(pausado) break;
+
+		if(!esi_ejecutando->a_blocked){
+			if(algoritmo!=SJFCD){
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				aumentar_rafaga(esi_ejecutando);
+			} else {
+				sem_wait(m_ready);
+				sem_wait(m_esi);
+				planificar();
+				sem_post(m_esi);
+				sem_post(m_ready);
+			}
+		}else{
+			bloquear(esi_ejecutando, recurso_bloqueante);
+			esi_ejecutando = NULL;
+			sem_wait(m_ready);
+			sem_wait(m_esi);
+			planificar();
+			sem_post(m_esi);
+			sem_post(m_ready);
+		}
 		break;
 	}
 
-	case ESI_FINALIZADO: {
+	case ERROR_OPERACION: {
 		sem_wait(m_rip);
 		sem_wait(m_esi);
 		list_add(rip_q, esi_ejecutando);
@@ -310,36 +408,53 @@ int procesar_mensaje(int socket) {
 	return 1;
 }
 
-void estimar_proxima_rafaga(proceso_esi_t* esi) {
-	esi->estimacion_ant = alfa * esi->duracion_raf_ant
-			+ (1 - alfa) * esi->estimacion_ant;
-}
 
 void planificar() {
-	if (pausado)
+	if (pausado){
+		/* cuando se pausa, vuelve al mismo esi??
+		 * como se que volvio? necesito esperar el exito_operacion
+		if(esi_ejecutando!=NULL){
+			list_add(ready_q,esi_ejecutando);
+			esi_ejecutando=NULL;
+		}
+		*/
+
 		return;
-	if (esi_ejecutando == NULL) {
+	}
 
-		switch (algoritmo) {
 
-		case FIFO: {
+
+	if (algoritmo!=SJFCD) {
+		if(esi_ejecutando == NULL){
+			switch (algoritmo) {
+
+			case FIFO: {
+				esi_ejecutando = list_get(ready_q, 0);
+				list_remove(ready_q, 0);
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				break;
+			}
+
+			case SJFSD: {
+				list_sort(ready_q,&menor_tiempo);
+				esi_ejecutando = list_get(ready_q, 0);
+				list_remove(ready_q, 0);
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				aumentar_rafaga(esi_ejecutando);
+				break;
+			}
+
+			case HRRN: {
+				break;
+			}
+			}
+		}else {
+			if(esi_ejecutando!=NULL){list_add(ready_q,esi_ejecutando);}
+			list_sort(ready_q,&menor_tiempo);
 			esi_ejecutando = list_get(ready_q, 0);
 			list_remove(ready_q, 0);
 			enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-			break;
-		}
-
-		case SJFCD: {
-			break;
-		}
-
-		case SJFSD: {
-			break;
-		}
-
-		case HRRN: {
-			break;
-		}
+			aumentar_rafaga(esi_ejecutando);
 		}
 	}
 }
@@ -368,8 +483,14 @@ void* consola(void* no_use) {
 
 		if (string_equals_ignore_case(token[0], "continuar")) {
 			sem_wait(m_ready);
+			sem_wait(m_esi);
 			pausado = false;
-			planificar();
+			if(algoritmo==FIFO&&esi_ejecutando!=NULL){
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+			} else{
+				planificar(); //como se que volvio el ultimo esi? si habia un esi en ejecucion
+			}
+			sem_post(m_esi);
 			sem_post(m_ready);
 		}
 
@@ -385,11 +506,11 @@ void* consola(void* no_use) {
 					return false;
 				}
 			}
+
 			sem_wait(m_esi);
 			if (id_equals(esi_ejecutando)) {
-				bloquear(esi_ejecutando, token[1], true);
-				esi_ejecutando = NULL;
-				planificar(); //Es necesario?
+				esi_ejecutando->a_blocked = true;
+				strcpy(recurso_bloqueante,token[1]);
 			}
 
 			else {
@@ -398,7 +519,7 @@ void* consola(void* no_use) {
 				list_remove_by_condition(ready_q, &id_equals);
 				sem_post(m_ready);
 				sem_wait(m_blocked);
-				bloquear(esi_a_bloquear, token[1], true);
+				bloquear(esi_a_bloquear, token[1]);
 				sem_post(m_blocked);
 			}
 			sem_post(m_esi);
@@ -409,20 +530,22 @@ void* consola(void* no_use) {
 
 			_Bool key_equals(void* pointer) {
 				proceso_esi_t* esi = pointer;
-				if (esi->bloqueado_por_consola) {
-					return esi->recurso_bloqueante == token[1];
-				} else {
-					return false;
-				}
+				return ((proceso_esi_t*) esi)->ID!=0 &&
+						string_equals_ignore_case(esi->recurso_bloqueante,token[1]);
+
 			}
+
 			sem_wait(m_blocked);
 			proceso_esi_t* esi = list_find(blocked_q, &key_equals);
 			list_remove_by_condition(blocked_q, &key_equals);
 			sem_post(m_blocked);
 
 			sem_wait(m_ready);
+			esi->a_blocked=false;
 			list_add(ready_q, esi);
+			sem_wait(m_esi);
 			planificar(); //Es necesario?
+			sem_post(m_esi);
 			sem_post(m_ready);
 
 		}
@@ -435,7 +558,7 @@ void* consola(void* no_use) {
 						token[1]);
 			}
 			sem_wait(m_blocked);
-			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso); //Hay que contemplar si ninguno esta bloqueado?
+			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
 			sem_post(m_blocked);
 			imprimir(esis_a_imprimir);
 			list_destroy_and_destroy_elements(esis_a_imprimir, &destructor);
@@ -470,8 +593,10 @@ proceso_esi_t* nuevo_processo_esi(int socket_esi) {
 	nuevo_esi->ID = id_base;
 	nuevo_esi->estimacion_ant = estimacionInicial;
 	nuevo_esi->duracion_raf_ant = 0;
-	strcpy(nuevo_esi->recurso_bloqueante,""); //reservar memoria para esto?
+	nuevo_esi->ejecuto_ant = 0;
+	strcpy(nuevo_esi->recurso_bloqueante,"");
 	nuevo_esi->socket = socket_esi;
+	nuevo_esi->viene_de_blocked = false;
 	return nuevo_esi;
 }
 
@@ -485,25 +610,29 @@ void imprimir(t_list* esis_a_imprimir) {
 	}
 }
 
-void bloquear(proceso_esi_t* esi, char* recurso, _Bool por_consola) {
-	esi->bloqueado_por_consola = por_consola;
+void bloquear(proceso_esi_t* esi, char* recurso) {
+	esi->viene_de_blocked = true;
+	esi->duracion_raf_ant=esi->ejecuto_ant;
+	esi->ejecuto_ant=0;
+	estimar_proxima_rafaga(esi);
 	strcpy(esi->recurso_bloqueante,recurso);
 	list_add(blocked_q, esi);
 }
 
 void desbloquear(char* recurso) {
 	_Bool recurso_eq(void* unEsi) {
-		return string_equals_ignore_case(
-				((proceso_esi_t*) unEsi)->recurso_bloqueante, recurso);
+		return ((proceso_esi_t*) unEsi)->ID!=0 &&
+				string_equals_ignore_case(((proceso_esi_t*) unEsi)->recurso_bloqueante, recurso);
 	}
 	proceso_esi_t* esi = list_find(blocked_q, &recurso_eq);
+	esi->a_blocked=false;
 	list_add(ready_q, esi);
 	list_remove_by_condition(blocked_q, &recurso_eq);
 	planificar(); //es necesario?
 }
 
 void bloquear_key(char* clave) {
-	t_clave* nueva_clave = malloc(sizeof(t_clave)); // malloc(sizeof(t_clave))
+	t_clave* nueva_clave = malloc(sizeof(t_clave));
 	nueva_clave->valor = clave;
 	nueva_clave->ID_esi = esi_ejecutando->ID;
 	list_add(blocked_key, clave);
@@ -519,8 +648,55 @@ _Bool esi_esperando(char* recurso) {
 
 }
 
+_Bool hizo_get(proceso_esi_t* esi, char* recurso){
+	_Bool mismo_id(void* pointer){
+		t_clave* clave = (t_clave*) pointer;
+		return string_equals_ignore_case(recurso, clave->valor) && (esi->ID == clave->ID_esi) && esi->ID!=0;
+	}
+	return list_any_satisfy(blocked_key,&mismo_id);
+}
+
+_Bool menor_tiempo(void* pointer1, void* pointer2){
+
+	int sort_number(void* pointer){
+		return ((proceso_esi_t*)pointer)->estimacion_ant - ((proceso_esi_t*)pointer)->ejecuto_ant;
+
+	}
+
+	return sort_number(pointer1) < sort_number(pointer2);
+}
+//sincronizar kill
+/* Para la consola
+void kill(proceso_esi_t* esi,int mensaje){
+	enviar(esi->socket,mensaje,0,NULL);
+	if(esi==esi_ejecutando){
+		list_add(rip_q,esi_ejecutando);
+		esi_ejecutando=NULL;
+		planificar();
+	}else{
+
+	}
+
+}
+
+*/
+
 //Funciones auxiliares
 
+void estimar_proxima_rafaga(void* pointer) {
+	proceso_esi_t* esi = (proceso_esi_t*) pointer;
+	esi->estimacion_ant = alfa * esi->duracion_raf_ant
+			+ (1 - alfa) * esi->estimacion_ant;
+}
+
+void aumentar_rafaga(proceso_esi_t* esi){
+	if(esi->viene_de_blocked){
+		esi->viene_de_blocked=false;
+		esi->ejecuto_ant=1;
+	}else{
+		esi->ejecuto_ant++;
+	}
+}
 
 void agregar_espacio(char* buffer) {
 	int i = 0;
@@ -537,58 +713,21 @@ void destructor(void *elem) {
 
 bool esta_clave(char* clave) {
 
-	_Bool bloqueadoPorClave(void* esi) {
-		return string_equals_ignore_case(
-				((proceso_esi_t*) esi)->recurso_bloqueante, clave);
+	_Bool bloqueadoPorClave(void* clave_bloqueada) {
+		return string_equals_ignore_case(((t_clave*) clave_bloqueada)->valor, clave);
 	}
 
-	return list_any_satisfy(blocked_key, bloqueadoPorClave);
+	return list_any_satisfy(blocked_key, &bloqueadoPorClave);
 
 }
 
-/*
-
- void empezar_comunicacion_ESI(){
-
- int server = crear_server(puerto);
-
- puts("Server creado");
-
- int cli = aceptar_conexion(server);
-
- char* recib = recibir_string(cli);
-
- printf("Recibi: %s \n",recib);
-
- free(recib);
-
- }
-
-
- void empezar_comunicacion_coordinador(){
- socket_coordinador = conectar_a_server((char *)ip_coordinador,(char *) puerto_coordinador);
-
- int result = enviar(socket_coordinador,HANDSHAKE_PLANIFICADOR,0,NULL);
-
- t_paquete* paquete = recibir(socket_coordinador);
-
- if(paquete->codigo_operacion == HANDSHAKE_COORDINADOR)
- puts(" Conexion con el coordinador exitosa.");
- destruir_paquete(paquete);
- }
-
- void enviar_paquete_coordinador(char* mensaje){
-
- enviar(socket_coordinador, 500, strlen(mensaje), (void *)mensaje); // STRING_S	ENT = 500 ; en el protocolo del coord :3
-
- t_paquete* paquete = recibir(socket_coordinador);
-
- if(paquete->tamanio !=strlen((char*)paquete->data) && paquete->codigo_operacion!=500){
- puts("Error al recibir");
- }
-
- printf("Recibi: %s", (char *)paquete->data);
- destruir_paquete(paquete);
- }
-
- */
+void error_de_esi(char* mensaje){
+	enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje),mensaje);
+	sem_wait(m_rip);
+	list_add(rip_q,esi_ejecutando);
+	sem_post(m_rip);
+	esi_ejecutando = NULL;
+	sem_wait(m_ready);
+	planificar();
+	sem_post(m_ready);
+}
