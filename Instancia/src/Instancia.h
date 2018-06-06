@@ -138,6 +138,8 @@ entrada* crearEntrada (char* clave, int t_clave, char* valor, int t_val, int num
 	return bloque;
 };
 int destruir_entrada (entrada* bloque){
+	free (bloque->clave);
+	free (bloque->valor);
 	free (bloque);
 	return 0;
 };
