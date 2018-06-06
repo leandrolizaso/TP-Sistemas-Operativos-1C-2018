@@ -42,6 +42,7 @@ void init_semaphores();
 bool menor_tiempo(void*,void*);
 void aumentar_rafaga(proceso_esi_t* esi);
 _Bool hizo_get(proceso_esi_t* esi, char* recurso);
+void error_de_esi(char* mensaje);
 
 
 #define FIFO 600
