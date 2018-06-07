@@ -41,7 +41,7 @@ int cant_claves;
 _Bool block_config = true;
 _Bool ejecutando = false;
 _Bool pausado;
-char recurso_bloqueante[40];
+char* recurso_bloqueante;
 proceso_esi_t * esi_ejecutando;
 
 /*Listas*/
@@ -183,11 +183,11 @@ void levantoConfig(char* path) {
 void inicializar(char* path) {
 
 	blocked_key = list_create();
-
-	levantoConfig(path);
-
 	ready_q = list_create();
 	blocked_q = list_create();
+	levantoConfig(path);
+
+	recurso_bloqueante = malloc(sizeof(char)*40);
 
 
 	init_semaphores();
@@ -240,6 +240,8 @@ void finalizar() {
 	config_destroy(config);
 	log_destroy(logger);
 	log_destroy(rip_q);
+
+	free(recurso_bloqueante);
 
 	list_destroy_and_destroy_elements(ready_q, &destructor_esi);
 	list_destroy_and_destroy_elements(blocked_q, &destructor_esi);
