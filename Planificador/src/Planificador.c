@@ -203,7 +203,7 @@ void inicializar(char* path) {
 		exit(EXIT_FAILURE);
 	}
 
-	enviar(socket_coordinador,ENVIAR_CONFIG,sizeof(char)*strlen(puerto_escucha),puerto_escucha);
+	//enviar(socket_coordinador,ENVIAR_CONFIG,sizeof(char)*strlen(puerto_escucha),puerto_escucha);
 
 	log_info(logger, "Conexión exitosa al Coordinador");
 	destruir_paquete(respuesta);
