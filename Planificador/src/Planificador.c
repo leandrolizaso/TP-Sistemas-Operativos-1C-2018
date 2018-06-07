@@ -279,7 +279,7 @@ int procesar_mensaje(int socket) {
 
 	case HANDSHAKE_ESI: {
 		proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
-		enviar(socket, HANDSHAKE_PLANIFICADOR, sizeof(int*),(int*) nuevo_esi->ID);
+		enviar(socket, HANDSHAKE_PLANIFICADOR, sizeof(int),(void*) nuevo_esi->ID);
 		sem_wait(m_ready);
 		list_add(ready_q, (void*) nuevo_esi);
 		sem_wait(m_esi);
@@ -302,7 +302,7 @@ int procesar_mensaje(int socket) {
 		sem_wait(m_esi);
 		if(id_recibido!=esi_ejecutando->ID){
 			char* mensaje = "El esi no esta en ejecucion";
-			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), mensaje);
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), (void*)mensaje);
 			sem_post(m_esi);
 			free(recurso);
 			break;
@@ -315,7 +315,7 @@ int procesar_mensaje(int socket) {
 			bloquear(esi_ejecutando, recurso);
 			sem_post(m_blocked);
 			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
-			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), mensaje);
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), (void*)mensaje);
 		} else {
 			if(id_recibido==esi_ejecutando->ID){
 			bloquear_key(recurso);
