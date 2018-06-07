@@ -414,7 +414,7 @@ void conectarPlanificador() {
 }
 void conectarCoordinador() {
 	socket_coordinador = conectar_a_server(config.ip_coordinador,config.puerto_coordinador);
-	enviar(socket_coordinador, HANDSHAKE_ESI, sizeof(int), (void*) ID);
+	enviar(socket_coordinador, HANDSHAKE_ESI, sizeof(int), &ID);
 	t_paquete* paquete;
 	paquete = recibir(socket_coordinador);
 	if (paquete->codigo_operacion != HANDSHAKE_COORDINADOR) {
