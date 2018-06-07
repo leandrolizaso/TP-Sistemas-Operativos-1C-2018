@@ -32,12 +32,13 @@ double estimacionInicial;
 double alfa;
 
 t_log* logger;
+t_log* rip_q;
 t_config* config;
 
 /*otras variables*/
 int id_base = 1;
 int cant_claves;
-_Bool block_config=true;
+_Bool block_config = true;
 _Bool ejecutando = false;
 _Bool pausado;
 char recurso_bloqueante[40];
@@ -47,7 +48,6 @@ proceso_esi_t * esi_ejecutando;
 
 t_list* ready_q;
 t_list* blocked_q;
-t_list* rip_q;
 t_list* blocked_key;
 
 /*semaforos*/
@@ -92,6 +92,8 @@ void levantoConfig(char* path) {
 
 	logger = log_create("planificador.log", "PLANIFICADOR", false,
 			LOG_LEVEL_TRACE);
+	rip_q = log_create("RIP_QUEUE.log", "PLANIFICADOR", false,
+				LOG_LEVEL_TRACE);
 
 	config = config_create(path);
 
@@ -150,11 +152,15 @@ void levantoConfig(char* path) {
 
 	if (config_has_property(config, "CANTIDAD_CLAVES")) {
 				cant_claves = config_get_int_value(config,"CANTIDAD_CLAVES");
-
+				log_debug(logger,"cantidad de claves leidas");
 				for(int i=0;i < cant_claves; i++){
 					if (config_has_property(config, "CLAVE_TOMADA")) {
-						char* clave = config_get_string_value(config,"CLAVE_TOMADA");
+						char* valor_leido = malloc(sizeof(char)*40);
+						valor_leido = config_get_string_value(config,"CLAVE_TOMADA");
+						char clave[40];
+						strcpy(clave,valor_leido);
 						bloquear_key(clave);
+						free(valor_leido);
 					} else {
 						log_error(logger, "No se encuentra la clave");
 						finalizar();
@@ -174,12 +180,13 @@ void levantoConfig(char* path) {
 
 void inicializar(char* path) {
 
+	blocked_key = list_create();
+
 	levantoConfig(path);
 
 	ready_q = list_create();
 	blocked_q = list_create();
-	rip_q = list_create();
-	blocked_key = list_create();
+
 
 	init_semaphores();
 
@@ -230,9 +237,9 @@ void finalizar() {
 	log_info(logger, "Fin ejecución");
 	config_destroy(config);
 	log_destroy(logger);
+	log_destroy(rip_q);
 
 	list_destroy_and_destroy_elements(ready_q, &destructor);
-	list_destroy_and_destroy_elements(rip_q, &destructor);
 	list_destroy_and_destroy_elements(blocked_q, &destructor);
 	list_destroy_and_destroy_elements(blocked_key, &destructor);
 
@@ -246,9 +253,9 @@ void finalizar() {
 void definirAlgoritmo(char* algoritmoString) {
 	if (string_equals_ignore_case(algoritmoString, "FIFO"))
 		algoritmo = FIFO;
-		else if (string_equals_ignore_case(algoritmoString, "SJF-CD"))
+		else if (string_equals_ignore_case(algoritmoString, "SJFCD"))
 			algoritmo = SJFCD;
-			else if (string_equals_ignore_case(algoritmoString, "SJF-SD"))
+			else if (string_equals_ignore_case(algoritmoString, "SJFSD"))
 				algoritmo = SJFSD;
 				else if (string_equals_ignore_case(algoritmoString, "HRRN"))
 					algoritmo = HRRN;
@@ -306,7 +313,7 @@ int procesar_mensaje(int socket) {
 			bloquear(esi_ejecutando, recurso);
 			sem_post(m_blocked);
 			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
-			error_de_esi(mensaje);
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), mensaje);
 		} else {
 			if(id_recibido==esi_ejecutando->ID){
 			bloquear_key(recurso);
@@ -335,7 +342,7 @@ int procesar_mensaje(int socket) {
 		sem_wait(m_esi);
 		if(id_recibido!=esi_ejecutando->ID){
 			char* mensaje = "El esi no esta en ejecucion";
-			error_de_esi(mensaje);
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), mensaje);
 			free(recurso);
 			sem_post(m_esi);
 			break;
@@ -418,11 +425,16 @@ int procesar_mensaje(int socket) {
 		break;
 	}
 
-	case ERROR_OPERACION: {
+	case ESI_FINALIZADO: {
 		sem_wait(m_rip);
 		sem_wait(m_esi);
-		list_add(rip_q, esi_ejecutando);
+		char* esi_finaliza_msg=malloc(sizeof(char)*20);
+		strcpy(esi_finaliza_msg,"Finalizo ESI ");
+		string_append(&esi_finaliza_msg,string_itoa(esi_ejecutando->ID));
+		log_debug(rip_q,esi_finaliza_msg);
+		free(esi_finaliza_msg);
 		sem_post(m_rip);
+		free(esi_ejecutando);
 		sem_wait(m_ready);
 		esi_ejecutando = NULL;
 		planificar();
@@ -533,26 +545,25 @@ void* consola(void* no_use) {
 				if (pointer != NULL) {
 					char* id = string_itoa(((proceso_esi_t*) pointer)->ID);
 					return string_equals_ignore_case(id, token[2]);
-				} else {
-					puts("El esi no esta ejecutando ni en ready");
-					return false;
-				}
+				} else return false;
 			}
 
 			sem_wait(m_esi);
 			if (id_equals(esi_ejecutando)) {
 				esi_ejecutando->a_blocked = true;
 				strcpy(recurso_bloqueante,token[1]);
-			}
-
-			else {
+			}else {
 				sem_wait(m_ready);
 				proceso_esi_t* esi_a_bloquear = list_find(ready_q, &id_equals);
-				list_remove_by_condition(ready_q, &id_equals);
-				sem_post(m_ready);
-				sem_wait(m_blocked);
-				bloquear(esi_a_bloquear, token[1]);
-				sem_post(m_blocked);
+				if(esi_a_bloquear==NULL){
+					puts("El esi no esta ejecutando ni en ready");
+				}else{
+					list_remove_by_condition(ready_q, &id_equals);
+					sem_post(m_ready);
+					sem_wait(m_blocked);
+					bloquear(esi_a_bloquear, token[1]);
+					sem_post(m_blocked);
+				}
 			}
 			sem_post(m_esi);
 
@@ -589,6 +600,8 @@ void* consola(void* no_use) {
 				return string_equals_ignore_case(esi->recurso_bloqueante,
 						token[1]);
 			}
+
+
 			sem_wait(m_blocked);
 			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
 			sem_post(m_blocked);
@@ -670,8 +683,8 @@ void bloquear_key(char* clave) {
 	}else{
 		nueva_clave->ID_esi = esi_ejecutando->ID;
 	}
-	nueva_clave->valor = clave;
-	list_add(blocked_key, clave);
+	strcpy(nueva_clave->valor,clave);
+	list_add(blocked_key, nueva_clave);
 }
 
 _Bool esi_esperando(char* recurso) {
@@ -760,8 +773,13 @@ bool esta_clave(char* clave) {
 void error_de_esi(char* mensaje){
 	enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje),mensaje);
 	sem_wait(m_rip);
-	list_add(rip_q,esi_ejecutando);
+	char* esi_finaliza_msg=malloc(sizeof(char)*30);
+	strcpy(esi_finaliza_msg,"Finalizo ESI con error ");
+	string_append(&esi_finaliza_msg,string_itoa(esi_ejecutando->ID));
+	log_debug(rip_q,esi_finaliza_msg);
+	free(esi_finaliza_msg);
 	sem_post(m_rip);
+	free(esi_ejecutando);
 	esi_ejecutando = NULL;
 	sem_wait(m_ready);
 	planificar();

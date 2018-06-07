@@ -15,7 +15,7 @@ typedef struct {
 } proceso_esi_t;
 
 typedef struct {
-	char* valor; //Es el nombre del recurso
+	char valor[40]; //Es el nombre del recurso
 	int ID_esi;
 } t_clave;
 
