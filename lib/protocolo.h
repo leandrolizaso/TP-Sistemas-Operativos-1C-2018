@@ -52,7 +52,7 @@
 
 /* Coordinador a Instancia */
 #define ENVIAR_CONFIG 207 // este mensaje tambien lo usa planificador luego del handshake para enviar al coordinador
-
+#define SAVE_CLAVE 208	// SE define codigo para guardar clave
 /* Serializacion/Desserializacion */
 
 typedef struct {
