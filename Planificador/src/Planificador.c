@@ -279,7 +279,7 @@ int procesar_mensaje(int socket) {
 
 	case HANDSHAKE_ESI: {
 		proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
-		enviar(socket, HANDSHAKE_PLANIFICADOR, sizeof(int),(void*) nuevo_esi->ID);
+		enviar(socket, HANDSHAKE_PLANIFICADOR, sizeof(int),&(nuevo_esi->ID));
 		sem_wait(m_ready);
 		list_add(ready_q, (void*) nuevo_esi);
 		sem_wait(m_esi);
@@ -478,6 +478,7 @@ void planificar() {
 				esi_ejecutando = list_get(ready_q, 0);
 				list_remove(ready_q, 0);
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				log_debug(logger,string_from_format("El ESi %d ejecuta linea",esi_ejecutando->ID));
 				break;
 			}
 
@@ -644,8 +645,8 @@ void* consola(void* no_use) {
 
 proceso_esi_t* nuevo_processo_esi(int socket_esi) {
 	proceso_esi_t* nuevo_esi = malloc(sizeof(proceso_esi_t));
-	id_base++;
 	nuevo_esi->ID = id_base;
+	id_base++;
 	nuevo_esi->estimacion_ant = estimacionInicial;
 	nuevo_esi->duracion_raf_ant = 0;
 	nuevo_esi->ejecuto_ant = 0;
@@ -791,7 +792,7 @@ bool esta_clave(char* clave) {
 }
 
 void error_de_esi(char* mensaje){
-	enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje),mensaje);
+	enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje),(void*)mensaje);
 	sem_wait(m_rip);
 	char* esi_finaliza_msg=malloc(sizeof(char)*30);
 	strcpy(esi_finaliza_msg,"Finalizo ESI con error ");
