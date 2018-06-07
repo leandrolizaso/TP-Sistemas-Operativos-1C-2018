@@ -8,14 +8,14 @@ typedef struct {
 	double estimacion_ant;
 	double duracion_raf_ant;
 	double ejecuto_ant;
-	char recurso_bloqueante[40];
+	char* recurso_bloqueante;
 	_Bool viene_de_blocked;
 	_Bool a_blocked;  //lo uso para lograr la atomicidad de las operaciones si el esi ejecutando es bloqueado por consola
 
 } proceso_esi_t;
 
 typedef struct {
-	char valor[40]; //Es el nombre del recurso
+	char* valor; //Es el nombre del recurso
 	int ID_esi;
 } t_clave;
 
@@ -33,7 +33,6 @@ void levantoConfig(char* path);
 void estimar_proxima_rafaga(void* esi);
 void imprimir(t_list* esis_a_imprimir);
 void bloquear(proceso_esi_t* esi, char* string);
-void destructor(void *elem);
 _Bool esi_esperando(char* recurso);
 void desbloquear(char* recurso);
 void bloquear_key(char* clave);
@@ -43,6 +42,9 @@ bool menor_tiempo(void*,void*);
 void aumentar_rafaga(proceso_esi_t* esi);
 _Bool hizo_get(proceso_esi_t* esi, char* recurso);
 void error_de_esi(char* mensaje);
+void liberar_esi(proceso_esi_t* esi);
+void destructor_key(void* pointer);
+void destructor_esi(void* pointer);
 
 
 #define FIFO 600

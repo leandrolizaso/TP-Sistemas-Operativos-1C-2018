@@ -60,6 +60,8 @@ sem_t* m_key;
 
 int main(int argc, char*argv[]) {
 
+	stop_multiplexar=false;
+
 	puts("Hola, soy el planificador ;)");
 
 	inicializar(argv[1]);
@@ -239,9 +241,9 @@ void finalizar() {
 	log_destroy(logger);
 	log_destroy(rip_q);
 
-	list_destroy_and_destroy_elements(ready_q, &destructor);
-	list_destroy_and_destroy_elements(blocked_q, &destructor);
-	list_destroy_and_destroy_elements(blocked_key, &destructor);
+	list_destroy_and_destroy_elements(ready_q, &destructor_esi);
+	list_destroy_and_destroy_elements(blocked_q, &destructor_esi);
+	list_destroy_and_destroy_elements(blocked_key, &destructor_key);
 
 	free(m_ready);
 	free(m_key);
@@ -368,7 +370,7 @@ int procesar_mensaje(int socket) {
 		sem_post(m_ready);
 
 		sem_wait(m_key);
-		list_remove_and_destroy_by_condition(blocked_key, &key_equals,&destructor);
+		list_remove_and_destroy_by_condition(blocked_key, &key_equals,&destructor_key);
 		sem_post(m_key);
 
 		enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
@@ -434,7 +436,7 @@ int procesar_mensaje(int socket) {
 		log_debug(rip_q,esi_finaliza_msg);
 		free(esi_finaliza_msg);
 		sem_post(m_rip);
-		free(esi_ejecutando);
+		liberar_esi(esi_ejecutando);
 		sem_wait(m_ready);
 		esi_ejecutando = NULL;
 		planificar();
@@ -572,15 +574,22 @@ void* consola(void* no_use) {
 		if (string_equals_ignore_case(token[0], "desbloquear")) {
 
 			_Bool key_equals(void* pointer) {
-				proceso_esi_t* esi = pointer;
-				return ((proceso_esi_t*) esi)->ID!=0 &&
+				proceso_esi_t* esi = (proceso_esi_t*) pointer;
+				return esi->ID!=0 &&
 						string_equals_ignore_case(esi->recurso_bloqueante,token[1]);
 
 			}
 
+			_Bool find_key(void* pointer){
+				t_clave* clave = (t_clave*) pointer;
+				return string_equals_ignore_case(clave->valor,token[1]);
+			}
 			sem_wait(m_blocked);
 			proceso_esi_t* esi = list_find(blocked_q, &key_equals);
 			list_remove_by_condition(blocked_q, &key_equals);
+			sem_wait(m_key);
+			list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
+			sem_post(m_key);
 			sem_post(m_blocked);
 
 			sem_wait(m_ready);
@@ -606,7 +615,7 @@ void* consola(void* no_use) {
 			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
 			sem_post(m_blocked);
 			imprimir(esis_a_imprimir);
-			list_destroy_and_destroy_elements(esis_a_imprimir, &destructor);
+			list_destroy_and_destroy_elements(esis_a_imprimir, &destructor_esi);
 
 		}
 
@@ -627,6 +636,7 @@ void* consola(void* no_use) {
 	}
 
 	puts("salida con exito");
+	stop_multiplexar=true;
 	free(buffer);
 
 	return NULL;
@@ -639,6 +649,7 @@ proceso_esi_t* nuevo_processo_esi(int socket_esi) {
 	nuevo_esi->estimacion_ant = estimacionInicial;
 	nuevo_esi->duracion_raf_ant = 0;
 	nuevo_esi->ejecuto_ant = 0;
+	nuevo_esi->recurso_bloqueante = malloc(sizeof(char)*40);
 	strcpy(nuevo_esi->recurso_bloqueante,"");
 	nuevo_esi->socket = socket_esi;
 	nuevo_esi->viene_de_blocked = false;
@@ -683,6 +694,7 @@ void bloquear_key(char* clave) {
 	}else{
 		nueva_clave->ID_esi = esi_ejecutando->ID;
 	}
+	nueva_clave->valor = malloc(sizeof(char)*40);
 	strcpy(nueva_clave->valor,clave);
 	list_add(blocked_key, nueva_clave);
 }
@@ -756,8 +768,16 @@ void agregar_espacio(char* buffer) {
 	buffer[i] = '\0';
 }
 
-void destructor(void *elem) {
-	free(elem);
+void destructor_esi(void *elem) {
+	proceso_esi_t* esi = (proceso_esi_t*) elem;
+	free(esi->recurso_bloqueante);
+	free(esi);
+}
+
+void destructor_key(void *elem) {
+	t_clave* key = (t_clave*) elem;
+	free(key->valor);
+	free(key);
 }
 
 bool esta_clave(char* clave) {
@@ -779,9 +799,14 @@ void error_de_esi(char* mensaje){
 	log_debug(rip_q,esi_finaliza_msg);
 	free(esi_finaliza_msg);
 	sem_post(m_rip);
-	free(esi_ejecutando);
+	liberar_esi(esi_ejecutando);
 	esi_ejecutando = NULL;
 	sem_wait(m_ready);
 	planificar();
 	sem_post(m_ready);
+}
+
+void liberar_esi(proceso_esi_t* esi){
+	free(esi->recurso_bloqueante);
+	free(esi);
 }
