@@ -276,7 +276,6 @@ int procesar_mensaje(int socket) {
 
 
 	t_paquete* paquete = recibir(socket);
-
 	switch (paquete->codigo_operacion) {
 
 	case HANDSHAKE_ESI: {
@@ -448,6 +447,7 @@ int procesar_mensaje(int socket) {
 	}
 
 	default:
+		log_debug(logger,string_from_format("Mensaje erroneo. Recibi el codigo de operacion %d",paquete->codigo_operacion));
 		destruir_paquete(paquete);
 		return -1;
 	}
