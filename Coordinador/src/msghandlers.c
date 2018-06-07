@@ -78,11 +78,12 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 
 	t_paquete* paquete = recibir(socket_planificador);
 	switch (paquete->codigo_operacion) {
-	case OPERACION_ESI_VALIDA:
+	case OPERACION_ESI_VALIDA:{
 		int resultado = instancia_guardar(mensaje_esi.clave_valor);
 		//validar el resultado, y decidir sin mandar exito_operacion o error_operacion
 		enviar(socket_esi, EXITO_OPERACION, 0, NULL);
 		break;
+	}
 	case OPERACION_ESI_INVALIDA:
 		enviar(socket_esi, ERROR_OPERACION, paquete->tamanio, paquete->data);
 		break;
