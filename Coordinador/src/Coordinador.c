@@ -21,7 +21,6 @@
 
 t_log* log_operaciones;
 t_log* log_app;
-int socket_planificador;
 
 int main(int argc, char* argv[]) {
 	log_app = log_create("coordinador.log", "COORDINADOR", true,
@@ -36,7 +35,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	char* port = config_get_string_value(config, CFG_PORT);
-	log_info(log_app, "Comenzando a atender peticiones en el puerto %s\n",
+	log_info(log_app, "Comenzando a atender peticiones en el puerto %s",
 			port);
 	multiplexar(port, recibir_mensaje);
 	printf("Finalizado");
@@ -51,16 +50,16 @@ t_config* leer_config(int argc, char* argv[]) {
 	while ((opt = getopt(argc, argv, "c:")) != -1) {
 		switch (opt) {
 		case 'c':
-			log_info(log_app, "Levantando config: %s\n", optarg);
+			log_info(log_app, "Levantando config: %s", optarg);
 			config = config_create(optarg);
 			break;
 		case ':':
-			log_error(log_app, "El parametro '-%c' requiere un argumento.\n",
+			log_error(log_app, "El parametro '-%c' requiere un argumento.",
 					optopt);
 			break;
 		case '?':
 		default:
-			log_error(log_app, "El parametro '-%c' es invalido. Ignorado.\n",
+			log_error(log_app, "El parametro '-%c' es invalido. Ignorado.",
 					optopt);
 			break;
 		}
@@ -72,15 +71,15 @@ t_config* leer_config(int argc, char* argv[]) {
 int config_incorrecta(t_config* config) {
 	if (config == NULL) {
 		log_warning(log_app,
-				"El parametro -c <config_file> es obligatorio. Se intentará cargar la configuracion por defecto.\n");
-		config = config_create("src/coord.cfg");
+				"El parametro -c <config_file> es obligatorio. Se intentará cargar la configuracion por defecto.");
+		config = config_create("./src/coord.cfg");
 	}
 
 	int failures = 0;
 
 	void validar(char* key) { //TODO validar tipos?
 		if (!config_has_property(config, key)) {
-			log_error(log_app, "Se requiere configurar \"%s\"\n", key);
+			log_error(log_app, "Se requiere configurar \"%s\"", key);
 			failures++;
 		}
 	}
@@ -92,7 +91,7 @@ int config_incorrecta(t_config* config) {
 	validar(CFG_DELAY);
 
 	if (failures > 0) {
-		log_error(log_app, "Por favor revisar el archivo \"%s\"\n",
+		log_error(log_app, "Por favor revisar el archivo \"%s\"",
 				config->path);
 		return EXIT_FAILURE;
 	}
@@ -111,12 +110,9 @@ int recibir_mensaje(int socket) {
 	case HANDSHAKE_ESI:
 	case HANDSHAKE_INSTANCIA:
 	case HANDSHAKE_PLANIFICADOR:
-		registrar_conexion(conexiones, socket, paquete->codigo_operacion);
 		do_handhsake(socket);
 		return CONTINUE_COMMUNICATION;
 	}
-
-	operacion_cliente_valida(conexiones, socket, paquete->codigo_operacion);
 
 	//Ok, cool cool. Procesamos mensaje
 	switch (paquete->codigo_operacion) {
@@ -124,13 +120,6 @@ int recibir_mensaje(int socket) {
 		do_esi_request(socket, deserializar_mensaje_esi(paquete->data));
 		break;
 	}
-	case ENVIAR_CONFIG:
-		socket_planificador = do_planificador_config(socket,
-				(char*) paquete->data);
-		if (socket_planificador == -1) {
-			stop_multiplexar = true;
-		}
-		break;
 	case SOLICITAR_CONFIG:
 		do_instance_config(socket, paquete->data);
 		break;
@@ -142,41 +131,4 @@ int recibir_mensaje(int socket) {
 	return CONTINUE_COMMUNICATION;
 }
 
-char* itos(int numero) {
-	char* str = malloc(12); //en 12 chars entra cualquier int
-	snprintf(str, 12, "%d", numero);
-	return str;
-}
-
-void registrar_conexion(t_dictionary* conexiones, int socket, int operacion) {
-	char* key = itos(socket);
-	dictionary_put(conexiones, key, (void*) operacion);
-	free(key);
-}
-
-int operacion_cliente_valida(t_dictionary* conexiones, int socket,
-		int codigo_operacion) {
-	int handshake_valido;
-	switch (codigo_operacion) {
-	case OPERACION:
-		handshake_valido = HANDSHAKE_ESI;
-		break;
-	case ENVIAR_CONFIG:
-		handshake_valido = HANDSHAKE_PLANIFICADOR;
-		break;
-	case SOLICITAR_CONFIG:
-		handshake_valido = HANDSHAKE_INSTANCIA;
-		break;
-	}
-
-	char* key = itos(socket);
-	int hanshake = (int) dictionary_get(conexiones, key);
-	free(key);
-
-	if (hanshake == handshake_valido) {
-		return true;
-	}
-	return false;
-
-}
 

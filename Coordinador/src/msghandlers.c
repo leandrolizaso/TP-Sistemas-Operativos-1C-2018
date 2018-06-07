@@ -7,7 +7,7 @@
 
 extern t_log* log_app;
 extern t_log* log_operaciones;
-extern int socket_planificador;
+int socket_planificador;
 
 char* keywordtos(int keyword) {
 	switch (keyword) {
@@ -26,24 +26,6 @@ void do_handhsake(int socket) {
 	log_debug(log_app, "Handshake Recibido (%d). Enviando Handshake.\n",
 			socket);
 	enviar(socket, HANDSHAKE_COORDINADOR, 0, NULL);
-}
-
-int do_planificador_config(int socket, char* puerto) {
-	char* ip = get_ip_socket(socket);
-	int planificador = conectar_a_server(ip, puerto);
-	enviar(planificador, HANDSHAKE_COORDINADOR, 0, NULL);
-
-	t_paquete* paquete = recibir(planificador);
-	int operacion = paquete->codigo_operacion;
-	destruir_paquete(paquete);
-
-	if (operacion != HANDSHAKE_PLANIFICADOR) {
-		log_error(log_app,
-				"Error al intentar conectar con el planificador en %s:%s\n", ip,
-				puerto);
-		return -1;
-	}
-	return planificador;
 }
 
 void do_instance_config(int socket, char* nombre) {
