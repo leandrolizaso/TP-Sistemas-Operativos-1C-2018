@@ -22,6 +22,13 @@ char* keywordtos(int keyword) {
 	}
 }
 
+int numero_instancia(int cant_instancias, char* clave) {
+	int caracter = *clave;
+	caracter = caracter - 97;
+	int rango = (26 / cant_instancias)+1;
+	return caracter / rango;
+}
+
 void do_handhsake(int socket) {
 	log_debug(log_app, "Handshake Recibido (%d). Enviando Handshake.\n",
 			socket);
