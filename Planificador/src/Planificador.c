@@ -480,6 +480,7 @@ void planificar() {
 				esi_ejecutando = list_get(ready_q, 0);
 				list_remove(ready_q, 0);
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				log_debug(logger,string_from_format("El ESi %d ejecuta linea",esi_ejecutando->ID));
 				break;
 			}
 
