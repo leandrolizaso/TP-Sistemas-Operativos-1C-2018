@@ -9,7 +9,6 @@
  */
 
 #include "ESI.h"
-void leerScript(char* script);void log_mensaje_esi(t_mensaje_esi mensaje);
 
 int main(int argc, char* argv[]) {
 
@@ -23,92 +22,10 @@ int main(int argc, char* argv[]) {
 	inicializar(argv[1]);
 
 	ejecutar(argv[2]);
-	//leerScript(argv[2]);
+
 	finalizar();
 
 	return EXIT_SUCCESS;
-}
-
-void leerScript(char* script){
-
-	FILE * fp;
-	char * line = NULL;
-	size_t len = 0;
-	ssize_t read;
-
-	char* ultima_linea = NULL;
-
-	fp = fopen(script, "r");
-
-	validarAperturaScript(fp);
-
-	if((read = getline(&line, &len, fp)) == -1){
-		log_error(logger, "Script vacio.");
-		morir();
-	}
-
-	t_esi_operacion operacion;
-	int correr = 1;
-
-	while (correr) {
-
-		t_mensaje_esi mensaje;
-
-		if ((read = getline(&line, &len, fp)) == -1) {
-			log_mensaje("Script finalizado.");
-			correr = 0;
-		}
-
-		ultima_linea = realloc(ultima_linea, len);
-		strcpy(ultima_linea, line);
-
-		operacion = parse(ultima_linea);
-
-		if (operacion.valido) {
-			destruir_operacion(operacion);
-		} else {
-			char* error;
-			error = string_from_format("La línea: %s .No es válida", line);
-			log_error(logger, error); // al loguear la linea uno ve el porque de invalidez :3
-			free(error);
-			destruir_operacion(operacion);
-			correr = 0;
-		}
-		char* msg = string_from_format("La ultima linea leida fue: %s",ultima_linea);
-		log_mensaje_esi(mensaje);
-		log_mensaje(msg);
-		free(msg);
-
-	}
-
-	fclose(fp);
-
-	if (line)
-		free(line);
-
-	if(false){
-		char* msg = string_from_format("ESI%d fue finalizado por consola.",ID);
-		log_mensaje(msg);
-		free(msg);
-	}else{
-		char* error = string_from_format("Codigo de operacion %d inválido.", 99999);
-		log_error(logger,error);
-		free(error);
-	}
-	free(ultima_linea);
-	morir();
-}
-
-void log_mensaje_esi(t_mensaje_esi mensaje){
-
-	int a =mensaje.id_esi;
-	int b= mensaje.keyword;
-	char* c =mensaje.clave_valor.clave;
-	char* d = mensaje.clave_valor.valor;
-	char* msg = string_from_format("Mensaje Esi : ID: %d, Keyword: %d, Clave: %s, Valor: %s",a,b,c,d);
-	log_mensaje(msg);
-
-
 }
 
 void inicializar(char* path) {
