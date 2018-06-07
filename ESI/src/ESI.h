@@ -31,17 +31,22 @@ int socket_coordinador;
 int socket_planificador;
 int ID;
 
+void log_mensaje(char* mensaje);
+void validarAperturaScript(FILE* fp);
+bool codigoBueno(int codigo_operacion);
+void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line);
+
 void inicializar(char* path);
 void ejecutar(char* script);
 void finalizar();
-
+void morir();
 
 void enviar_operacion(t_mensaje_esi mensaje_esi);
-void verificarEnvioCoordinador(int envio);
-void liberarClaveValor(t_clavevalor claveValor);
-t_clavevalor extraerClaveValor(t_esi_operacion sentencia,t_paquete* paquete);// recibe paquete para destruir por si falla
+t_mensaje_esi extraer_mensaje_esi(t_esi_operacion operacion, t_paquete* paquete);//recibe  paquete porque usa extraerClaveValor
+t_clavevalor extraerClaveValor(t_esi_operacion sentencia,t_paquete* paquete);//recibe paquete para destruir por si falla
 
-// Encapsulamiento
+void verificarEnvioCoordinador(int envio);
+void verificarEnvioPlanificador(int envio,t_paquete* paquete);
 
 void crearLog();
 void levantarConfig(char* path);

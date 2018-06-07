@@ -116,6 +116,7 @@ void cerrar_socket(int socket){
 
 /* Función para manejar múltiples conexiones. Recibe un puerto y una función "procesar_mensaje" que recibe como argumento un socket */
 
+int stop_multiplexar = 0;
 
 void multiplexar(char * puerto, int (*procesar_mensaje)(int)) {
 	fd_set master;
@@ -128,7 +129,7 @@ void multiplexar(char * puerto, int (*procesar_mensaje)(int)) {
 	listener = crear_server(puerto);
 	FD_SET(listener, &master);
 	fdmax = listener;
-	for (;;) {
+	while (!stop_multiplexar) {
 		read_fds = master;
 		if (select(fdmax + 1, &read_fds, NULL, NULL, NULL) == -1) {
 			perror("select");
