@@ -44,7 +44,8 @@ void ejecutar(char* script){
 	t_paquete* paquete;
 
 	char* ultima_linea = NULL;
-	bool ejecutoUltima = true;
+	bool ejecutoUltima = false;
+	bool primero = true;
 
 	fp = fopen(script, "r");
 
@@ -76,19 +77,21 @@ void ejecutar(char* script){
 			if (ejecutoUltima) {
 				ejecutoUltima = false;
 			} else
-			{
-				if((read = getline(&line, &len, fp)) == -1){
+			{	if(!primero){
+					if((read = getline(&line, &len, fp)) == -1){
 					log_mensaje("Script finalizado.");
 					verificarEnvioPlanificador(enviar(socket_planificador, ESI_FINALIZADO, 0,NULL), paquete);
 					destruir_paquete(paquete);
 					morir();
+					}
+					ultima_linea = realloc(ultima_linea,len);
+					strcpy(ultima_linea,line);
 				}
-
-				ultima_linea = realloc(ultima_linea,len);
-				strcpy(ultima_linea,line);
+				primero = false;
 			}
 
 			operacion = parse(ultima_linea);
+
 
 			if (operacion.valido) {
 				mensaje = extraer_mensaje_esi(operacion, paquete);
@@ -103,6 +106,7 @@ void ejecutar(char* script){
 				destruir_paquete(paquete);
 				morir();
 			}
+
 			break;
 
 		}
@@ -151,11 +155,9 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 	char* error;
 
 	enviar_operacion(mensaje_esi);
-
 	msg = string_from_format("Línea %s fue enviada al Coordinador por el ESI%d",line, ID);
 	log_info(logger, msg);
 	free(msg);
-
 	destruir_paquete(paquete);
 	paquete = recibir(socket_coordinador);
 
@@ -276,7 +278,7 @@ void liberarClaveValor(t_clavevalor claveValor){
 
 
 void crearLog() {
-	logger = log_create("esi.log", "ESI", false, LOG_LEVEL_TRACE);
+	logger = log_create("esi.log", "ESI", true, LOG_LEVEL_TRACE);
 }
 void levantarConfig(char* path) {
 
