@@ -3,16 +3,20 @@
 #include <pelao/protocolo.h>
 #include <commons/log.h>
 #include <commons/collections/dictionary.h>
+#include <commons/collections/list.h>
+#include "Coordinador.h"
 #include "msghandlers.h"
 
 extern t_log* log_app;
 extern t_log* log_operaciones;
 
-int socket_planificador =-1;
-char* ip_planificador = NULL;
-char* puerto_planificador;
+extern int socket_planificador;
+extern char* ip_planificador;
+extern char* puerto_planificador;
 
-//TODO: lista de instancias {nombre,fd,isConnect}
+extern t_config* config;
+extern t_dictionary* claves;
+extern t_list* instancias;
 
 char* keywordtos(int keyword) {
 	switch (keyword) {
@@ -35,39 +39,52 @@ int numero_instancia(int cant_instancias, char* clave) {
 }
 
 void do_handhsake(int socket, t_paquete* paquete) {
-	log_debug(log_app, "Handshake Recibido (%d). Enviando Handshake.\n",socket);
+	log_debug(log_app, "Handshake Recibido (%d). Enviando Handshake.\n",
+			socket);
 
 	int tamanio = 0;
 	void* data = NULL;
 
-	switch(paquete->codigo_operacion){
+	switch (paquete->codigo_operacion) {
 	case HANDSHAKE_ESI:
 		break;
-	case HANDSHAKE_PLANIFICADOR:{
+	case HANDSHAKE_PLANIFICADOR: {
 		ip_planificador = get_ip_socket(socket);
-		puerto_planificador = malloc(20*sizeof(char));
-		strcpy(puerto_planificador,paquete->data);
+		strcpy(puerto_planificador, paquete->data);
 		break;
 	}
-	case HANDSHAKE_INSTANCIA:
-		//TODO: guardo el socket en la lista de instancias
-		//guardo el nombre de la instancia (paquete->data)
-		//data va a ser una estructura de configuracion (nuero_entradas,size_entradas)
-		//y tamanio sera sizeof(int)*2
+	case HANDSHAKE_INSTANCIA: {
+		t_meta_instancia instancia_nueva;
+		instancia_nueva.conectada = true;
+		instancia_nueva.fd = socket;
+		strcpy(instancia_nueva.nombre, paquete->data);
+		list_add(instancias, instancia_nueva);
+
+		tamanio = sizeof(int) * 2;
+		data = malloc(tamanio);
+		data = config_get_int_value(config, CFG_ENTRYCANT);
+		(data + 1) = config_get_int_value(config, CFG_ENTRYSIZE);
+		break;
+	}
+	default:
 		break;
 	}
 	enviar(socket, HANDSHAKE_COORDINADOR, tamanio, data);
 }
 
-
 void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 	char* valor_mostrable = mensaje_esi.clave_valor.valor;
-	if( valor_mostrable == NULL){
+	char* clave = mensaje_esi.clave_valor.clave;
+	if (valor_mostrable == NULL) {
 		valor_mostrable = "";
 	}
 	log_info(log_operaciones, "ESI %d\t%s %s %s\n", mensaje_esi.id_esi,
 			keywordtos(mensaje_esi.keyword), mensaje_esi.clave_valor.clave,
 			valor_mostrable);
+
+	log_debug(log_app, "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
+	sleep(config_get_int_value(config, CFG_DELAY));
+	log_debug(log_app, "Seguimos!");
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
 	switch (mensaje_esi.keyword) {
@@ -85,21 +102,28 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 				mensaje_esi.id_esi, mensaje_esi.keyword);
 	}
 
-
-
-	if (socket_planificador == -1){ //solo la primera conexion al planificador
-	    socket_planificador = conectar_a_server(ip_planificador, puerto_planificador);
+	if (!dictionary_has_key(claves, clave) && mensaje_esi.keyword != 0) {
+		enviar(socket_esi, ERROR_OPERACION, 41,
+				"No podes hacer eso si la clave no existe");
+	} else if (mensaje_esi.keyword == 0) {
+		dictionary_put(claves, clave, NULL);
 	}
-	char* clave = mensaje_esi.clave_valor.clave;
-	int tamanio = strlen(clave)+1;
+
+	if (socket_planificador == -1) { //solo la primera conexion al planificador
+		socket_planificador = conectar_a_server(ip_planificador,
+				puerto_planificador);
+	}
+
+	int tamanio = strlen(clave) + 1;
 	enviar(socket_planificador, operacion, tamanio, clave);
 
 	t_paquete* paquete = recibir(socket_planificador);
 	switch (paquete->codigo_operacion) {
 	case OPERACION_ESI_VALIDA: {
-		int resultado_correcto = instancia_guardar(mensaje_esi.clave_valor);
-		//validar el resultado, y decidir sin mandar exito_operacion o error_operacion
-		if (resultado_correcto) {
+		//TODO: elegir a que instancia hablarle, o si hablarle
+		int resultado_error = instancia_guardar(mensaje_esi.clave_valor);
+		//TODO: actualizar la instancia que tiene la clave (si era NULL)
+		if (resultado_error) {
 			enviar(socket_esi, ERROR_OPERACION, 0, NULL);
 		} else {
 			enviar(socket_esi, EXITO_OPERACION, 0, NULL);
@@ -114,7 +138,7 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 }
 
 int instancia_guardar(t_clavevalor clave_valor) {
-	//TODO: Aca hablo con las instancias
+	//TODO: Guardar instancia
 	//Busco en que instancia esta la clave "clave_valor.clave"
 	//Si esa clave no esta en ninguna instancia -> numero_instancia(lista_instancias.size, clave_valor.clave)
 	//Envio a esa instancia el mensaje guardar(clave_valor)
