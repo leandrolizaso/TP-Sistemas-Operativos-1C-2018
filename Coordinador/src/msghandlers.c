@@ -37,11 +37,13 @@ void destruir_meta_instancia(t_meta_instancia* meta) {
 	free(meta);
 }
 
-int numero_instancia(int cant_instancias, char* clave) {
+t_meta_instancia* equitative_load(char* clave) {
+	int cant_instancias = list_size(instancias); //TODO: contar solo las intancias conectadas
 	int caracter = *clave;
 	caracter = caracter - 97;
 	int rango = (26 / cant_instancias) + 1; //TODO: consultar sobre este +1
-	return caracter / rango;
+	int n_instancia =  caracter / rango;
+	return list_get(instancias,n_instancia);
 }
 
 void do_handhsake(int socket, t_paquete* paquete) {
@@ -60,6 +62,7 @@ void do_handhsake(int socket, t_paquete* paquete) {
 		break;
 	}
 	case HANDSHAKE_INSTANCIA: {
+		//TODO: en realidad hay que validar si esta instancia posta es nueva
 		t_meta_instancia* instancia_nueva = malloc(sizeof(t_meta_instancia));
 		instancia_nueva->conectada = true;
 		instancia_nueva->fd = socket;
@@ -150,22 +153,27 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 	destruir_paquete(paquete);
 }
 
-int instancia_guardar(t_clavevalor clave_valor) {
-	//TODO: Guardar instancia
-	//Busco en que instancia esta la clave "clave_valor.clave"
-	//Si esa clave no esta en ninguna instancia -> numero_instancia(lista_instancias.size, clave_valor.clave)
-	//Envio a esa instancia el mensaje guardar(clave_valor)
-	//Pudo guardar?
-	//  actualizo la relacion clave-instancia
-	//	retorno exito
-	//No pudo guardar... por que?
-	//	Sin espacio:
-	//  	return fallo //el check es hasta aca
-	//  Con espacio pero necesita defrag:
-	//  	mando a todas las intancias defrag
-	//		return instancia_guardar(clave_valor) //recursividad
-	//	Desconexion?
-	//		elimino esa clave de la tabla de claves
-	//		return fallo
+int instancia_guardar(t_clavevalor cv) {
+	t_meta_instancia* instancia = dictionary_get(claves, cv.clave);
+	if(instancia==NULL){
+		//TODO: seleccion de algoritmo
+		instancia = equitative_load(cv.clave);
+		//if instancia desconectada
+		//then eliminar clave
+		//return fallo
+	}
+	int tamanio = sizeof_clavevalor(cv);
+	void* buff = serializar_clavevalor(cv);
+	enviar(instancia->fd, SAVE_CLAVE, tamanio, buff);
+	t_paquete* paquete = recibir(instancia->fd);
+
+	//TODO: validar si guardo o no
+	//if guardo exitosamente
+	dictionary_put(claves, cv.clave, instancia);
 	return EXIT_SUCCESS;
+	//else if no guardo
+	// if no guardo por falta de espacio
+	// then return fallo;
+	// else if no guardo por tener espacio pero necesitar defrag
+	// then enviar defrag a todas las intancias y retornar "instancia_guardar" (recursivo)
 }

@@ -55,6 +55,8 @@
 #define SAVE_CLAVE 208	// SE define codigo para guardar clave
 /* Serializacion/Desserializacion */
 
+int strlen_null(char* str);
+
 typedef struct {
 	char* clave;
 	char* valor;
