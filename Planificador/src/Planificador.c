@@ -469,14 +469,14 @@ void planificar() {
 				break;
 			}
 			}
-		}else {
-			if(esi_ejecutando!=NULL){list_add(ready_q,esi_ejecutando);}
-			list_sort(ready_q,&menor_tiempo);
-			esi_ejecutando = list_get(ready_q, 0);
-			list_remove(ready_q, 0);
-			enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-			aumentar_rafaga(esi_ejecutando);
-		}
+			}
+			}	else {
+				if(esi_ejecutando!=NULL){list_add(ready_q,esi_ejecutando);}
+				list_sort(ready_q,&menor_tiempo);
+				esi_ejecutando = list_get(ready_q, 0);
+				list_remove(ready_q, 0);
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				aumentar_rafaga(esi_ejecutando);
 	}
 }
 
@@ -568,9 +568,9 @@ void* consola(void* no_use) {
 			sem_post(m_blocked);
 
 			sem_wait(m_ready);
+			sem_wait(m_esi);
 			esi->a_blocked=false;
 			list_add(ready_q, esi);
-			sem_wait(m_esi);
 			planificar(); //Es necesario?
 			sem_post(m_esi);
 			sem_post(m_ready);
@@ -589,6 +589,7 @@ void* consola(void* no_use) {
 			sem_wait(m_blocked);
 			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
 			sem_post(m_blocked);
+			printf("Los esis esperando el recurso %s son:\n",token[1]);
 			imprimir(esis_a_imprimir);
 			list_destroy_and_destroy_elements(esis_a_imprimir, &destructor_esi);
 
@@ -628,13 +629,14 @@ proceso_esi_t* nuevo_processo_esi(int socket_esi) {
 	strcpy(nuevo_esi->recurso_bloqueante,"");
 	nuevo_esi->socket = socket_esi;
 	nuevo_esi->viene_de_blocked = false;
+	nuevo_esi->a_blocked = false;
 	return nuevo_esi;
 }
 
 void imprimir(t_list* esis_a_imprimir) {
 	if (!list_is_empty(esis_a_imprimir)) {
 		for (int i = 0; i < list_size(esis_a_imprimir); i++) {
-			printf("%i\n", ((proceso_esi_t*) list_get(esis_a_imprimir, i))->ID);
+			printf("\t ESI%i\n", ((proceso_esi_t*) list_get(esis_a_imprimir, i))->ID);
 		}
 	} else {
 		puts("No hay esis bloqueados por ese recurso");
