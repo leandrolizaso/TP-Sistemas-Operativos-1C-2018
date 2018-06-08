@@ -50,7 +50,7 @@ void ejecutar(char* script){
 
 	validarAperturaScript(fp);
 
-	if((read = getline(&line, &len, fp)) == -1){
+	if((read = getline(line, &len, fp)) == -1){
 		log_error(logger, "Script vacio.");
 		morir();
 	}
