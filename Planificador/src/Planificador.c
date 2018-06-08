@@ -303,10 +303,10 @@ int procesar_mensaje(int socket) {
 			bloquear(esi_ejecutando, recurso);
 			sem_post(m_blocked);
 			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
-			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje)+1,mensaje);
+			enviar(socket, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje)+1,mensaje);
 		} else {
 			bloquear_key(recurso);
-			enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
+			enviar(socket, OPERACION_ESI_VALIDA, 0, NULL);
 		}
 		sem_post(m_esi);
 		sem_post(m_key);
@@ -347,7 +347,7 @@ int procesar_mensaje(int socket) {
 		list_remove_and_destroy_by_condition(blocked_key, &key_equals,&destructor_key);
 		sem_post(m_key);
 
-		enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
+		enviar(socket, OPERACION_ESI_VALIDA, 0, NULL);
 
 		free(recurso);
 		break;
@@ -362,7 +362,7 @@ int procesar_mensaje(int socket) {
 			error_de_esi(mensaje);
 
 		} else {
-			enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
+			enviar(socket, OPERACION_ESI_VALIDA, 0, NULL);
 		}
 		sem_post(m_esi);
 
