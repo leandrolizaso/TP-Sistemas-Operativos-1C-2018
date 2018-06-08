@@ -10,7 +10,7 @@ extern t_log* log_operaciones;
 
 int socket_planificador =-1;
 char* ip_planificador = NULL;
-char* puerto_planificador = NULL;
+char* puerto_planificador;
 
 //TODO: lista de instancias {nombre,fd,isConnect}
 
@@ -45,6 +45,7 @@ void do_handhsake(int socket, t_paquete* paquete) {
 		break;
 	case HANDSHAKE_PLANIFICADOR:{
 		ip_planificador = get_ip_socket(socket);
+		puerto_planificador = malloc(20*sizeof(char));
 		strcpy(puerto_planificador,paquete->data);
 		break;
 	}
@@ -53,6 +54,7 @@ void do_handhsake(int socket, t_paquete* paquete) {
 		//guardo el nombre de la instancia (paquete->data)
 		//data va a ser una estructura de configuracion (nuero_entradas,size_entradas)
 		//y tamanio sera sizeof(int)*2
+		break;
 	}
 	enviar(socket, HANDSHAKE_COORDINADOR, tamanio, data);
 }
@@ -98,9 +100,9 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 		int resultado_correcto = instancia_guardar(mensaje_esi.clave_valor);
 		//validar el resultado, y decidir sin mandar exito_operacion o error_operacion
 		if (resultado_correcto) {
-			enviar(socket_esi, EXITO_OPERACION, 0, NULL);
-		} else {
 			enviar(socket_esi, ERROR_OPERACION, 0, NULL);
+		} else {
+			enviar(socket_esi, EXITO_OPERACION, 0, NULL);
 		}
 		break;
 	}
