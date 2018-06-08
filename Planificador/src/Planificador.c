@@ -298,12 +298,10 @@ int procesar_mensaje(int socket) {
 		sem_wait(m_esi);
 		sem_wait(m_key);
 		if (esta_clave(recurso)) {
-			char* mensaje = "El recurso no esta disponible";
 			sem_wait(m_blocked);
 			bloquear(esi_ejecutando, recurso);
 			sem_post(m_blocked);
-			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
-			enviar(socket, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje)+1,mensaje);
+			enviar(socket, OPERACION_ESI_VALIDA,0,NULL);
 		} else {
 			bloquear_key(recurso);
 			enviar(socket, OPERACION_ESI_VALIDA, 0, NULL);
@@ -372,6 +370,13 @@ int procesar_mensaje(int socket) {
 
 	case EXITO_OPERACION: {
 		if(pausado) break;
+		sem_wait(m_esi);
+		if(is_blocked(esi_ejecutando)){
+			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
+			esi_ejecutando =NULL;
+			sem_post(m_esi);
+			break;
+		}
 
 		if(!esi_ejecutando->a_blocked){
 			if(algoritmo!=SJFCD){
@@ -379,20 +384,16 @@ int procesar_mensaje(int socket) {
 				aumentar_rafaga(esi_ejecutando);
 			} else {
 				sem_wait(m_ready);
-				sem_wait(m_esi);
 				planificar();
-				sem_post(m_esi);
-				sem_post(m_ready);
 			}
 		}else{
 			bloquear(esi_ejecutando, recurso_bloqueante);
 			esi_ejecutando = NULL;
 			sem_wait(m_ready);
-			sem_wait(m_esi);
 			planificar();
-			sem_post(m_esi);
 			sem_post(m_ready);
 		}
+		sem_post(m_esi);
 		break;
 	}
 
@@ -426,7 +427,7 @@ int procesar_mensaje(int socket) {
 
 
 void planificar() {
-	if (pausado){
+	if (pausado || list_is_empty(ready_q)){
 		/* cuando se pausa, vuelve al mismo esi??
 		 * como se que volvio? necesito esperar el exito_operacion
 		if(esi_ejecutando!=NULL){
@@ -696,6 +697,15 @@ _Bool menor_tiempo(void* pointer1, void* pointer2){
 	}
 
 	return sort_number(pointer1) < sort_number(pointer2);
+}
+
+_Bool is_blocked(proceso_esi_t* esi){
+
+	_Bool mismo_id(void* un_esi){
+		return esi->ID == ((proceso_esi_t*)un_esi)->ID;
+	}
+
+	return list_find(blocked_q,&mismo_id);
 }
 //sincronizar kill
 /* Para la consola

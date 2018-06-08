@@ -45,6 +45,7 @@ void error_de_esi(char* mensaje);
 void liberar_esi(proceso_esi_t* esi);
 void destructor_key(void* pointer);
 void destructor_esi(void* pointer);
+_Bool is_blocked(proceso_esi_t* esi);
 
 
 #define FIFO 600

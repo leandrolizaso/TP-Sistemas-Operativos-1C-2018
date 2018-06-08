@@ -110,7 +110,7 @@ void ejecutar(char* script){
 			break;
 
 		}
-
+		paquete = NULL;
 		paquete = recibir(socket_planificador);
 	}
 
