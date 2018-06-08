@@ -83,7 +83,7 @@ void do_handhsake(int socket, t_paquete* paquete) {
 void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 	char* valor_mostrable = mensaje_esi.clave_valor.valor;
 	char* clave = mensaje_esi.clave_valor.clave;
-	if (valor_mostrable == NULL) {
+	if (valor_mostrable == NULL) { //hack para no ver "(null)" en los log de operaciones
 		valor_mostrable = "";
 	}
 	log_info(log_operaciones, "ESI %d\t%s %s %s\n", mensaje_esi.id_esi,
@@ -91,7 +91,7 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 			valor_mostrable);
 
 	log_trace(log_app, "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
-	sleep(config_get_int_value(config, CFG_DELAY)/1000);
+	sleep(config_get_int_value(config, CFG_DELAY)/1000+1);
 	log_trace(log_app, "Seguimos!");
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
@@ -113,7 +113,7 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 	if (!dictionary_has_key(claves, clave) && mensaje_esi.keyword != 0) {
 		enviar(socket_esi, ERROR_OPERACION, 41,
 				"No podes hacer eso si la clave no existe");
-	} else if (mensaje_esi.keyword == 0) {
+	} else if (!dictionary_has_key(claves, clave) && mensaje_esi.keyword == 0) {
 		dictionary_put(claves, clave, NULL);
 	}
 
@@ -122,16 +122,21 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 				puerto_planificador);
 	}
 
-	int tamanio = strlen(clave) + 1;
+	int tamanio = strlen_null(clave);
 	enviar(socket_planificador, operacion, tamanio, clave);
 
 	t_paquete* paquete = recibir(socket_planificador);
 	switch (paquete->codigo_operacion) {
 	case OPERACION_ESI_VALIDA: {
-		//TODO: elegir a que instancia hablarle, o si hablarle
+		if(mensaje_esi.keyword == 0){
+			enviar(socket_esi, EXITO_OPERACION, 0, NULL);
+			break;
+		}
+
 		int resultado_error = instancia_guardar(mensaje_esi.clave_valor);
-		//TODO: actualizar la instancia que tiene la clave (si era NULL)
+
 		if (resultado_error) {
+			//TODO: que mensaje mandar?
 			enviar(socket_esi, ERROR_OPERACION, 0, NULL);
 		} else {
 			enviar(socket_esi, EXITO_OPERACION, 0, NULL);
@@ -151,6 +156,7 @@ int instancia_guardar(t_clavevalor clave_valor) {
 	//Si esa clave no esta en ninguna instancia -> numero_instancia(lista_instancias.size, clave_valor.clave)
 	//Envio a esa instancia el mensaje guardar(clave_valor)
 	//Pudo guardar?
+	//  actualizo la relacion clave-instancia
 	//	retorno exito
 	//No pudo guardar... por que?
 	//	Sin espacio:
