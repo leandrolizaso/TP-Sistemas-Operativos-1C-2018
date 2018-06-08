@@ -75,10 +75,5 @@ int sizeof_mensaje_esi(t_mensaje_esi mensaje_esi);
 void* serializar_mensaje_esi(t_mensaje_esi mensaje_esi);
 t_mensaje_esi deserializar_mensaje_esi(void* buffer);
 
-/*paquete que envia coord a planificador*/
-typedef struct{
-	int id_esi;
-	char clave[40];
-} t_mensaje_plani;
 
 #endif /* PROTOCOLO_H_ */
