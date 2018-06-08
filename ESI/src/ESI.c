@@ -156,7 +156,7 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 
 	enviar_operacion(mensaje_esi);
 	msg = string_from_format("Línea %s fue enviada al Coordinador por el ESI%d",line, ID);
-	log_info(logger, msg);
+	log_debug(logger, msg);
 	free(msg);
 	destruir_paquete(paquete);
 	paquete = recibir(socket_coordinador);
