@@ -110,20 +110,13 @@ int recibir_mensaje(int socket) {
 	case HANDSHAKE_ESI:
 	case HANDSHAKE_INSTANCIA:
 	case HANDSHAKE_PLANIFICADOR:
-		do_handhsake(socket);
-		return CONTINUE_COMMUNICATION;
-	}
-
-	//Ok, cool cool. Procesamos mensaje
-	switch (paquete->codigo_operacion) {
-	case OPERACION: {
+		do_handhsake(socket, paquete);
+		break;
+	case OPERACION:
 		do_esi_request(socket, deserializar_mensaje_esi(paquete->data));
 		break;
-	}
-	case SOLICITAR_CONFIG:
-		do_instance_config(socket, paquete->data);
-		break;
-	default: //WTF? no gracias.
+	default:
+		//TODO aca quizas deberia tratar mejor las desconexiones
 		destruir_paquete(paquete);
 		return END_CONNECTION;
 	}

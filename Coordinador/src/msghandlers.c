@@ -7,7 +7,12 @@
 
 extern t_log* log_app;
 extern t_log* log_operaciones;
-int socket_planificador;
+
+int socket_planificador =-1;
+char* ip_planificador = NULL;
+char* puerto_planificador = NULL;
+
+//TODO: lista de instancias {nombre,fd,isConnect}
 
 char* keywordtos(int keyword) {
 	switch (keyword) {
@@ -25,26 +30,42 @@ char* keywordtos(int keyword) {
 int numero_instancia(int cant_instancias, char* clave) {
 	int caracter = *clave;
 	caracter = caracter - 97;
-	int rango = (26 / cant_instancias) + 1;
+	int rango = (26 / cant_instancias) + 1; //TODO: consultar sobre este +1
 	return caracter / rango;
 }
 
-void do_handhsake(int socket) {
-	log_debug(log_app, "Handshake Recibido (%d). Enviando Handshake.\n",
-			socket);
-	enviar(socket, HANDSHAKE_COORDINADOR, 0, NULL);
+void do_handhsake(int socket, t_paquete* paquete) {
+	log_debug(log_app, "Handshake Recibido (%d). Enviando Handshake.\n",socket);
+
+	int tamanio = 0;
+	void* data = NULL;
+
+	switch(paquete->codigo_operacion){
+	case HANDSHAKE_ESI:
+		break;
+	case HANDSHAKE_PLANIFICADOR:{
+		ip_planificador = get_ip_socket(socket);
+		strcpy(puerto_planificador,paquete->data);
+		break;
+	}
+	case HANDSHAKE_INSTANCIA:
+		//TODO: guardo el socket en la lista de instancias
+		//guardo el nombre de la instancia (paquete->data)
+		//data va a ser una estructura de configuracion (nuero_entradas,size_entradas)
+		//y tamanio sera sizeof(int)*2
+	}
+	enviar(socket, HANDSHAKE_COORDINADOR, tamanio, data);
 }
 
-void do_instance_config(int socket, char* nombre) {
-	//La instancia me pide config (CFG_ENTRYCANT,CFG_ENTRYSIZE)
-	//Registro su nombre (el cual me mando en paquete->data) en la lista de instancias.
-	//le mando su info
-}
 
 void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
+	char* valor_mostrable = mensaje_esi.clave_valor.valor;
+	if( valor_mostrable == NULL){
+		valor_mostrable = "";
+	}
 	log_info(log_operaciones, "ESI %d\t%s %s %s\n", mensaje_esi.id_esi,
 			keywordtos(mensaje_esi.keyword), mensaje_esi.clave_valor.clave,
-			mensaje_esi.clave_valor.valor);
+			valor_mostrable);
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
 	switch (mensaje_esi.keyword) {
@@ -62,8 +83,14 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 				mensaje_esi.id_esi, mensaje_esi.keyword);
 	}
 
-	int tamanio = sizeof_mensaje_esi(mensaje_esi);
-	enviar(socket_planificador, operacion, tamanio, &mensaje_esi);
+
+
+	if (socket_planificador == -1){ //solo la primera conexion al planificador
+	    socket_planificador = conectar_a_server(ip_planificador, puerto_planificador);
+	}
+	char* clave = mensaje_esi.clave_valor.clave;
+	int tamanio = strlen(clave)+1;
+	enviar(socket_planificador, operacion, tamanio, clave);
 
 	t_paquete* paquete = recibir(socket_planificador);
 	switch (paquete->codigo_operacion) {
@@ -85,14 +112,15 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 }
 
 int instancia_guardar(t_clavevalor clave_valor) {
-	//Aca hablo con las instancias
-	//Busco en que instancia esta la clave "mensaje_esi.clave_valor.clave"
+	//TODO: Aca hablo con las instancias
+	//Busco en que instancia esta la clave "clave_valor.clave"
+	//Si esa clave no esta en ninguna instancia -> numero_instancia(lista_instancias.size, clave_valor.clave)
 	//Envio a esa instancia el mensaje guardar(clave_valor)
 	//Pudo guardar?
 	//	retorno exito
 	//No pudo guardar... por que?
 	//	Sin espacio:
-	//  	return fallo
+	//  	return fallo //el check es hasta aca
 	//  Con espacio pero necesita defrag:
 	//  	mando a todas las intancias defrag
 	//		return instancia_guardar(clave_valor) //recursividad

@@ -194,7 +194,7 @@ void inicializar(char* path) {
 
 	// Me conecto al Coordinador
 	socket_coordinador = conectar_a_server(ip_coordinador, puerto_coordinador);
-	enviar(socket_coordinador, HANDSHAKE_PLANIFICADOR, 0, NULL);
+	enviar(socket_coordinador, HANDSHAKE_PLANIFICADOR, 5, puerto_escucha); //TODO: poner lindo esto
 
 	t_paquete* respuesta = recibir(socket_coordinador);
 
@@ -293,22 +293,9 @@ int procesar_mensaje(int socket) {
 
 
 	case GET_CLAVE: {
-		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
-		//Necesito liberarlo aca?
-
-		char* recurso;
-		recurso = string_duplicate(esi_recibido.clave_valor.clave);
-		int id_recibido = esi_recibido.id_esi;
+		char* recurso = string_duplicate(paquete->data);
 
 		sem_wait(m_esi);
-		if(id_recibido!=esi_ejecutando->ID){
-			char* mensaje = "El esi no esta en ejecucion";
-			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), (void*)mensaje);
-			sem_post(m_esi);
-			free(recurso);
-			break;
-		}
-
 		sem_wait(m_key);
 		if (esta_clave(recurso)) {
 			char* mensaje = "El recurso no esta disponible";
@@ -316,12 +303,10 @@ int procesar_mensaje(int socket) {
 			bloquear(esi_ejecutando, recurso);
 			sem_post(m_blocked);
 			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
-			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), (void*)mensaje);
+			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje)+1,mensaje);
 		} else {
-			if(id_recibido==esi_ejecutando->ID){
 			bloquear_key(recurso);
 			enviar(socket_coordinador, OPERACION_ESI_VALIDA, 0, NULL);
-			}
 		}
 		sem_post(m_esi);
 		sem_post(m_key);
@@ -331,25 +316,13 @@ int procesar_mensaje(int socket) {
 	}
 
 	case STORE_CLAVE: {
-		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
-
-		char* recurso;
-		recurso = string_duplicate(esi_recibido.clave_valor.clave);
-		int id_recibido = esi_recibido.id_esi;
-
+		char* recurso = string_duplicate(paquete->data);
 
 		_Bool key_equals(void* clave) {
 					return string_equals_ignore_case(((t_clave*) clave)->valor, recurso);
 		}
 
 		sem_wait(m_esi);
-		if(id_recibido!=esi_ejecutando->ID){
-			char* mensaje = "El esi no esta en ejecucion";
-			enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje), mensaje);
-			free(recurso);
-			sem_post(m_esi);
-			break;
-		}
 
 		if(!hizo_get(esi_ejecutando,recurso)){
 			char* mensaje = "El esi no hizo GET";
@@ -381,12 +354,7 @@ int procesar_mensaje(int socket) {
 	}
 
 	case SET_CLAVE:{
-		t_mensaje_esi esi_recibido = deserializar_mensaje_esi(paquete->data);
-
-		char* recurso;
-		recurso = string_duplicate(esi_recibido.clave_valor.clave);
-		int id_recibido = esi_recibido.id_esi;
-
+		char* recurso = string_duplicate(paquete->data);
 
 		sem_wait(m_esi);
 		if(!hizo_get(esi_ejecutando,recurso)){
@@ -794,7 +762,7 @@ bool esta_clave(char* clave) {
 }
 
 void error_de_esi(char* mensaje){
-	enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje),(void*)mensaje);
+	enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje)+1,mensaje);
 	sem_wait(m_rip);
 	char* esi_finaliza_msg=malloc(sizeof(char)*30);
 	strcpy(esi_finaliza_msg,"Finalizo ESI con error ");
