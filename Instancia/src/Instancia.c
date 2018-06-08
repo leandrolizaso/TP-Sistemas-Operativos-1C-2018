@@ -117,30 +117,77 @@ void inicializar(t_config* config,t_log* logger){
 	destruir_paquete(paquete);
 };
 
-
 typedef struct entrada{
 	int t_clave;
 	char* clave;
 	int t_val;
 	char* valor;
 	int numero_entrada;
-}entrada;
+}t_entrada;
 
-entrada* crearEntrada (char* clave, int t_clave, char* valor, int t_val, int numero_entrada){
-	entrada* bloque;
-	bloque = malloc(sizeof(entrada));
-	bloque->clave = malloc(strlen(clave) + 1);
-	//strcpy(bloque->clave, bloque);
-	bloque->numero_entrada = numero_entrada;
-	bloque->t_clave = t_clave;
+typedef struct Nodo{
+	t_entrada info;
+	Nodo* siguiente;
+}Nodo;
+
+void push (Nodo* &pila, t_entrada valores){
+	Nodo* aux = malloc(sizeof(Nodo));
+	aux->info = valores;
+	aux->siguiente = pila;
+	pila = aux;
+
+	return;
+};
+
+void crearEntrada (t_clavevalor* claveValor){
+	t_entrada* bloque;
+	bloque = malloc(sizeof(t_entrada));
+	bloque->clave = malloc(strlen(clave) + 1)
 	bloque->valor = malloc (strlen(valor) + 1);
-	bloque->t_val = valor;
+	bloque->clave = claveValor.clave;
+	bloque->valor = claveValor->valor;
+
+	if (bloque == NULL){
+		log_error(logger, "Error al asignar memoria");
+	} else {
+		push (Nodo* &pila, bloque);
+		bloque->numero_entrada = bloque->numero_entrada + 1;
+		log_info (logger, "Se creo entrada")
+	};
+
 
 	return bloque;
 };
 int destruir_entrada (entrada* bloque){
 	free (bloque->clave);
 	free (bloque->valor);
+	free (bloque->numero_entrada);
 	free (bloque);
+	free (aux->info);
+	free (aux->siguiente);
+	free (aux);
+
 	return 0;
 };
+void verificarOperacion (int codOperacion, t_clavevalor* claveValor){
+	switch (codOperacion){
+	case SET_CLAVE:
+		crearEntrada (claveValor);
+		log_info(logger, "Creación de entrada exitosa");
+		break;
+	case GET_CLAVE:
+		buscarEntrada(claveValor->clave);
+
+		break;
+	case STORE_CLAVE:
+		almacenarClaves();
+		break;
+	case SAVE_CLAVE:
+		guardarClaves();
+		break;
+	default:
+		log_error(logger, "Error al recibir operacion");
+			};
+
+}
+
