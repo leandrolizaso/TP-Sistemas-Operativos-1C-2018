@@ -92,8 +92,8 @@ void ejecutar(char* script){
 
 			if (operacion.valido) {
 				mensaje = extraer_mensaje_esi(operacion, paquete);
-				destruir_operacion(operacion);
 				ejecutarMensaje(mensaje, paquete, ultima_linea);
+				destruir_operacion(operacion);
 			} else {
 				char* error;
 				error = string_from_format("La línea: %s .No es válida", ultima_linea);
