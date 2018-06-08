@@ -44,11 +44,19 @@ void ejecutar(char* script){
 	t_paquete* paquete;
 
 	char* ultima_linea = NULL;
-	bool ejecutoUltima = false;
+	bool ejecutoUltima = true;
 
 	fp = fopen(script, "r");
 
 	validarAperturaScript(fp);
+
+	if((read = getline(line, &len, fp)) == -1){
+		log_error(logger, "Script vacio.");
+		morir();
+	}
+
+	ultima_linea = realloc(ultima_linea,len);
+	strcpy(ultima_linea,line);
 
 	t_esi_operacion operacion;
 
