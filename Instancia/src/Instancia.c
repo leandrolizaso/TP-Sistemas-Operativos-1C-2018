@@ -1,6 +1,6 @@
 #include "Instancia.h"
-
-
+#include <signal.h>
+#include <sys/time.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,7 +117,7 @@ void inicializar(t_config* config,t_log* logger){
 	destruir_paquete(paquete);
 };
 
-typedef struct entrada{
+typedef struct t_entrada{
 	int t_clave;
 	char* clave;
 	int t_val;
@@ -144,18 +144,16 @@ void crearEntrada (t_clavevalor* claveValor){
 	bloque = malloc(sizeof(t_entrada));
 	bloque->clave = malloc(strlen(clave) + 1)
 	bloque->valor = malloc (strlen(valor) + 1);
-	bloque->clave = claveValor.clave;
+	bloque->clave = claveValor->clave;
 	bloque->valor = claveValor->valor;
 
 	if (bloque == NULL){
 		log_error(logger, "Error al asignar memoria");
 	} else {
 		push (Nodo* &pila, bloque);
-		bloque->numero_entrada = bloque->numero_entrada + 1;
+		bloque->numero_entrada = (bloque->numero_entrada) + 1;
 		log_info (logger, "Se creo entrada")
 	};
-
-
 	return bloque;
 };
 int destruir_entrada (entrada* bloque){
@@ -177,17 +175,25 @@ void verificarOperacion (int codOperacion, t_clavevalor* claveValor){
 		break;
 	case GET_CLAVE:
 		buscarEntrada(claveValor->clave);
-
 		break;
-	case STORE_CLAVE:
-		almacenarClaves();
-		break;
+	//case STORE_CLAVE:
+	//	almacenarClaves();
+	//	break;
 	case SAVE_CLAVE:
-		guardarClaves();
+		almacenarClaves();
 		break;
 	default:
 		log_error(logger, "Error al recibir operacion");
 			};
+};
+void dump (int intervalo){
+	int tiempo = intervalo;
+	alarm (tiempo);
+  while(tiempo == 0){
+	guardarClaves();
+	tiempo = intervalo;
+	alarm(tiempo);
+  };
+  };
 
-}
 
