@@ -20,4 +20,5 @@ make_projects:
 	@cd Instancia && $(MAKE)
 	@echo "Disfruta del Pelao!"
 
-.PHONY: help pelao
+.PHONY: pelao init_deps install_lib make_projects
+
