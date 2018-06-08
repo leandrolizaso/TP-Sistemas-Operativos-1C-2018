@@ -13,8 +13,6 @@ typedef struct {
 	char* nombre;
 } t_meta_instancia;
 
-void destruir_meta_instancia(t_meta_instancia meta) {
-	free(meta.nombre);
-}
+void destruir_meta_instancia(t_meta_instancia* meta);
 
 #endif /* SRC_MSGHANDLERS_H_ */

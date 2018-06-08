@@ -2,6 +2,7 @@
 #include <pelao/sockets.h>
 #include <pelao/protocolo.h>
 #include <commons/log.h>
+#include <commons/config.h>
 #include <commons/collections/dictionary.h>
 #include <commons/collections/list.h>
 #include "Coordinador.h"
@@ -31,6 +32,11 @@ char* keywordtos(int keyword) {
 	}
 }
 
+void destruir_meta_instancia(t_meta_instancia* meta) {
+	free(meta->nombre);
+	free(meta);
+}
+
 int numero_instancia(int cant_instancias, char* clave) {
 	int caracter = *clave;
 	caracter = caracter - 97;
@@ -54,16 +60,18 @@ void do_handhsake(int socket, t_paquete* paquete) {
 		break;
 	}
 	case HANDSHAKE_INSTANCIA: {
-		t_meta_instancia instancia_nueva;
-		instancia_nueva.conectada = true;
-		instancia_nueva.fd = socket;
-		strcpy(instancia_nueva.nombre, paquete->data);
+		t_meta_instancia* instancia_nueva = malloc(sizeof(t_meta_instancia));
+		instancia_nueva->conectada = true;
+		instancia_nueva->fd = socket;
+		instancia_nueva->nombre = strdup(paquete->data);
 		list_add(instancias, instancia_nueva);
 
 		tamanio = sizeof(int) * 2;
 		data = malloc(tamanio);
-		data = config_get_int_value(config, CFG_ENTRYCANT);
-		(data + 1) = config_get_int_value(config, CFG_ENTRYSIZE);
+		int cant_entradas = config_get_int_value(config, CFG_ENTRYCANT);
+		int size_entradas = config_get_int_value(config, CFG_ENTRYSIZE);
+		memcpy(data, &cant_entradas, sizeof(int));
+		memcpy(data + sizeof(int), &size_entradas, sizeof(int));
 		break;
 	}
 	default:
@@ -82,9 +90,9 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 			keywordtos(mensaje_esi.keyword), mensaje_esi.clave_valor.clave,
 			valor_mostrable);
 
-	log_debug(log_app, "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
-	sleep(config_get_int_value(config, CFG_DELAY));
-	log_debug(log_app, "Seguimos!");
+	log_trace(log_app, "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
+	sleep(config_get_int_value(config, CFG_DELAY)/1000);
+	log_trace(log_app, "Seguimos!");
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
 	switch (mensaje_esi.keyword) {

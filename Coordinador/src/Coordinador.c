@@ -15,6 +15,7 @@
 #include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/collections/dictionary.h>
+#include <commons/collections/list.h>
 #include <commons/log.h>
 #include "Coordinador.h"
 #include "msghandlers.h"
@@ -57,7 +58,7 @@ int main(int argc, char* argv[]) {
 	free(ip_planificador);
 	free(port);
 	dictionary_destroy(claves);
-	list_destroy_and_destroy_elements(instancias, destruir_meta_instancia);
+	list_destroy_and_destroy_elements(instancias, (void*)destruir_meta_instancia);
 	config_destroy(config);
 
 	printf("Finalizado");
