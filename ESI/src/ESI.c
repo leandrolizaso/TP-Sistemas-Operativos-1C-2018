@@ -50,11 +50,6 @@ void ejecutar(char* script){
 
 	validarAperturaScript(fp);
 
-	if((read = getline(line, &len, fp)) == -1){
-		log_error(logger, "Script vacio.");
-		morir();
-	}
-
 	t_esi_operacion operacion;
 
 	paquete = recibir(socket_planificador);
