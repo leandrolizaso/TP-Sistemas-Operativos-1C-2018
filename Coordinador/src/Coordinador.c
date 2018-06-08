@@ -22,22 +22,44 @@
 t_log* log_operaciones;
 t_log* log_app;
 
+int socket_planificador = -1;
+char* ip_planificador;
+char* puerto_planificador;
+
+t_config* config;
+t_dictionary* claves;
+t_list* instancias;
+
 int main(int argc, char* argv[]) {
+	//TODO: el log level seria parametro (por archivo de config?)
 	log_app = log_create("coordinador.log", "COORDINADOR", true,
-			LOG_LEVEL_TRACE); //TODO: el log level seria parametro (por archivo de config?)
+			LOG_LEVEL_TRACE);
 	log_operaciones = log_create("operaciones.log", "COORDINADOR", false,
 			LOG_LEVEL_INFO);
 
-	t_config* config = leer_config(argc, argv);
+	puerto_planificador = malloc(20 * sizeof(char));
+	claves = dictionary_create();
+	instancias = list_create();
+
+	config = leer_config(argc, argv);
 	if (config_incorrecta(config)) {
 		config_destroy(config);
 		return EXIT_FAILURE;
 	}
 
 	char* port = config_get_string_value(config, CFG_PORT);
-	log_info(log_app, "Comenzando a atender peticiones en el puerto %s",
-			port);
+	log_info(log_app, "Comenzando a atender peticiones en el puerto %s", port);
 	multiplexar(port, recibir_mensaje);
+
+	log_destroy(log_app);
+	log_destroy(log_operaciones);
+	free(puerto_planificador);
+	free(ip_planificador);
+	free(port);
+	dictionary_destroy(claves);
+	list_destroy_and_destroy_elements(instancias, destruir_meta_instancia);
+	config_destroy(config);
+
 	printf("Finalizado");
 	return EXIT_SUCCESS;
 }
@@ -91,8 +113,7 @@ int config_incorrecta(t_config* config) {
 	validar(CFG_DELAY);
 
 	if (failures > 0) {
-		log_error(log_app, "Por favor revisar el archivo \"%s\"",
-				config->path);
+		log_error(log_app, "Por favor revisar el archivo \"%s\"", config->path);
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
@@ -116,12 +137,11 @@ int recibir_mensaje(int socket) {
 		do_esi_request(socket, deserializar_mensaje_esi(paquete->data));
 		break;
 	default:
-		//TODO aca quizas deberia tratar mejor las desconexiones
+		//TODO tratar mejor las desconexiones (si es instancia marcar desconectada)
 		destruir_paquete(paquete);
 		return END_CONNECTION;
 	}
 	destruir_paquete(paquete);
 	return CONTINUE_COMMUNICATION;
 }
-
 
