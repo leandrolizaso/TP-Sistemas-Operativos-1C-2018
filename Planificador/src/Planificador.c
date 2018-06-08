@@ -282,8 +282,8 @@ int procesar_mensaje(int socket) {
 		proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
 		enviar(socket, HANDSHAKE_PLANIFICADOR, sizeof(int),&(nuevo_esi->ID));
 		sem_wait(m_ready);
-		list_add(ready_q, (void*) nuevo_esi);
 		sem_wait(m_esi);
+		list_add(ready_q, (void*) nuevo_esi);
 		planificar();
 		sem_post(m_esi);
 		sem_post(m_ready);
@@ -371,12 +371,15 @@ int procesar_mensaje(int socket) {
 	case EXITO_OPERACION: {
 		if(pausado) break;
 		sem_wait(m_esi);
+
+
 		if(is_blocked(esi_ejecutando)){
 			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
 			esi_ejecutando =NULL;
 			sem_post(m_esi);
 			break;
 		}
+
 
 		if(!esi_ejecutando->a_blocked){
 			if(algoritmo!=SJFCD){
@@ -391,8 +394,8 @@ int procesar_mensaje(int socket) {
 			esi_ejecutando = NULL;
 			sem_wait(m_ready);
 			planificar();
-			sem_post(m_ready);
 		}
+		sem_post(m_ready);
 		sem_post(m_esi);
 		break;
 	}
@@ -523,22 +526,22 @@ void* consola(void* no_use) {
 			}
 
 			sem_wait(m_esi);
+			sem_wait(m_ready);
 			if (id_equals(esi_ejecutando)) {
 				esi_ejecutando->a_blocked = true;
 				strcpy(recurso_bloqueante,token[1]);
 			}else {
-				sem_wait(m_ready);
 				proceso_esi_t* esi_a_bloquear = list_find(ready_q, &id_equals);
 				if(esi_a_bloquear==NULL){
 					puts("El esi no esta ejecutando ni en ready");
 				}else{
 					list_remove_by_condition(ready_q, &id_equals);
-					sem_post(m_ready);
 					sem_wait(m_blocked);
 					bloquear(esi_a_bloquear, token[1]);
 					sem_post(m_blocked);
 				}
 			}
+			sem_post(m_ready);
 			sem_post(m_esi);
 
 		}
