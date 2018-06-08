@@ -125,22 +125,10 @@ typedef struct entrada{
 	char* valor;
 	int numero_entrada;
 }entrada;
-entrada* crearEntrada (char* clave, int t_clave, char* valor, int t_val, int numero_entrada){
-	entrada* bloque;
-	bloque = malloc(sizeof(entrada));
-	bloque->clave = malloc(strlen(clave) + 1);
-	//strcpy(bloque->clave, bloque);
-	bloque->numero_entrada = numero_entrada;
-	bloque->t_clave = t_clave;
-	bloque->valor = malloc (strlen(valor) + 1);
-	bloque->t_val = valor;
+int destruir_entrada (entrada* bloque);
+void push (Nodo* &pila, t_entrada valores);
+void crearEntrada (struct t_clavevalor* claveValor);
+void verificarOperacion (int codOperacion, t_clavevalor* claveValor);
+void dump (int intervalo);
 
-	return bloque;
-};
-int destruir_entrada (entrada* bloque){
-	free (bloque->clave);
-	free (bloque->valor);
-	free (bloque);
-	return 0;
-};
 #endif // INSTANCIA_H_INCLUDED
