@@ -39,11 +39,14 @@ void destruir_meta_instancia(t_meta_instancia* meta) {
 
 t_meta_instancia* equitative_load(char* clave) {
 	int cant_instancias = list_size(instancias); //TODO: contar solo las intancias conectadas
-	int caracter = *clave;
-	caracter = caracter - 97;
-	int rango = (26 / cant_instancias) + 1; //TODO: consultar sobre este +1
-	int n_instancia =  caracter / rango;
-	return list_get(instancias,n_instancia);
+	if(cant_instancias>0){
+		int caracter = *clave;
+		caracter = caracter - 97;
+		int rango = (26 / cant_instancias) + 1; //TODO: consultar sobre este +1
+		int n_instancia =  caracter / rango;
+		return list_get(instancias,n_instancia);
+	}
+	return NULL;
 }
 
 void do_handhsake(int socket, t_paquete* paquete) {
@@ -158,6 +161,10 @@ int instancia_guardar(t_clavevalor cv) {
 	if(instancia==NULL){
 		//TODO: seleccion de algoritmo
 		instancia = equitative_load(cv.clave);
+		if(instancia==NULL){
+			//no hay instancia para atender esta peticion;
+			return EXIT_FAILURE;
+		}
 		//if instancia desconectada
 		//then eliminar clave
 		//return fallo
