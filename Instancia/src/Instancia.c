@@ -17,6 +17,11 @@
 #define CFG_POINT  "point_mount"
 #define CFG_NAME_INST  "name_instancia"
 #define CFG_INTERVAL  "interval"
+#define CFG_TAMANIO  "tamanio_entrada"
+
+typedef int sig_atomic_t;
+sig_atomic_t = CFG_TAMANIO;
+
 
 //Leer arcivo de configuracion
 t_config* leer_config(int argc, char* argv[]) {
@@ -139,14 +144,16 @@ void push (Nodo* &pila, t_entrada valores){
 	return;
 };
 
-void crearEntrada (t_clavevalor* claveValor){
+vvoid crearEntrada (struct t_clavevalor* claveValor){
 	t_entrada* bloque;
 	bloque = malloc(sizeof(t_entrada));
 	bloque->clave = malloc(strlen(clave) + 1)
 	bloque->valor = malloc (strlen(valor) + 1);
-	bloque->clave = claveValor->clave;
+	bloque->clave = claveValor.clave;
 	bloque->valor = claveValor->valor;
-
+	bloque->t_clave = sizeof(claveValor->clave);
+	bloque->t_valor = sizeof(claveValor->valor);
+	
 	if (bloque == NULL){
 		log_error(logger, "Error al asignar memoria");
 	} else {
@@ -156,6 +163,7 @@ void crearEntrada (t_clavevalor* claveValor){
 	};
 	return bloque;
 };
+
 int destruir_entrada (entrada* bloque){
 	free (bloque->clave);
 	free (bloque->valor);
