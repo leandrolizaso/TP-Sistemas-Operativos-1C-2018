@@ -10,18 +10,16 @@
 #include <pelao/protocolo.h>
 #include <commons/config.h>
 #include <commons/log.h>
-#include "Instancia.h"
+#include <commons/collections/list.h>
 
-#define CFG_IP  "ip_coordinador"
+/*#define CFG_IP  "ip_coordinador"
 #define CFG_PORT  "port_coordinador"
 #define CFG_ALGO  "distribution_replacement"
 #define CFG_POINT  "point_mount"
 #define CFG_NAME_INST  "name_instancia"
 #define CFG_INTERVAL  "interval"
-#define CFG_TAMANIO  "tamanio_entrada"
+#define CFG_TAMANIO   100*/
 
-typedef int sig_atomic_t;
-sig_atomic_t = CFG_TAMANIO;
 typedef int sig_atomic_t;
 sig_atomic_t (CFG_TAMANIO);
 
@@ -114,8 +112,8 @@ void inicializar(t_config* config,t_log* logger){
 	//ENVIAR MENSAJE
 	enviar(socket_coordinador, HANDSHAKE_INSTANCIA, 0, NULL);
 
-	struct t_paquete* paquete;
-		paquete = recibir(socket_coordinador);
+	t_paquete* paquete;
+	paquete = recibir(socket_coordinador);
 	if(paquete->codigo_operacion == HANDSHAKE_COORDINADOR){
 		log_info(logger, "Mensaje recibido de coordinador");
 	}else{
@@ -133,31 +131,28 @@ struct entrada{
 	int numero_entrada;
 };
 
-struct Nodo{
-	t_entrada info;
-	Nodo* siguiente;
-};
+listas* listaAlmacenamiento = list_create();
 
-void push (struct Nodo* pila, struct t_entrada* valores){
-	Nodo* aux = malloc(sizeof(Nodo));
-	aux-> info = valores;
-	aux->siguiente = pila;
-	pila = aux;
+void push (t_list* listaAlmacenamiento, t_entrada* valores){
+	t_list* aux = malloc(sizeof(t_list));
+	aux->head->data = valores;
+	aux->elements_count = listaAlmacenamiento->head;
+	listaAlmacenamiento = aux;
 
-	return;
+	return listaAlmacenamiento;
 };
-void pop (struct Nodo* pila){
-     t_entrada x;
-	Nodo* aux = pila;
+void pop (t_list* listaAlmacenamiento){
+     t_entrada* x;
+     t_list* aux = listaAlmacenamiento;
      x = aux->info;
 	aux = aux->siguiente;
 
 	return x;
 };
-void crearEntrada (struct t_clavevalor* claveValor){
+void crearEntrada (t_clavevalor* claveValor){
 	t_entrada* bloque;
 	bloque = malloc(sizeof(t_entrada));
-	bloque->clave = malloc(strlen(clave) + 1)
+	bloque->clave = malloc(strlen(clave) + 1);
 	bloque->valor = malloc (strlen(valor) + 1);
 	bloque->clave = claveValor->clave;
 	bloque->valor = claveValor->valor;
@@ -167,22 +162,20 @@ void crearEntrada (struct t_clavevalor* claveValor){
 	if (bloque == NULL){
 		log_error(logger, "Error al asignar memoria");
 	} else {
-		push (Nodo* &pila, bloque);
+		push (t_list* listaAlmacenamiento, bloque);
 		bloque->numero_entrada = (bloque->numero_entrada) + 1;
 		log_info (logger, "Se creo entrada")
-	};
-	return bloque;
+	}
+	destruir_entrada(bloque);
+	return listaAlmacenamiento;
 };
 
-int destruir_entrada (entrada* bloque){
+int destruir_entrada (t_entrada* bloque){
 	free (bloque->clave);
 	free (bloque->valor);
 	free (bloque->numero_entrada);
 	free (bloque);
-	free (aux->info);
-	free (aux->siguiente);
-	free (aux);
-	delete pila;
+
 	log_info(logger, "La memoria qdó libre");
 
 	return 0;
@@ -224,7 +217,7 @@ char* punto_montaje= malloc(strlen(filePath) + 1);
 
 strcpy(punto_montaje, filePath);
 
-void buscarEntrada(struct t_entrada* bloque, t_clavevalor* info){
+void buscarEntrada(struct t_entrada* listaAlmacenamiento, t_clavevalor* info){
      int cod;
 
      t_clavevalor* getClave = malloc(strlen(info->clave)+ 1);
@@ -247,13 +240,13 @@ void buscarEntrada(struct t_entrada* bloque, t_clavevalor* info){
      };
 };
 
-void guardarClaves(t_entrada* lista ){
+void guardarClaves(listaAlmacenamiento ){
 	t_log* logger;
 	archivo = open(punto_montaje, O_CREAT, S_IRWXU);
 	if (archivo == NULL){
             log_error(logger, "Error de apertura del archivo.");
         }else {
-		size_t len = strlen(lista->valor) + 1;
+		size_t len = strlen(listaAlmacenamiento->head->) + 1;
 
 		lseek(archivo, len-1, SEEK_SET);
 		write(archivo, "", 1);
@@ -278,4 +271,17 @@ void esValorAtomico(t_entrada* lista){
 	if (lista->t_vañor <= sig_atomic_t){
 		return true;
 	}else{return false;};
+};
+void algoritmoCircular(t_entrada* bloque, t_list listaAlmacenamiento){
+     int i=0;
+     while (i != CFG_CAPACIDAD){
+
+     bool remplazar = esValorAtomico(listaAlmacenamiento);
+      if(remplazar == true){
+          list_replace(listaAlmacenamiento, i, bloque);
+          i++;} else{
+               i++;
+          };
+};
+     return listaAlmacenamiento;
 };
