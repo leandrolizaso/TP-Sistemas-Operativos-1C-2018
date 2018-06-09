@@ -336,6 +336,7 @@ int procesar_mensaje(int socket) {
 		sem_wait(m_ready);
 		sem_wait(m_blocked);
 		if (esi_esperando(recurso)) {
+
 			desbloquear(recurso);
 		}
 		sem_post(m_blocked);
@@ -376,7 +377,10 @@ int procesar_mensaje(int socket) {
 		if(is_blocked(esi_ejecutando)){
 			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
 			esi_ejecutando =NULL;
+			sem_wait(m_ready);
+			planificar();
 			sem_post(m_esi);
+			sem_post(m_ready);
 			break;
 		}
 
@@ -430,7 +434,7 @@ int procesar_mensaje(int socket) {
 
 
 void planificar() {
-	if (pausado || list_is_empty(ready_q)){
+	if (pausado || (list_is_empty(ready_q)&&esi_ejecutando==NULL)){
 		/* cuando se pausa, vuelve al mismo esi??
 		 * como se que volvio? necesito esperar el exito_operacion
 		if(esi_ejecutando!=NULL){
@@ -506,7 +510,7 @@ void* consola(void* no_use) {
 			sem_wait(m_ready);
 			sem_wait(m_esi);
 			pausado = false;
-			if(algoritmo==FIFO&&esi_ejecutando!=NULL){
+			if(algoritmo!=SJFCD&&esi_ejecutando!=NULL){
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
 			} else{
 				planificar(); //como se que volvio el ultimo esi? si habia un esi en ejecucion
@@ -563,7 +567,9 @@ void* consola(void* no_use) {
 			proceso_esi_t* esi = list_find(blocked_q, &key_equals);
 			list_remove_by_condition(blocked_q, &key_equals);
 			sem_wait(m_key);
-			list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
+			if(list_find(blocked_key,&find_key)){
+				list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
+			}
 			sem_post(m_key);
 			sem_post(m_blocked);
 
@@ -591,7 +597,7 @@ void* consola(void* no_use) {
 			sem_post(m_blocked);
 			printf("Los esis esperando el recurso %s son:\n",token[1]);
 			imprimir(esis_a_imprimir);
-			list_destroy_and_destroy_elements(esis_a_imprimir, &destructor_esi);
+			list_destroy(esis_a_imprimir);
 
 		}
 
@@ -701,7 +707,7 @@ _Bool menor_tiempo(void* pointer1, void* pointer2){
 
 	}
 
-	return sort_number(pointer1) < sort_number(pointer2);
+	return sort_number(pointer1) <= sort_number(pointer2);
 }
 
 _Bool is_blocked(proceso_esi_t* esi){
