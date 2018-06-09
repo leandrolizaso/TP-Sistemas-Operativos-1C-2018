@@ -143,8 +143,15 @@ void push (Nodo* &pila, t_entrada valores){
 
 	return;
 };
+void pop (Nodo* &pila){
+     t_entrada x;
+	Nodo* aux = pila;
+     x = aux->info
+	aux = aux->siguiente;
 
-vvoid crearEntrada (struct t_clavevalor* claveValor){
+	return x;
+};
+void crearEntrada (struct t_clavevalor* claveValor){
 	t_entrada* bloque;
 	bloque = malloc(sizeof(t_entrada));
 	bloque->clave = malloc(strlen(clave) + 1)
@@ -172,6 +179,7 @@ int destruir_entrada (entrada* bloque){
 	free (aux->info);
 	free (aux->siguiente);
 	free (aux);
+	delete pila;
 
 	return 0;
 };
@@ -184,9 +192,9 @@ void verificarOperacion (int codOperacion, t_clavevalor* claveValor){
 	case GET_CLAVE:
 		buscarEntrada(claveValor->clave);
 		break;
-	//case STORE_CLAVE:
-	//	almacenarClaves();
-	//	break;
+	case STORE_CLAVE:
+		almacenarClaves();
+		break;
 	case SAVE_CLAVE:
 		almacenarClaves();
 		break;
