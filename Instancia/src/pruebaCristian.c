@@ -4,7 +4,7 @@
 #include <commons/collections/list.h>
 #include "pruebaCristian.h"
 
-int main(int argc,char* argv[]){
+int main(int argc,char** argv){
 	inicializar(argv[1]);
 	atenderConexiones();
 	liberarRecursos();
@@ -12,10 +12,9 @@ int main(int argc,char* argv[]){
 }
 
 void inicializar(char* path){
-	crearLog();
 	levantarConfig(path);
+	crearLog();
 	conectarCoordinador();
-	crearTablaIndices();
 	crearMemoria();
 }
 
@@ -26,50 +25,52 @@ void levantarConfig(char* path) {
 	if (config_has_property(config_aux, "ip_coordinador")) {
 		config.ip_coordinador = config_get_string_value(config_aux,"ip_coordinador");
 	} else {
-		log_error(logger, "No se encuentra la ip del Coordinador");
+		perror( "No se encuentra la ip del Coordinador");
 	}
 
 	if (config_has_property(config_aux, "port_coordinador")) {
 		config.puerto_coordinador = config_get_string_value(config_aux,"port_coordinador");
 	} else {
-		log_error(logger, "No se encuentra port_coordinador");
+		perror( "No se encuentra port_coordinador");
 	}
 
 	if (config_has_property(config_aux, "distribution_replacement")) {
 		config.algoritmo = config_get_string_value(config_aux,"distribution_replacement");
 	} else {
-		log_error(logger, "No se encuentra distribution_replacement");
+		perror( "No se encuentra distribution_replacement");
 	}
 
 	if (config_has_property(config_aux, "point_mount")) {
 		config.point_mount = config_get_string_value(config_aux,"point_mount");
 	} else {
-		log_error(logger, "No se encuentra point_mount");
+		perror( "No se encuentra point_mount");
 	}
 
 	if (config_has_property(config_aux, "name_instancia")) {
 		config.nombre= config_get_string_value(config_aux,"name_instancia");
 	} else {
-		log_error(logger, "No se encuentra name_instancia");
+		perror( "No se encuentra name_instancia");
 	}
 
 	if (config_has_property(config_aux, "interval")) {
 		config.intervalo= config_get_int_value(config_aux,"interval");
 	} else {
-		log_error(logger, "No se encuentra interval");
+		perror( "No se encuentra interval");
 	}
 
-
-	log_info(logger,"Se cargó exitosamente la configuración");
 
 }
 
 void crearLog() {
-	logger = log_create("esi.log", "ESI", true, LOG_LEVEL_TRACE);
+//
+//	char* aux= string_new();
+//	string_append(&aux,config.nombre);
+//	string_append(&aux,".log");
+	logger = log_create("instancia.log", config.nombre, true, LOG_LEVEL_TRACE);
 }
 
 void conectarCoordinador() {
-
+	log_trace(logger,"conectarCoordionador()");
 	socket_coordinador = conectar_a_server(config.ip_coordinador,config.puerto_coordinador);
 
 	enviar(socket_coordinador, HANDSHAKE_INSTANCIA, strlen_null(config.nombre), config.nombre);
@@ -87,15 +88,17 @@ void conectarCoordinador() {
 }
 
 void atenderConexiones(){
+	log_trace(logger,"atenderConexiones()");
 	t_paquete* paquete;
 	paquete = recibir(socket_coordinador);
 	char* error;
 	int imRunning = 1;
 
 	while(imRunning){
-
+		log_trace(logger,"atenderConexiones() #imRunning");
 		switch(paquete->codigo_operacion){
 		case SAVE_CLAVE:{
+			log_trace(logger,"SAVE_CLAVE");
 			t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
 			if (tengoLaClave(claveValor.clave)) {
 				guardarPisandoClaveValor(claveValor);
@@ -107,15 +110,18 @@ void atenderConexiones(){
 			// ahora notifico cero, para que todinho salga bien
 		break;}
 		case DUMP_CLAVE:{
-			char* clave = strdup(paquete->data);
+			log_trace(logger,"DUMP_CLAVE");
+			char* clave = malloc(paquete->tamanio*sizeof(char));
+			clave = strdup(paquete->data);
 			t_espacio_memoria* memory = conseguirEspacioMemoria(clave);
 			if(memory == NULL){
 				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
 			}else{
 				// mmap para guardar el valor <<--- ia bere khe ago
-				t_indice* indice = list_get(tablaIndices, memory->id);
-				indice->idOcupante = -1;
+				//t_indice* indice = list_get(tablaIndices, memory->id);
+				//indice->idOcupante = -1;
 			}
+			free(clave);
 			notificar_coordinador(0);
 			//para que de bien
 		break;}
@@ -123,7 +129,7 @@ void atenderConexiones(){
 			error = string_from_format("El codigo de operación %d no es válido", paquete->codigo_operacion);
 			log_error(logger, error);
 			free(error);
-			destruir_paquete(paquete);
+			imRunning = 0;
 			}
 		}
 
@@ -135,7 +141,8 @@ void atenderConexiones(){
 
 
 void notificar_coordinador(int respuesta){
-	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),(void*)respuesta);
+	log_trace(logger,"notificador_coordinador(%d)",respuesta);
+	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),&respuesta);
 }
 
 // FORMAS DE GUARDAR
@@ -164,18 +171,10 @@ void liberarRecursos(){
 	config_destroy(config_aux);
 	log_destroy(logger);
 	destruirMemoria();
-	destruirTablaIndices();
 }
 
 void crearTablaIndices(){
-	tablaIndices = list_create();
-	int i = 0;
-	while(i<cantidad_entradas){
-		t_indice* indice;
-		indice->espacio = NULL;
-		indice->idOcupante = -1;
-		list_add(tablaIndices,indice);
-	}
+	log_trace(logger,"crearTablaIndices()");
 }
 
 void crearMemoria(){
@@ -187,7 +186,6 @@ void destruirMemoria(){
 }
 
 void destruirTablaIndices(){
-	list_destroy(tablaIndices);
 }
 
 // PARA LISTAS
@@ -196,6 +194,7 @@ bool tengoLaClave(char* clave){
 	bool contieneClave(void* unaParteDeMemoria){
 		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
+
 	return list_any_satisfy(memoria,&contieneClave);
 }
 
