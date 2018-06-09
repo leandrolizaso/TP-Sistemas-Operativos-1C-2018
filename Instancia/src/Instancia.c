@@ -205,11 +205,41 @@ void verificarOperacion (int codOperacion, t_clavevalor* claveValor){
 void dump (int intervalo){
 	int tiempo = intervalo;
 	alarm (tiempo);
-  while(tiempo == 0){
-	guardarClaves();
+    while(tiempo > -2){
+	signal(SIGALRM, guardarClaves);
 	tiempo = intervalo;
 	alarm(tiempo);
-  };
+	log_info(t_log* logger, "Se guardaron datos");
+ 	 };
   };
 
+int archivo;
+char* memo;
+char* filePath = CFG_POINT;
+char* punto_montaje= malloc(strlen(filePath) + 1);
+
+strcpy(punto_montaje, filePath);
+
+void buscarEntrada(struct t_entrada* bloque, t_clavevalor* info){
+     int cod;
+
+     t_clavevalor getClave = malloc(strlen(info->clave)+ 1);
+     strcpy(getClave, info->clave);
+     t_clavevalor claveGuardada = malloc(strlen(info->clave)+ 1);
+	strcpy(claveGuardada, bloque->clave);
+     cod = strcmp (getClave, claveGuardada);
+
+     if (cod == 0){
+          log_info(logger, "se encontro clave");
+          return claveGuardada->valor;
+     } else {
+          while (cod != 0){
+
+               claveGuardada = pop(pila);
+               cod = strcmp (getClave, claveGuardada);
+          };
+          log_info(logger, "se encontro clave");
+          return claveGuardada->valor;
+     };
+};
 
