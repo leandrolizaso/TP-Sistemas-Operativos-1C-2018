@@ -28,7 +28,10 @@
 int main(int argc, char* argv[])  {
 
 	t_log* logger;
-
+     t_list* lista;
+     t_entrada* entradas;
+     int codigo;
+     t_clavevalor* claveValor;
 	puts("!!!INICIANDO-Soy el proceso instancia!!!");
 
 	// Creo log
@@ -43,13 +46,16 @@ int main(int argc, char* argv[])  {
 	//inicializar
 	inicializar(config,logger);
 
+
+     //recibir datos
+void verificarOperacion (codigo, claveValor);
 	//finalizar
+	void dump (int intervalo);
 	finalizar(config,logger);
 
-
-
+     destruir_entrada(entradas);
+     list_destroy(lista);
 	return EXIT_SUCCESS;
 }
-
 
 
