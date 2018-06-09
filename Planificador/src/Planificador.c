@@ -205,8 +205,6 @@ void inicializar(char* path) {
 		exit(EXIT_FAILURE);
 	}
 
-	//enviar(socket_coordinador,ENVIAR_CONFIG,sizeof(char)*strlen(puerto_escucha),puerto_escucha);
-
 	log_info(logger, "Conexión exitosa al Coordinador");
 	destruir_paquete(respuesta);
 
@@ -435,14 +433,6 @@ int procesar_mensaje(int socket) {
 
 void planificar() {
 	if (pausado || (list_is_empty(ready_q)&&esi_ejecutando==NULL)){
-		/* cuando se pausa, vuelve al mismo esi??
-		 * como se que volvio? necesito esperar el exito_operacion
-		if(esi_ejecutando!=NULL){
-			list_add(ready_q,esi_ejecutando);
-			esi_ejecutando=NULL;
-		}
-		*/
-
 		return;
 	}
 
