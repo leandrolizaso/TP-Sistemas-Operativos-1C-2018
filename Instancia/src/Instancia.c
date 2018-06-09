@@ -1,6 +1,7 @@
 #include "Instancia.h"
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/mman.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -272,4 +273,9 @@ void almacenarClaves (t_entrada* lista){
  	guardarClaves(lista);
 	destruir_entrada (lista);
 	log_info(log_almacen, "se almacenaron las entradas");
+};
+void esValorAtomico(t_entrada* lista){
+	if (lista->t_vañor <= sig_atomic_t){
+		return true;
+	}else{return false;};
 };
