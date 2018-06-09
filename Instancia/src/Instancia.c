@@ -21,6 +21,8 @@
 
 typedef int sig_atomic_t;
 sig_atomic_t = CFG_TAMANIO;
+typedef int sig_atomic_t;
+sig_atomic_t (CFG_TAMANIO);
 
 
 //Leer arcivo de configuracion
@@ -85,8 +87,7 @@ int config_incorrecta(t_config* config) {
 void finalizar( t_config* config,t_log* logger){
 	log_info(logger, "Fin ejecución");
 	config_destroy(config);
-	log_destroy(logger);
-};
+	};
 void inicializar(t_config* config,t_log* logger){
 
 	int socket_coordinador;
@@ -112,7 +113,8 @@ void inicializar(t_config* config,t_log* logger){
 	//ENVIAR MENSAJE
 	enviar(socket_coordinador, HANDSHAKE_INSTANCIA, 0, NULL);
 
-	t_paquete* paquete = recibir(socket_coordinador);
+	struct t_paquete* paquete;
+		paquete = recibir(socket_coordinador);
 	if(paquete->codigo_operacion == HANDSHAKE_COORDINADOR){
 		log_info(logger, "Mensaje recibido de coordinador");
 	}else{
@@ -122,31 +124,31 @@ void inicializar(t_config* config,t_log* logger){
 	destruir_paquete(paquete);
 };
 
-typedef struct t_entrada{
+struct entrada{
 	int t_clave;
 	char* clave;
-	int t_val;
+	int t_valor;
 	char* valor;
 	int numero_entrada;
-}t_entrada;
+};
 
-typedef struct Nodo{
+struct Nodo{
 	t_entrada info;
 	Nodo* siguiente;
-}Nodo;
+};
 
-void push (Nodo* &pila, t_entrada valores){
+void push (struct Nodo* pila, struct t_entrada* valores){
 	Nodo* aux = malloc(sizeof(Nodo));
-	aux->info = valores;
+	aux-> info = valores;
 	aux->siguiente = pila;
 	pila = aux;
 
 	return;
 };
-void pop (Nodo* &pila){
+void pop (struct Nodo* pila){
      t_entrada x;
 	Nodo* aux = pila;
-     x = aux->info
+     x = aux->info;
 	aux = aux->siguiente;
 
 	return x;
@@ -156,11 +158,11 @@ void crearEntrada (struct t_clavevalor* claveValor){
 	bloque = malloc(sizeof(t_entrada));
 	bloque->clave = malloc(strlen(clave) + 1)
 	bloque->valor = malloc (strlen(valor) + 1);
-	bloque->clave = claveValor.clave;
+	bloque->clave = claveValor->clave;
 	bloque->valor = claveValor->valor;
 	bloque->t_clave = sizeof(claveValor->clave);
 	bloque->t_valor = sizeof(claveValor->valor);
-	
+
 	if (bloque == NULL){
 		log_error(logger, "Error al asignar memoria");
 	} else {
@@ -224,11 +226,11 @@ strcpy(punto_montaje, filePath);
 void buscarEntrada(struct t_entrada* bloque, t_clavevalor* info){
      int cod;
 
-     t_clavevalor getClave = malloc(strlen(info->clave)+ 1);
+     t_clavevalor* getClave = malloc(strlen(info->clave)+ 1);
      strcpy(getClave, info->clave);
-     t_clavevalor claveGuardada = malloc(strlen(info->clave)+ 1);
+     t_entrada* claveGuardada = malloc(strlen(info->clave)+ 1);
 	strcpy(claveGuardada, bloque->clave);
-     cod = strcmp (getClave, claveGuardada);
+     cod = strcmp (getClave->clave, claveGuardada->clave);
 
      if (cod == 0){
           log_info(logger, "se encontro clave");
@@ -236,8 +238,8 @@ void buscarEntrada(struct t_entrada* bloque, t_clavevalor* info){
      } else {
           while (cod != 0){
 
-               claveGuardada = pop(pila);
-               cod = strcmp (getClave, claveGuardada);
+               claveGuardada = pop(struct Nodo* pila);
+               cod = strcmp (getClave->valor, claveGuardada->valor);
           };
           log_info(logger, "se encontro clave");
           return claveGuardada->valor;
@@ -245,6 +247,7 @@ void buscarEntrada(struct t_entrada* bloque, t_clavevalor* info){
 };
 
 void guardarClaves(t_entrada* lista ){
+	t_log* logger;
 	archivo = open(punto_montaje, O_CREAT, S_IRWXU);
 	if (archivo == NULL){
             log_error(logger, "Error de apertura del archivo.");
@@ -254,18 +257,19 @@ void guardarClaves(t_entrada* lista ){
 		lseek(archivo, len-1, SEEK_SET);
 		write(archivo, "", 1);
 
-		memo = mmap(NULL, len , PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, archivo, 0);
+		memo = mmap(NULL, len , PROT_WRITE | PROT_READ, MAP_SHARED, archivo, 0);
 		memcpy(memo, lista->valor, len);
 		msync(memo, len, MS_SYNC);
 		munmap(memo, len);
-	log_info(logger, "se guardaron las claves");
+		log_info(logger, "se guardaron las claves");
 		free(filePath);
 		free(punto_montaje);
        		 };
         fclose(archivo);
 };
 void almacenarClaves (t_entrada* lista){
+	t_log* log_almacen;
  	guardarClaves(lista);
-	destruir_entrada (listas);
-	log_info(logger, "se almacenaron las entradas");
+	destruir_entrada (lista);
+	log_info(log_almacen, "se almacenaron las entradas");
 };
