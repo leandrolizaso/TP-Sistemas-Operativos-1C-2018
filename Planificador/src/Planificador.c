@@ -486,8 +486,13 @@ void planificar() {
 
 //consola planificador
 void* consola(void* no_use) {
-	puts("Bienvenido a la consola");
-
+	puts("Bienvenido a la consola. Los comandos son:");
+	puts(" pausar");
+	puts(" continuar");
+	puts(" bloquear <clave> <ID esi>");
+	puts(" desbloquear <clave>");
+	puts(" listar <clave>");
+	
 	char* buffer;
 
 	char** token;
@@ -738,8 +743,8 @@ void kill(proceso_esi_t* esi,int mensaje){
 
 void estimar_proxima_rafaga(void* pointer) {
 	proceso_esi_t* esi = (proceso_esi_t*) pointer;
-	esi->estimacion_ant = alfa * esi->duracion_raf_ant
-			+ (1 - alfa) * esi->estimacion_ant;
+	esi->estimacion_ant = (alfa/100) * esi->duracion_raf_ant
+			+ (1 - (alfa/100)) * esi->estimacion_ant;
 }
 
 void aumentar_rafaga(proceso_esi_t* esi){
