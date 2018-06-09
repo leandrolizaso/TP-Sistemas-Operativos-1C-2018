@@ -180,6 +180,7 @@ int destruir_entrada (entrada* bloque){
 	free (aux->siguiente);
 	free (aux);
 	delete pila;
+	log_info(logger, "La memoria qdó libre");
 
 	return 0;
 };
@@ -196,7 +197,7 @@ void verificarOperacion (int codOperacion, t_clavevalor* claveValor){
 		almacenarClaves();
 		break;
 	case SAVE_CLAVE:
-		almacenarClaves();
+		guardarClaves();
 		break;
 	default:
 		log_error(logger, "Error al recibir operacion");
@@ -243,3 +244,28 @@ void buscarEntrada(struct t_entrada* bloque, t_clavevalor* info){
      };
 };
 
+void guardarClaves(t_entrada* lista ){
+	archivo = open(punto_montaje, O_CREAT, S_IRWXU);
+	if (archivo == NULL){
+            log_error(logger, "Error de apertura del archivo.");
+        }else {
+		size_t len = strlen(lista->valor) + 1;
+
+		lseek(archivo, len-1, SEEK_SET);
+		write(archivo, "", 1);
+
+		memo = mmap(NULL, len , PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, archivo, 0);
+		memcpy(memo, lista->valor, len);
+		msync(memo, len, MS_SYNC);
+		munmap(memo, len);
+	log_info(logger, "se guardaron las claves");
+		free(filePath);
+		free(punto_montaje);
+       		 };
+        fclose(archivo);
+};
+void almacenarClaves (t_entrada* lista){
+ 	guardarClaves(lista);
+	destruir_entrada (listas);
+	log_info(logger, "se almacenaron las entradas");
+};
