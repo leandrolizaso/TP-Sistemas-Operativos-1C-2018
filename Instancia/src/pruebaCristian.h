@@ -18,12 +18,6 @@ typedef struct {
 	int id;
 }t_espacio_memoria;
 
-typedef struct{
-	bool esAtomico;
-	int idOcupante;
-	t_espacio_memoria* espacio;
-}t_indice; // ?
-
 typedef struct {
 	char* ip_coordinador;
 	char* puerto_coordinador;
@@ -33,7 +27,6 @@ typedef struct {
 	int intervalo;
 } t_config_instancia;
 
-t_list* tablaIndices;
 t_list* memoria;
 t_config_instancia config;
 t_log* logger;
@@ -42,9 +35,9 @@ t_config* config_aux;
 int socket_coordinador;
 int cantidad_entradas;
 int tamanio_entradas;
+int* indiceMemoria;
 
-
-void notificar_coordinador(int respuesta);
+void notificarCoordinador(int respuesta);
 void guardarPisandoClaveValor(t_clavevalor claveValor);
 void guardarClaveValor(t_clavevalor claveValor);
 
@@ -59,11 +52,7 @@ void atenderConexiones();
 
 int entradasQueOcupa(char* valor);
 
-void destruirMemoria();
-void destruirTablaIndices();
 void liberarRecursos();
 
-void crearTablaIndices();
-void crearMemoria();
 
 #endif /* SRC_PRUEBACRISTIAN_H_ */

@@ -15,7 +15,8 @@ void inicializar(char* path){
 	levantarConfig(path);
 	crearLog();
 	conectarCoordinador();
-	crearMemoria();
+	indiceMemoria = malloc(sizeof(int)*cantidad_entradas);
+	memoria = list_create();
 }
 
 void levantarConfig(char* path) {
@@ -58,15 +59,14 @@ void levantarConfig(char* path) {
 		perror( "No se encuentra interval");
 	}
 
-
 }
 
 void crearLog() {
-//
-//	char* aux= string_new();
-//	string_append(&aux,config.nombre);
-//	string_append(&aux,".log");
-	logger = log_create("instancia.log", config.nombre, true, LOG_LEVEL_TRACE);
+	char* aux= string_new();
+	string_append(&aux,config.nombre);
+	string_append(&aux,".log");
+	logger = log_create(aux, config.nombre, true, LOG_LEVEL_TRACE);
+	free(aux);
 }
 
 void conectarCoordinador() {
@@ -105,7 +105,7 @@ void atenderConexiones(){
 			} else {
 				guardarClaveValor(claveValor);
 			}
-			notificar_coordinador(0);
+			notificarCoordinador(0);
 			// en cada guardar deberia tener un notificar y depende del error/exito notificar
 			// ahora notifico cero, para que todinho salga bien
 		break;}
@@ -122,7 +122,7 @@ void atenderConexiones(){
 				//indice->idOcupante = -1;
 			}
 			free(clave);
-			notificar_coordinador(0);
+			notificarCoordinador(0);
 			//para que de bien
 		break;}
 		default:{
@@ -139,8 +139,7 @@ void atenderConexiones(){
 
 }
 
-
-void notificar_coordinador(int respuesta){
+void notificarCoordinador(int respuesta){
 	log_trace(logger,"notificador_coordinador(%d)",respuesta);
 	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),&respuesta);
 }
@@ -170,22 +169,7 @@ void finalizar(){
 void liberarRecursos(){
 	config_destroy(config_aux);
 	log_destroy(logger);
-	destruirMemoria();
-}
-
-void crearTablaIndices(){
-	log_trace(logger,"crearTablaIndices()");
-}
-
-void crearMemoria(){
-	memoria = list_create();
-}
-
-void destruirMemoria(){
 	list_destroy(memoria);
-}
-
-void destruirTablaIndices(){
 }
 
 // PARA LISTAS
@@ -205,11 +189,7 @@ t_espacio_memoria* conseguirEspacioMemoria(char* clave){
 	return list_find(memoria,&contieneClave);
 }
 
-
 // AUXILIARES
-bool esAtomico(t_indice* indice){
-	return entradasQueOcupa(indice->espacio->valor)<= 1;
-}
 
 int entradasQueOcupa(char* valor){
 	float cantidadEntradas = (strlen_null(valor) -1)/tamanio_entradas;
