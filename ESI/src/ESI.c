@@ -80,7 +80,7 @@ void ejecutar(char* script){
 			{	if(!primero){
 					if((read = getline(&line, &len, fp)) == -1){
 					log_mensaje("Script finalizado.");
-					verificarEnvioPlanificador(enviar(socket_planificador, ESI_FINALIZADO, 0,NULL), paquete);
+					verificarEnvio(enviar(socket_planificador, ESI_FINALIZADO, 0,NULL), paquete,"el Planificador");
 					destruir_paquete(paquete);
 					morir();
 					}
@@ -158,7 +158,7 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 	switch (paquete->codigo_operacion) {
 
 		case EXITO_OPERACION:
-			verificarEnvioPlanificador(enviar(socket_planificador, EXITO_OPERACION, 0, NULL), paquete);
+			verificarEnvio(enviar(socket_planificador, EXITO_OPERACION, 0, NULL), paquete,"el Planificador");
 			msg = string_from_format("Línea %s ejecutada exitosamente",line);
 			log_mensaje(msg);
 			free(msg);
@@ -199,19 +199,14 @@ void morir(){
 	exit(EXIT_FAILURE);
 }
 
-void verificarEnvioPlanificador(int envio,t_paquete* paquete){
+void verificarEnvio(int envio,t_paquete* paquete, char* sujeto){
 	if (envio < 0) {
-		perror("Error de comunicación con el Planificador");
-		log_error(logger, "Error de comunicación con el Planificador");
-		destruir_paquete(paquete);
-		morir();
-	}
-}
-
-void verificarEnvioCoordinador(int envio,t_paquete* paquete){
-	if (envio < 0) {
-		perror("Error de comunicación con el Coordinador");
-		log_error(logger,"Error de comunicación con el Coordinador");
+		char* msg = string_new();
+		string_append(&msg,"Error de comunicacion con ");
+		string_append(&msg,sujeto);
+		perror(msg);
+		log_error(logger,msg);
+		free(msg);
 		destruir_paquete(paquete);
 		morir();
 	}
@@ -220,7 +215,7 @@ void verificarEnvioCoordinador(int envio,t_paquete* paquete){
 void enviar_operacion(t_mensaje_esi mensaje_esi,t_paquete* paquete){
 	int tamanio = sizeof_mensaje_esi(mensaje_esi);
 	void* buffer = serializar_mensaje_esi(mensaje_esi);
-	verificarEnvioCoordinador(enviar(socket_coordinador, OPERACION,tamanio, buffer),paquete);
+	verificarEnvio(enviar(socket_coordinador, OPERACION,tamanio, buffer),paquete,"el Coordinador.");
 	free(buffer);
 }
 

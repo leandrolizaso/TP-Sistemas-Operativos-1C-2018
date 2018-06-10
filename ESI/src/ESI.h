@@ -41,12 +41,11 @@ void ejecutar(char* script);
 void finalizar();
 void morir();
 
-void enviar_operacion(t_mensaje_esi mensaje_esi);
+void enviar_operacion(t_mensaje_esi mensaje_esi,t_paquete* paquete);//recibe paquete para destruir por si falla
 t_mensaje_esi extraer_mensaje_esi(t_esi_operacion operacion, t_paquete* paquete);//recibe  paquete porque usa extraerClaveValor
 t_clavevalor extraerClaveValor(t_esi_operacion sentencia,t_paquete* paquete);//recibe paquete para destruir por si falla
 
-void verificarEnvioCoordinador(int envio);
-void verificarEnvioPlanificador(int envio,t_paquete* paquete);
+void verificarEnvio(int envio,t_paquete* paquete, char* sujeto);
 
 void crearLog();
 void levantarConfig(char* path);
