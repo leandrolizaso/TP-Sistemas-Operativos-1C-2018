@@ -108,12 +108,11 @@ void atenderConexiones(){
 			notificarCoordinador(0);
 			// en cada guardar deberia tener un notificar y depende del error/exito notificar
 			// ahora notifico cero, para que todinho salga bien
+			destruir_paquete(paquete);
 		break;}
 		case DUMP_CLAVE:{
 			log_trace(logger,"DUMP_CLAVE");
-			char* clave = malloc(paquete->tamanio*sizeof(char));
-			clave = strdup(paquete->data);
-			t_espacio_memoria* memory = conseguirEspacioMemoria(clave);
+			t_espacio_memoria* memory = conseguirEspacioMemoria(paquete->data);
 			if(memory == NULL){
 				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
 			}else{
@@ -121,22 +120,21 @@ void atenderConexiones(){
 				//t_indice* indice = list_get(tablaIndices, memory->id);
 				//indice->idOcupante = -1;
 			}
-			free(clave);
-			notificarCoordinador(0);
-			//para que de bien
+			free(memory);
+			destruir_paquete(paquete);
+			notificarCoordinador(0);//para que de bien
 		break;}
 		default:{
 			error = string_from_format("El codigo de operación %d no es válido", paquete->codigo_operacion);
 			log_error(logger, error);
 			free(error);
 			imRunning = 0;
-			}
+			destruir_paquete(paquete);
+		break;}
 		}
-
-	destruir_paquete(paquete);
 	paquete = recibir(socket_coordinador);
 	}
-
+	destruir_paquete(paquete);
 }
 
 void notificarCoordinador(int respuesta){
@@ -192,9 +190,10 @@ t_espacio_memoria* conseguirEspacioMemoria(char* clave){
 // AUXILIARES
 
 int entradasQueOcupa(char* valor){
-	float cantidadEntradas = (strlen_null(valor) -1)/tamanio_entradas;
-	if(cantidadEntradas < 1)
-		return 1;
+	int largo = strlen_null(valor)-1;
+	int cantidad = largo/tamanio_entradas;
+	if(largo % tamanio_entradas)
+		return cantidad+1;
 	else
-		return (int)cantidadEntradas +1;
+		return cantidad;
 }
