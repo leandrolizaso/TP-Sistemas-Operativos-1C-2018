@@ -128,14 +128,9 @@ void ejecutar(char* script){
 		log_error(logger,error);
 		free(error);
 	}
+	destruir_paquete(paquete);
 	free(ultima_linea);
 	morir();
-}
-
-void finalizar() {
-	log_info(logger, "Fin ejecución");
-	config_destroy(config_aux);
-	log_destroy(logger);
 }
 
 void validarAperturaScript(FILE* fp){
@@ -153,8 +148,7 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 
 	char* msg;
 	char* error;
-
-	enviar_operacion(mensaje_esi);
+	enviar_operacion(mensaje_esi,paquete);
 	msg = string_from_format("Línea %s fue enviada al Coordinador por el ESI%d",line, ID);
 	log_debug(logger, msg);
 	free(msg);
@@ -172,6 +166,7 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 			break;
 		case ERROR_OPERACION:
 			msg = string_from_format("ESI%d abortado. %s",ID,paquete->data);
+			free(paquete->data);
 			log_mensaje(msg);
 			free(msg);
 			msg = string_from_format("Línea: %s .Falló en su ejecución",line);
@@ -193,6 +188,12 @@ void log_mensaje(char* mensaje) {
 	log_info(logger, mensaje);
 }
 
+void finalizar() {
+	log_info(logger, "Fin ejecución");
+	config_destroy(config_aux);
+	log_destroy(logger);
+}
+
 void morir(){
 	finalizar();
 	exit(EXIT_FAILURE);
@@ -207,18 +208,19 @@ void verificarEnvioPlanificador(int envio,t_paquete* paquete){
 	}
 }
 
-void verificarEnvioCoordinador(int envio){
+void verificarEnvioCoordinador(int envio,t_paquete* paquete){
 	if (envio < 0) {
 		perror("Error de comunicación con el Coordinador");
 		log_error(logger,"Error de comunicación con el Coordinador");
+		destruir_paquete(paquete);
 		morir();
 	}
 }
 
-void enviar_operacion(t_mensaje_esi mensaje_esi){
+void enviar_operacion(t_mensaje_esi mensaje_esi,t_paquete* paquete){
 	int tamanio = sizeof_mensaje_esi(mensaje_esi);
 	void* buffer = serializar_mensaje_esi(mensaje_esi);
-	verificarEnvioCoordinador(enviar(socket_coordinador, OPERACION,tamanio, buffer));
+	verificarEnvioCoordinador(enviar(socket_coordinador, OPERACION,tamanio, buffer),paquete);
 	free(buffer);
 }
 
@@ -237,6 +239,7 @@ t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 	case GET:
 		clavevalor.clave = operacion.argumentos.GET.clave;
 		clavevalor.valor = NULL;
+		destruir_paquete(paquete);
 		return clavevalor;
 		break;
 	case SET:
@@ -247,6 +250,7 @@ t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 	case STORE:
 		clavevalor.clave = operacion.argumentos.STORE.clave;
 		clavevalor.valor = NULL;
+		destruir_paquete(paquete);
 		return clavevalor;
 		break;
 	default:
@@ -259,22 +263,21 @@ t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 	return clavevalor;
 }
 
-
-t_mensaje_esi copiarMensajeEsi(t_mensaje_esi original){
-	t_mensaje_esi copia;
-	copia.keyword = original.keyword;
-	copia.id_esi = original.id_esi;
-	copia.clave_valor.clave = string_duplicate(original.clave_valor.clave);
-	copia.clave_valor.valor = string_duplicate(original.clave_valor.valor);
-
-	return copia;
-} // ya no se usa
-
-void liberarClaveValor(t_clavevalor claveValor){
-	free(claveValor.clave);
-	if(claveValor.valor != NULL)
-		free(claveValor.valor);
-}  // ya no se usa
+//t_mensaje_esi copiarMensajeEsi(t_mensaje_esi original){
+//	t_mensaje_esi copia;
+//	copia.keyword = original.keyword;
+//	copia.id_esi = original.id_esi;
+//	copia.clave_valor.clave = string_duplicate(original.clave_valor.clave);
+//	copia.clave_valor.valor = string_duplicate(original.clave_valor.valor);
+//
+//	return copia;
+//}
+//
+//void liberarClaveValor(t_clavevalor claveValor){
+//	free(claveValor.clave);
+//	if(claveValor.valor != NULL)
+//		free(claveValor.valor);
+//} ya no se usan pero pueden servir
 
 
 void crearLog() {
