@@ -46,6 +46,7 @@ void ejecutar(char* script){
 	char* ultima_linea = NULL;
 	bool ejecutoUltima = false;
 	bool primero = true;
+	bool imRunning = true;
 
 	fp = fopen(script, "r");
 
@@ -63,7 +64,7 @@ void ejecutar(char* script){
 
 	paquete = recibir(socket_planificador);
 
-	while (codigoBueno(paquete->codigo_operacion)) {
+	while (codigoBueno(paquete->codigo_operacion) && imRunning) {
 
 		t_mensaje_esi mensaje;
 
@@ -82,7 +83,7 @@ void ejecutar(char* script){
 					log_mensaje("Script finalizado.");
 					verificarEnvio(enviar(socket_planificador, ESI_FINALIZADO, 0,NULL), paquete,"el Planificador");
 					destruir_paquete(paquete);
-					goto finalizar;
+					imRunning = false;
 					}
 					ultima_linea = realloc(ultima_linea,len);
 					strcpy(ultima_linea,line);
@@ -90,47 +91,57 @@ void ejecutar(char* script){
 				primero = false;
 			}
 
-			operacion = parse(ultima_linea);
+			if(imRunning){
 
+				operacion = parse(ultima_linea);
 
-			if (operacion.valido) {
-				mensaje = extraer_mensaje_esi(operacion, paquete);
-				ejecutarMensaje(mensaje, paquete, ultima_linea);
-				destruir_operacion(operacion);
-			} else {
-				char* error;
-				error = string_from_format("La línea: %s .No es válida", ultima_linea);
-				log_error(logger, error);// al loguear la linea uno ve el porque de invalidez :3
-				free(error);
-				destruir_operacion(operacion);
-				destruir_paquete(paquete);
-				morir();
+				if (operacion.valido) {
+					mensaje = extraer_mensaje_esi(operacion, paquete);
+					ejecutarMensaje(mensaje, paquete, ultima_linea);
+					destruir_operacion(operacion);
+				} else {
+					char* error;
+					error = string_from_format("La línea: %s .No es válida",
+							ultima_linea);
+					log_error(logger, error); // al loguear la linea uno ve el porque de invalidez :3
+					free(error);
+					destruir_operacion(operacion);
+					destruir_paquete(paquete);
+					morir();
+				}
 			}
-
 			break;
 
 		}
-		paquete = recibir(socket_planificador);
+		if(imRunning)
+			paquete = recibir(socket_planificador);
 	}
 
-	if(paquete->codigo_operacion == FINALIZAR){
-		char* msg = string_from_format("ESI%d fue finalizado por consola.",ID);
-		log_mensaje(msg);
-		free(msg);
-	}else{
-		char* error = string_from_format("Codigo de operacion %d inválido.",paquete->codigo_operacion);
-		log_error(logger,error);
-		free(error);
+	if(imRunning){
+		if (paquete->codigo_operacion == FINALIZAR) {
+			char* msg = string_from_format("ESI%d fue finalizado por consola.",
+					ID);
+			log_mensaje(msg);
+			free(msg);
+		} else {
+			if (codigoBueno(paquete->codigo_operacion)) {
+				// nunca deberia pasar por aca dago que al finalizar el script se notifica al planificador.
+			} else {
+
+				char* error = string_from_format("Codigo de operacion %d inválido.",paquete->codigo_operacion);
+				log_error(logger, error);
+				free(error);
+			}
+		}
+		destruir_paquete(paquete);
 	}
 
-	finalizar:
 	fclose(fp);
 
 	if (line)
 		free(line);
 	if(ultima_linea)
 		free(ultima_linea);
-	destruir_paquete(paquete);
 }
 
 void validarAperturaScript(FILE* fp){
