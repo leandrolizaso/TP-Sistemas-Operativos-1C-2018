@@ -80,8 +80,10 @@ void conectarCoordinador() {
 		log_error(logger, "Falló el handshake con el Coordinador");
 		destruir_paquete(paquete);
 	} else {
-		cantidad_entradas = (int)paquete->data;
-		tamanio_entradas= (int)(paquete->data+sizeof(int));
+		int* ent = paquete->data;
+		int* tam = paquete->data+sizeof(int);
+		cantidad_entradas = *ent;
+		tamanio_entradas= *tam;
 		log_info(logger,"Handshake exitoso con el Coordinador");
 		destruir_paquete(paquete);
 	}
