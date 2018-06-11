@@ -121,8 +121,9 @@ void atenderConexiones(){
 				// mmap para guardar el valor <<--- ia bere khe ago
 				//t_indice* indice = list_get(tablaIndices, memory->id);
 				//indice->idOcupante = -1;
+				free(memory);
 			}
-			free(memory);
+
 			destruir_paquete(paquete);
 			notificarCoordinador(0);//para que de bien
 		break;}
@@ -167,6 +168,7 @@ void finalizar(){
 }
 
 void liberarRecursos(){
+	free(indiceMemoria);
 	config_destroy(config_aux);
 	log_destroy(logger);
 	list_destroy(memoria);
