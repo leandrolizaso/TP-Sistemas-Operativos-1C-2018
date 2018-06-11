@@ -38,8 +38,8 @@ int tamanio_entradas;
 int* indiceMemoria;
 
 void notificarCoordinador(int respuesta);
-void guardarPisandoClaveValor(t_clavevalor claveValor);
-void guardarClaveValor(t_clavevalor claveValor);
+void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice);
+void guardarClaveValor(t_clavevalor claveValor,int *indice);
 
 bool tengoLaClave(char* clave);
 t_espacio_memoria* conseguirEspacioMemoria(char* clave);
@@ -51,6 +51,8 @@ void conectarCoordinador();
 void atenderConexiones();
 
 int entradasQueOcupa(char* valor);
+bool tengoLibres(int entradas);
+bool tengoAtomicas(int entradas);
 
 void liberarRecursos();
 

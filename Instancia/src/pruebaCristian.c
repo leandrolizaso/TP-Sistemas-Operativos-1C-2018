@@ -19,6 +19,132 @@ void inicializar(char* path){
 	memoria = list_create();
 }
 
+void atenderConexiones(){
+	log_trace(logger,"atenderConexiones()");
+	char* error;
+	int imRunning = 1;
+	int indice = 0;
+
+	t_paquete* paquete;
+	paquete = recibir(socket_coordinador);
+
+	while(imRunning){
+		log_trace(logger,"atenderConexiones() #imRunning");
+		switch(paquete->codigo_operacion){
+		case SAVE_CLAVE:{
+			log_trace(logger,"SAVE_CLAVE");
+			t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
+			if (tengoLaClave(claveValor.clave)) {
+				guardarPisandoClaveValor(claveValor,&indice);
+			} else {
+				guardarClaveValor(claveValor,&indice);
+			}
+			notificarCoordinador(0);
+			// en cada guardar deberia tener un notificar y depende del error/exito notificar
+			// ahora notifico cero, para que todinho salga bien
+			destruir_paquete(paquete);
+		break;}
+		case DUMP_CLAVE:{
+			log_trace(logger,"DUMP_CLAVE");
+			t_espacio_memoria* memory = conseguirEspacioMemoria(paquete->data);
+			if(memory == NULL){
+				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
+			}else{
+				// mmap para guardar el valor <<--- ia bere khe ago
+				//t_indice* indice = list_get(tablaIndices, memory->id);
+				//indice->idOcupante = -1;
+				free(memory);
+			}
+
+			destruir_paquete(paquete);
+			notificarCoordinador(0);//para que de bien
+		break;}
+		default:{
+			error = string_from_format("El codigo de operación %d no es válido", paquete->codigo_operacion);
+			log_error(logger, error);
+			free(error);
+			imRunning = 0;
+			destruir_paquete(paquete);
+		break;}
+		}
+	paquete = recibir(socket_coordinador);
+	}
+	destruir_paquete(paquete);
+}
+
+void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
+	t_espacio_memoria* espacio = conseguirEspacioMemoria(claveValor.clave);//no verif por NULL dado que ya se hizo antes
+	int entradasAnteriores = entradasQueOcupa(espacio->valor);
+	int entradasNuevas = entradasQueOcupa(claveValor.valor);
+
+	if(entradasNuevas > entradasAnteriores){
+		// ver si tengo esaCantidadDeLibres
+			// si : poner como libres las que usaba antes y guardar en donde toque el nuevo valor
+			// no : buscar atomicas para reemplazar
+				// si: poner como libres las que usaba antes y guardar en donde toque el nuevo valor
+				// no: compactar y tratar de hacer de nuevo.  <-- por ahora NO => ERROR falta de espacio
+	}else{
+		if(entradasNuevas < entradasAnteriores){
+			// reemplazo ahi y libero las que sonbran.
+		}else{
+			// iguales, remplazo ahi GG
+		}
+	}
+	// tener en cuenta si el nuevo valor ocupa +o- Entradas
+}
+
+void guardarClaveValor(t_clavevalor claveValor,int *indice){
+	int entradas = entradasQueOcupa(claveValor.valor);
+	if(tengoLibres(entradas)){ // veo solo las libres
+		// si tengo debo actualizar el indice al lugar que debo designar
+		// creo t_espacio_memoria y agrego a la lista y GG
+	}else{
+		if(tengoAtomicas(entradas)){
+			// si tengo debo actualizar el indice al lugar que debo designar
+			// creo t_espacio_memoria y agrego a la lista y GG
+		}else{
+			//compactar. puedo guardar? guardo:error "no hay espacio" <-- por ahora no.
+			notificarCoordinador(1); // ERROR: "no hay espacio"
+		}
+	}
+}
+
+void notificarCoordinador(int respuesta){
+	log_trace(logger,"notificador_coordinador(%d)",respuesta);
+	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),&respuesta);
+}
+
+// PARA LISTAS
+
+bool tengoLaClave(char* clave){
+	bool contieneClave(void* unaParteDeMemoria){
+		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
+	}
+
+	return list_any_satisfy(memoria,&contieneClave);
+}
+
+t_espacio_memoria* conseguirEspacioMemoria(char* clave){
+	bool contieneClave(void* unaParteDeMemoria){
+		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
+	}
+	return list_find(memoria,&contieneClave);
+}
+
+// inicializar y finalizar
+
+void liberarRecursos(){
+	free(indiceMemoria);
+	config_destroy(config_aux);
+	log_destroy(logger);
+	list_destroy(memoria);
+}
+
+void finalizar(){
+	liberarRecursos();
+	exit(EXIT_SUCCESS);
+}
+
 void levantarConfig(char* path) {
 
 	config_aux = config_create(path);
@@ -89,109 +215,14 @@ void conectarCoordinador() {
 	}
 }
 
-void atenderConexiones(){
-	log_trace(logger,"atenderConexiones()");
-	t_paquete* paquete;
-	paquete = recibir(socket_coordinador);
-	char* error;
-	int imRunning = 1;
-
-	while(imRunning){
-		log_trace(logger,"atenderConexiones() #imRunning");
-		switch(paquete->codigo_operacion){
-		case SAVE_CLAVE:{
-			log_trace(logger,"SAVE_CLAVE");
-			t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
-			if (tengoLaClave(claveValor.clave)) {
-				guardarPisandoClaveValor(claveValor);
-			} else {
-				guardarClaveValor(claveValor);
-			}
-			notificarCoordinador(0);
-			// en cada guardar deberia tener un notificar y depende del error/exito notificar
-			// ahora notifico cero, para que todinho salga bien
-			destruir_paquete(paquete);
-		break;}
-		case DUMP_CLAVE:{
-			log_trace(logger,"DUMP_CLAVE");
-			t_espacio_memoria* memory = conseguirEspacioMemoria(paquete->data);
-			if(memory == NULL){
-				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
-			}else{
-				// mmap para guardar el valor <<--- ia bere khe ago
-				//t_indice* indice = list_get(tablaIndices, memory->id);
-				//indice->idOcupante = -1;
-				free(memory);
-			}
-
-			destruir_paquete(paquete);
-			notificarCoordinador(0);//para que de bien
-		break;}
-		default:{
-			error = string_from_format("El codigo de operación %d no es válido", paquete->codigo_operacion);
-			log_error(logger, error);
-			free(error);
-			imRunning = 0;
-			destruir_paquete(paquete);
-		break;}
-		}
-	paquete = recibir(socket_coordinador);
-	}
-	destruir_paquete(paquete);
-}
-
-void notificarCoordinador(int respuesta){
-	log_trace(logger,"notificador_coordinador(%d)",respuesta);
-	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),&respuesta);
-}
-
-// FORMAS DE GUARDAR
-
-//verificar que tengas entradas atomicas libres contiguas
-// 		si:guardar
-//		no: lo anterior pero considero a las atomicas ocupadas como libres
-//			 si: guardo
-//			 no: compacto <-- por ahora no. Entonces ahora es mandar un error por falta de espacio
-
-void guardarPisandoClaveValor(t_clavevalor claveValor){
-	// tener en cuenta si el nuevo valor ocupa +o- Entradas
-}
-
-void guardarClaveValor(t_clavevalor claveValor){
-}
-
-// Creacion y Destruccion
-
-void finalizar(){
-	liberarRecursos();
-	exit(EXIT_SUCCESS);
-}
-
-void liberarRecursos(){
-	free(indiceMemoria);
-	config_destroy(config_aux);
-	log_destroy(logger);
-	list_destroy(memoria);
-}
-
-// PARA LISTAS
-
-bool tengoLaClave(char* clave){
-	bool contieneClave(void* unaParteDeMemoria){
-		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
-	}
-
-	return list_any_satisfy(memoria,&contieneClave);
-}
-
-t_espacio_memoria* conseguirEspacioMemoria(char* clave){
-	bool contieneClave(void* unaParteDeMemoria){
-		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
-	}
-	return list_find(memoria,&contieneClave);
-}
-
 // AUXILIARES
+
+void incrementarIndice(int *indice){
+	if(*indice < cantidad_entradas-1)
+		*indice+=1;
+	else
+		*indice = 0;
+}
 
 int entradasQueOcupa(char* valor){
 	int largo = strlen_null(valor)-1;
@@ -201,3 +232,6 @@ int entradasQueOcupa(char* valor){
 	else
 		return cantidad;
 }
+
+bool tengoLibres(int entradas){return true;}
+bool tengoAtomicas(int entradas){return true;}
