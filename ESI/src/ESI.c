@@ -82,7 +82,7 @@ void ejecutar(char* script){
 					log_mensaje("Script finalizado.");
 					verificarEnvio(enviar(socket_planificador, ESI_FINALIZADO, 0,NULL), paquete,"el Planificador");
 					destruir_paquete(paquete);
-					morir();
+					goto finalizar;
 					}
 					ultima_linea = realloc(ultima_linea,len);
 					strcpy(ultima_linea,line);
@@ -110,14 +110,8 @@ void ejecutar(char* script){
 			break;
 
 		}
-		paquete = NULL;
 		paquete = recibir(socket_planificador);
 	}
-
-	fclose(fp);
-
-	if (line)
-		free(line);
 
 	if(paquete->codigo_operacion == FINALIZAR){
 		char* msg = string_from_format("ESI%d fue finalizado por consola.",ID);
@@ -128,9 +122,15 @@ void ejecutar(char* script){
 		log_error(logger,error);
 		free(error);
 	}
+
+	finalizar:
+	fclose(fp);
+
+	if (line)
+		free(line);
+	if(ultima_linea)
+		free(ultima_linea);
 	destruir_paquete(paquete);
-	free(ultima_linea);
-	morir();
 }
 
 void validarAperturaScript(FILE* fp){
