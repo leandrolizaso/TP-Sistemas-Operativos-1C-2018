@@ -42,11 +42,13 @@ bool menor_tiempo(void*,void*);
 void aumentar_rafaga(proceso_esi_t* esi);
 _Bool hizo_get(proceso_esi_t* esi, char* recurso);
 void error_de_esi(char* mensaje);
-void liberar_esi(proceso_esi_t* esi);
+void liberar_recursos(void* esi);
 void destructor_key(void* pointer);
 void destructor_esi(void* pointer);
-_Bool is_blocked(proceso_esi_t* esi);
-
+_Bool is_in_list(int id_esi, t_list* lista);
+_Bool tiene_asginado(void* pointer);
+void matar_esi();
+void kill(int id);
 
 #define FIFO 600
 #define SJFCD 601
