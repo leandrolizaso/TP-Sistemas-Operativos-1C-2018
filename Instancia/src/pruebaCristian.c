@@ -97,16 +97,10 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 void guardarClaveValor(t_clavevalor claveValor,int *indice){
 	int entradas = entradasQueOcupa(claveValor.valor);
 	if(tengoLibres(entradas,indice)){
-		t_espacio_memoria* nuevoEspacio = malloc(sizeof(t_espacio_memoria));
-		strcpy(nuevoEspacio->clave,claveValor.clave);
-		strcpy(nuevoEspacio->valor,claveValor.valor);
-		nuevoEspacio->id = id;
-		id++;
-		list_add(memoria,nuevoEspacio);
-		avanzarIndice(indice,entradas);
+		registrarNuevoEspacio(claveValor,indice,entradas);
 	}else{
 		if(tengoAtomicas(entradas,indice)){
-
+			registrarNuevoEspacio(claveValor,indice,entradas);
 		}else{
 			//compactar. puedo guardar? guardo:error "no hay espacio" <-- por ahora no.
 			notificarCoordinador(1); // ERROR: "no hay espacio"
@@ -331,4 +325,19 @@ int cantidadEntradasOcupadas(int indiceAux){
 		acum++;
 	}
 	return acum;
+}
+
+t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
+	t_espacio_memoria* nuevoEspacio = malloc(sizeof(t_espacio_memoria));
+	nuevoEspacio->clave = string_duplicate(claveValor.clave);
+	nuevoEspacio->valor = string_duplicate(claveValor.valor);
+	nuevoEspacio->id = id;
+	id++;
+	return nuevoEspacio;
+}
+
+void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
+	t_espacio_memoria* nuevoEspacio = nuevoEspacioMemoria(claveValor);
+	list_add(memoria,nuevoEspacio);
+	avanzarIndice(indice,entradas);
 }

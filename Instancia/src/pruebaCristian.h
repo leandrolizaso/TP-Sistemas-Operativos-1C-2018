@@ -59,6 +59,9 @@ bool tengoAtomicas(int entradas,int *indice);
 bool esAtomica(int indice);
 int cantidadEntradasOcupadas(int indiceAux);
 
+t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor);
+void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas);
+
 void incrementarIndice(int *indice);
 void avanzarIndice(int *indice,int veces);
 
