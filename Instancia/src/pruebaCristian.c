@@ -15,7 +15,7 @@ void inicializar(char* path){
 	levantarConfig(path);
 	crearLog();
 	conectarCoordinador();
-	indiceMemoria = malloc(sizeof(int)*cantidad_entradas);
+	indiceMemoria = calloc(cantidad_entradas, sizeof(int));;
 	memoria = list_create();
 }
 
@@ -95,11 +95,11 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 
 void guardarClaveValor(t_clavevalor claveValor,int *indice){
 	int entradas = entradasQueOcupa(claveValor.valor);
-	if(tengoLibres(entradas)){ // veo solo las libres
+	if(tengoLibres(entradas,*indice)){
 		// si tengo debo actualizar el indice al lugar que debo designar
 		// creo t_espacio_memoria y agrego a la lista y GG
 	}else{
-		if(tengoAtomicas(entradas)){
+		if(tengoAtomicas(entradas,*indice)){
 			// si tengo debo actualizar el indice al lugar que debo designar
 			// creo t_espacio_memoria y agrego a la lista y GG
 		}else{
@@ -233,5 +233,35 @@ int entradasQueOcupa(char* valor){
 		return cantidad;
 }
 
-bool tengoLibres(int entradas){return true;}
-bool tengoAtomicas(int entradas){return true;}
+bool tengoLibres(int entradas,int indice){
+	int vueltas = 0;
+	int indiceAux = indice;
+	int libres = 0;
+	bool encontre = false;
+
+	while( vueltas < 2 && !encontre){
+
+		if(indice == indiceAux)
+			vueltas++;
+
+		if(libres == entradas)
+			encontre = true;
+			/*if(indiceAux == 0)
+				indiceAux = 5;
+			return indiceAux - entradas; <-- donde deberia reemplazar
+			*/
+		else{
+			if (vueltas < 2) {
+				if (indiceMemoria[indiceAux] == 0)
+					libres++;
+				else
+					libres = 0;
+			}
+			incrementarIndice(&indiceAux);
+		}
+	}
+
+	return encontre;
+}
+
+bool tengoAtomicas(int entradas,int indice){return true;}

@@ -51,8 +51,10 @@ void conectarCoordinador();
 void atenderConexiones();
 
 int entradasQueOcupa(char* valor);
-bool tengoLibres(int entradas);
-bool tengoAtomicas(int entradas);
+bool tengoLibres(int entradas,int indice);
+bool tengoAtomicas(int entradas,int indice);
+
+void incrementarIndice(int *indice);
 
 void liberarRecursos();
 
