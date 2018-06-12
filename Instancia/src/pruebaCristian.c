@@ -97,8 +97,7 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 void guardarClaveValor(t_clavevalor claveValor,int *indice){
 	int entradas = entradasQueOcupa(claveValor.valor);
 	if(tengoLibres(entradas,indice)){
-		int largo = sizeof(char)*(strlen_null(claveValor.clave) + strlen_null(claveValor.valor));
-		t_espacio_memoria* nuevoEspacio = malloc(largo + sizeof(int));
+		t_espacio_memoria* nuevoEspacio = malloc(sizeof(t_espacio_memoria));
 		strcpy(nuevoEspacio->clave,claveValor.clave);
 		strcpy(nuevoEspacio->valor,claveValor.valor);
 		nuevoEspacio->id = id;
@@ -107,8 +106,7 @@ void guardarClaveValor(t_clavevalor claveValor,int *indice){
 		avanzarIndice(indice,entradas);
 	}else{
 		if(tengoAtomicas(entradas,indice)){
-			// si tengo debo actualizar el indice al lugar que debo designar
-			// creo t_espacio_memoria y agrego a la lista y GG
+
 		}else{
 			//compactar. puedo guardar? guardo:error "no hay espacio" <-- por ahora no.
 			notificarCoordinador(1); // ERROR: "no hay espacio"
@@ -124,6 +122,8 @@ void notificarCoordinador(int respuesta){
 // PARA LISTAS
 
 bool tengoLaClave(char* clave){
+//	if(list_is_empty(memoria))
+//		return false;                 <-- no necesario aparentemente
 	bool contieneClave(void* unaParteDeMemoria){
 		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
@@ -279,4 +279,56 @@ bool tengoLibres(int entradas,int *indice){
 	return encontre;
 }
 
+bool tengoAtomicas(int entradas,int *indice){
+	int indiceAux = *indice;
+	int libres = 0;
+	bool encontre = false;
+	int vueltas = 0;
+	while( vueltas <= 2 && !encontre){
 
+		if(*indice == indiceAux)
+			vueltas++;
+
+		if(libres == entradas){
+			encontre = true;
+			if(indiceAux == 0)
+				indiceAux = cantidad_entradas;
+			*indice = indiceAux - entradas;
+		}
+		else{
+			if (vueltas <= 2) {
+				if (indiceMemoria[indiceAux] == 0 || esAtomica(indiceAux))
+					libres++;
+				else{
+					libres = 0;
+					if(!esAtomica(indiceAux)){
+						int cantidad = cantidadEntradasOcupadas(indiceAux);
+						avanzarIndice(&indiceAux,cantidad-1);
+					}
+				}
+			}
+			incrementarIndice(&indiceAux);
+		}
+
+		if(indiceAux == 0 && libres!=entradas )
+			libres = 0;
+	}
+	return encontre;
+}
+
+bool esAtomica(int indice){
+
+	if(indice== cantidad_entradas - 1)
+		return true;
+	return indiceMemoria[indice] != indiceMemoria[indice + 1];
+}
+
+int cantidadEntradasOcupadas(int indiceAux){
+	int acum = 0;
+	int i = indiceAux;
+	while(indiceMemoria[i] == indiceMemoria[i + 1] && i<cantidad_entradas-1){
+		i++;
+		acum++;
+	}
+	return acum;
+}

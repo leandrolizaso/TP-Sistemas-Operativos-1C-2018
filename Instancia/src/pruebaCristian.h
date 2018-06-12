@@ -54,8 +54,10 @@ void atenderConexiones();
 int entradasQueOcupa(char* valor);
 
 bool tengoLibres(int entradas,int *indice);
+
 bool tengoAtomicas(int entradas,int *indice);
-bool esAtomica(int posicion);
+bool esAtomica(int indice);
+int cantidadEntradasOcupadas(int indiceAux);
 
 void incrementarIndice(int *indice);
 void avanzarIndice(int *indice,int veces);
