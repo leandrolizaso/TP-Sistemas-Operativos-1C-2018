@@ -66,6 +66,6 @@ void incrementarIndice(int *indice);
 void avanzarIndice(int *indice,int veces);
 
 void liberarRecursos();
-
+void destructorEspacioMemoria(void* elem);
 
 #endif /* SRC_PRUEBACRISTIAN_H_ */

@@ -73,6 +73,13 @@ void atenderConexiones(){
 	destruir_paquete(paquete);
 }
 
+void liberarRecursos(){
+	free(indiceMemoria);
+	config_destroy(config_aux);
+	log_destroy(logger);
+	list_destroy_and_destroy_elements(memoria,&destructorEspacioMemoria);
+}
+
 void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	t_espacio_memoria* espacio = conseguirEspacioMemoria(claveValor.clave);//no verif por NULL dado que ya se hizo antes
 	int entradasAnteriores = entradasQueOcupa(espacio->valor);
@@ -115,6 +122,13 @@ void notificarCoordinador(int respuesta){
 
 // PARA LISTAS
 
+void destructorEspacioMemoria(void* elem){
+	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
+	free(espacio->clave);
+	free(espacio->valor);
+	free(espacio);
+}
+
 bool tengoLaClave(char* clave){
 //	if(list_is_empty(memoria))
 //		return false;                 <-- no necesario aparentemente
@@ -132,19 +146,7 @@ t_espacio_memoria* conseguirEspacioMemoria(char* clave){
 	return list_find(memoria,&contieneClave);
 }
 
-// inicializar y finalizar
-
-void liberarRecursos(){
-	free(indiceMemoria);
-	config_destroy(config_aux);
-	log_destroy(logger);
-	list_destroy(memoria);
-}
-
-void finalizar(){
-	liberarRecursos();
-	exit(EXIT_SUCCESS);
-}
+// inicializar
 
 void levantarConfig(char* path) {
 
