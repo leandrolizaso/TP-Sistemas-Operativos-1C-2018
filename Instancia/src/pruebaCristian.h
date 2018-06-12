@@ -36,6 +36,7 @@ int socket_coordinador;
 int cantidad_entradas;
 int tamanio_entradas;
 int* indiceMemoria;
+int id;
 
 void notificarCoordinador(int respuesta);
 void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice);
@@ -51,10 +52,13 @@ void conectarCoordinador();
 void atenderConexiones();
 
 int entradasQueOcupa(char* valor);
-bool tengoLibres(int entradas,int indice);
-bool tengoAtomicas(int entradas,int indice);
+
+bool tengoLibres(int entradas,int *indice);
+bool tengoAtomicas(int entradas,int *indice);
+bool esAtomica(int posicion);
 
 void incrementarIndice(int *indice);
+void avanzarIndice(int *indice,int veces);
 
 void liberarRecursos();
 

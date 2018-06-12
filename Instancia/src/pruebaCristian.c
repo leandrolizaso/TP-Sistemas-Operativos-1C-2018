@@ -22,6 +22,7 @@ void inicializar(char* path){
 void atenderConexiones(){
 	log_trace(logger,"atenderConexiones()");
 	char* error;
+	id = 1;
 	int imRunning = 1;
 	int indice = 0;
 
@@ -95,11 +96,17 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 
 void guardarClaveValor(t_clavevalor claveValor,int *indice){
 	int entradas = entradasQueOcupa(claveValor.valor);
-	if(tengoLibres(entradas,*indice)){
-		// si tengo debo actualizar el indice al lugar que debo designar
-		// creo t_espacio_memoria y agrego a la lista y GG
+	if(tengoLibres(entradas,indice)){
+		int largo = sizeof(char)*(strlen_null(claveValor.clave) + strlen_null(claveValor.valor));
+		t_espacio_memoria* nuevoEspacio = malloc(largo + sizeof(int));
+		strcpy(nuevoEspacio->clave,claveValor.clave);
+		strcpy(nuevoEspacio->valor,claveValor.valor);
+		nuevoEspacio->id = id;
+		id++;
+		list_add(memoria,nuevoEspacio);
+		avanzarIndice(indice,entradas);
 	}else{
-		if(tengoAtomicas(entradas,*indice)){
+		if(tengoAtomicas(entradas,indice)){
 			// si tengo debo actualizar el indice al lugar que debo designar
 			// creo t_espacio_memoria y agrego a la lista y GG
 		}else{
@@ -224,6 +231,12 @@ void incrementarIndice(int *indice){
 		*indice = 0;
 }
 
+void avanzarIndice(int *indice,int veces){
+	for(int i = 0; i < veces; i++){
+		incrementarIndice(indice);
+	}
+}
+
 int entradasQueOcupa(char* valor){
 	int largo = strlen_null(valor)-1;
 	int cantidad = largo/tamanio_entradas;
@@ -233,35 +246,37 @@ int entradasQueOcupa(char* valor){
 		return cantidad;
 }
 
-bool tengoLibres(int entradas,int indice){
-	int vueltas = 0;
-	int indiceAux = indice;
+bool tengoLibres(int entradas,int *indice){
+	int indiceAux = *indice;
 	int libres = 0;
 	bool encontre = false;
+	int vueltas = 0;
+	while( vueltas <= 2 && !encontre){
 
-	while( vueltas < 2 && !encontre){
-
-		if(indice == indiceAux)
+		if(*indice == indiceAux)
 			vueltas++;
 
-		if(libres == entradas)
+		if(libres == entradas){
 			encontre = true;
-			/*if(indiceAux == 0)
-				indiceAux = 5;
-			return indiceAux - entradas; <-- donde deberia reemplazar
-			*/
+			if(indiceAux == 0)
+				indiceAux = cantidad_entradas;
+			*indice = indiceAux - entradas;
+		}
 		else{
-			if (vueltas < 2) {
-				if (indiceMemoria[indiceAux] == 0)
+			if (vueltas <= 2) {
+				if (indiceMemoria[indiceAux] == 0 )
 					libres++;
 				else
 					libres = 0;
 			}
 			incrementarIndice(&indiceAux);
 		}
-	}
 
+		if(indiceAux == 0 && libres!=entradas )
+			libres = 0;
+
+	}
 	return encontre;
 }
 
-bool tengoAtomicas(int entradas,int indice){return true;}
+
