@@ -12,6 +12,10 @@
 #include <pelao/sockets.h>
 #include <pelao/protocolo.h>
 
+#define CIRC 700
+#define LRU 701
+#define BSU 702
+
 typedef struct {
 	char* clave;
 	char* valor;
@@ -32,6 +36,7 @@ t_config_instancia config;
 t_log* logger;
 t_config* config_aux;
 
+int algoritmo;
 int socket_coordinador;
 int cantidad_entradas;
 int tamanio_entradas;
@@ -39,6 +44,7 @@ int* indiceMemoria;
 int id;
 
 void inicializar();
+void definirAlgoritmo();
 void crearLog();
 void levantarConfig();
 void conectarCoordinador();

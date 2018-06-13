@@ -31,43 +31,63 @@ void atenderConexiones(){
 
 	while(imRunning){
 		log_trace(logger,"atenderConexiones() #imRunning");
-		switch(paquete->codigo_operacion){
-		case SAVE_CLAVE:{
-			log_trace(logger,"SAVE_CLAVE");
-			t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
-			if (tengoLaClave(claveValor.clave)) {
-				guardarPisandoClaveValor(claveValor,&indice);
-			} else {
-				guardarClaveValor(claveValor,&indice);
+		switch(algoritmo){
+
+		case CIRC:{
+			switch(paquete->codigo_operacion){
+			case SAVE_CLAVE: {
+				log_trace(logger, "SAVE_CLAVE");
+				t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
+				if (tengoLaClave(claveValor.clave)) {
+					guardarPisandoClaveValor(claveValor, &indice);
+				} else {
+					guardarClaveValor(claveValor, &indice);
+				}
+				notificarCoordinador(0);
+				// en cada guardar deberia tener un notificar y depende del error/exito notificar
+				// ahora notifico cero, para que todinho salga bien
+				destruir_paquete(paquete);
+				break;
+			}
+			case DUMP_CLAVE: {
+				log_trace(logger, "DUMP_CLAVE");
+				t_espacio_memoria* espacio = conseguirEspacioMemoria(paquete->data);
+				if (espacio == NULL) {
+					//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
+					// CLAVE_NO_TOMADA <-- abortar ESI
+				} else {
+					// mmap para guardar el valor con un texto plano con el nombre de la clave <<--- ia bere khe ago
+					// solo eso?
+				}
+				destruir_paquete(paquete);
+				notificarCoordinador(0);//para que de bien
+				break;
+			}
+			default: {
+				error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
+				log_error(logger, error);
+				free(error);
+				imRunning = 0;
+				destruir_paquete(paquete);
+				break;
+			}
 			}
 
-			notificarCoordinador(0);
-			// en cada guardar deberia tener un notificar y depende del error/exito notificar
-			// ahora notifico cero, para que todinho salga bien
-			destruir_paquete(paquete);
-		break;}
-		case DUMP_CLAVE:{
-			log_trace(logger,"DUMP_CLAVE");
-			t_espacio_memoria* memory = conseguirEspacioMemoria(paquete->data);
-			if(memory == NULL){
-				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
-			}else{
-				// mmap para guardar el valor <<--- ia bere khe ago
-				//t_indice* indice = list_get(tablaIndices, memory->id);
-				//indice->idOcupante = -1;
-				free(memory);
-			}
+			break;
+		}
 
-			destruir_paquete(paquete);
-			notificarCoordinador(0);//para que de bien
-		break;}
-		default:{
-			error = string_from_format("El codigo de operación %d no es válido", paquete->codigo_operacion);
-			log_error(logger, error);
-			free(error);
-			imRunning = 0;
-			destruir_paquete(paquete);
-		break;}
+		case LRU:{
+
+			break;
+		}
+
+		case BSU:{
+
+
+			break;
+		}
+
+
 		}
 	paquete = recibir(socket_coordinador);
 	}
@@ -205,6 +225,24 @@ void levantarConfig(char* path) {
 		perror( "No se encuentra interval");
 	}
 
+	definirAlgoritmo();
+}
+
+void definirAlgoritmo(){
+	if (string_equals_ignore_case(config.algoritmo, "CIRC"))
+		algoritmo = CIRC;
+		else if (string_equals_ignore_case(config.algoritmo, "LRU"))
+			algoritmo = LRU;
+			else if (string_equals_ignore_case(config.algoritmo, "BSU"))
+				algoritmo = BSU;
+	else {
+		char* error = string_new();
+		string_append(&error,"No esta contemplado el algoritmo ");
+		string_append(&error,config.algoritmo);
+		perror(error);
+		free(error);
+		exit(EXIT_FAILURE);
+	}
 }
 
 void crearLog() {
