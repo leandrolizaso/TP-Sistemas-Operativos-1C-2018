@@ -31,13 +31,16 @@ void atenderConexiones(){
 
 	while(imRunning){
 		log_trace(logger,"atenderConexiones() #imRunning");
-		switch(algoritmo){
 
-		case CIRC:{
-			switch(paquete->codigo_operacion){
-			case SAVE_CLAVE: {
-				log_trace(logger, "SAVE_CLAVE");
-				t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
+		switch (paquete->codigo_operacion) {
+		case SAVE_CLAVE: {
+			log_trace(logger, "SAVE_CLAVE");
+
+			switch(algoritmo){
+
+			case CIRC: {
+				t_clavevalor claveValor = deserializar_clavevalor(
+						paquete->data);
 				if (tengoLaClave(claveValor.clave)) {
 					guardarPisandoClaveValor(claveValor, &indice);
 				} else {
@@ -49,46 +52,44 @@ void atenderConexiones(){
 				destruir_paquete(paquete);
 				break;
 			}
-			case DUMP_CLAVE: {
-				log_trace(logger, "DUMP_CLAVE");
-				t_espacio_memoria* espacio = conseguirEspacioMemoria(paquete->data);
-				if (espacio == NULL) {
-					//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
-					// CLAVE_NO_TOMADA <-- abortar ESI
-				} else {
-					// mmap para guardar el valor con un texto plano con el nombre de la clave <<--- ia bere khe ago
-					// solo eso?
-				}
-				destruir_paquete(paquete);
-				notificarCoordinador(0);//para que de bien
+			case LRU: {
+
 				break;
 			}
-			default: {
-				error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
-				log_error(logger, error);
-				free(error);
-				imRunning = 0;
-				destruir_paquete(paquete);
+
+			case BSU: {
+
 				break;
 			}
+
 			}
-
 			break;
 		}
-
-		case LRU:{
-
+		case DUMP_CLAVE: {
+			log_trace(logger, "DUMP_CLAVE");
+			t_espacio_memoria* espacio = conseguirEspacioMemoria(paquete->data);
+			if (espacio == NULL) {
+				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
+				// CLAVE_NO_TOMADA <-- abortar ESI
+			} else {
+				// mmap para guardar el valor con un texto plano con el nombre de la clave <<--- ia bere khe ago
+				// solo eso?
+			}
+			destruir_paquete(paquete);
+			notificarCoordinador(0);					//para que de bien
 			break;
 		}
-
-		case BSU:{
-
-
+		default: {
+			error = string_from_format("El codigo de operación %d no es válido",
+					paquete->codigo_operacion);
+			log_error(logger, error);
+			free(error);
+			imRunning = 0;
+			destruir_paquete(paquete);
 			break;
 		}
-
-
 		}
+
 	paquete = recibir(socket_coordinador);
 	}
 	destruir_paquete(paquete);
