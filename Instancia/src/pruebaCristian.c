@@ -15,7 +15,7 @@ void inicializar(char* path){
 	levantarConfig(path);
 	crearLog();
 	conectarCoordinador();
-	indiceMemoria = calloc(cantidad_entradas, sizeof(int));;
+	indiceMemoria = calloc(cantidad_entradas, sizeof(int));
 	memoria = list_create();
 }
 
@@ -215,6 +215,60 @@ void conectarCoordinador() {
 		tamanio_entradas= *tam;
 		log_info(logger,"Handshake exitoso con el Coordinador");
 		destruir_paquete(paquete);
+	}
+}
+
+// Compactar
+
+int* compactar(int* indice){
+	int *nuevoIndiceMemoria = calloc(cantidad_entradas,sizeof(int));
+	int indiceNuevo = 0;
+	agregarNoAtomicos(nuevoIndiceMemoria,&indiceNuevo);
+	agregarAtomicos(nuevoIndiceMemoria,&indiceNuevo);
+	*indice = indiceNuevo;
+	free(indiceMemoria);
+	return nuevoIndiceMemoria;
+}
+
+void agregarNoAtomicos(int* nuevoIndiceMemoria,int* indiceNuevo){
+	int i = 0;
+	int indice = 0;
+
+	while(i< cantidad_entradas-1){
+
+		if(!esAtomica(i) && indiceMemoria[i] != 0){
+			int cantidad = cantidadEntradasOcupadas(i);
+			asignar(nuevoIndiceMemoria,&indice,indiceMemoria[i],cantidad);
+			i = i + cantidad -1 ;
+		}
+		i++;
+	}
+	*indiceNuevo = indice;
+}
+
+void asignar(int* unIndiceMemoria,int* indice,int valor,int cantidad){
+	int acum = 0;
+	while(acum<cantidad){
+		unIndiceMemoria[*indice] = valor;
+		incrementarIndice(indice);
+		acum++;
+	}
+}
+
+void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo){
+
+	int i = 0;
+
+	while(i< cantidad_entradas){
+
+		if(esAtomica(i) && indiceMemoria[i] != 0){
+			nuevoIndiceMemoria[*indiceNuevo]= indiceMemoria[i];
+			incrementarIndice(indiceNuevo);
+		}else{
+			int cantidad = cantidadEntradasOcupadas(i);
+			i = i + cantidad - 1;
+		}
+		i++;
 	}
 }
 

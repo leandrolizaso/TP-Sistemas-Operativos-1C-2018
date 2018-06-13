@@ -65,6 +65,11 @@ void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas);
 void incrementarIndice(int *indice);
 void avanzarIndice(int *indice,int veces);
 
+int* compactar(int* indice);
+void agregarNoAtomicos(int* nuevoIndiceMemoria,int* indiceNuevo);
+void asignar(int* unIndiceMemoria,int* indice,int valor,int cantidad);
+void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo);
+
 void liberarRecursos();
 void destructorEspacioMemoria(void* elem);
 
