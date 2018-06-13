@@ -40,6 +40,7 @@ void atenderConexiones(){
 			} else {
 				guardarClaveValor(claveValor,&indice);
 			}
+
 			notificarCoordinador(0);
 			// en cada guardar deberia tener un notificar y depende del error/exito notificar
 			// ahora notifico cero, para que todinho salga bien
@@ -86,19 +87,30 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	int entradasNuevas = entradasQueOcupa(claveValor.valor);
 
 	if(entradasNuevas > entradasAnteriores){
-		// ver si tengo esaCantidadDeLibres
-			// si : poner como libres las que usaba antes y guardar en donde toque el nuevo valor
-			// no : buscar atomicas para reemplazar
-				// si: poner como libres las que usaba antes y guardar en donde toque el nuevo valor
-				// no: compactar y tratar de hacer de nuevo.  <-- por ahora NO => ERROR falta de espacio
+		if(tengoLibres(entradasNuevas,indice)){
+			reemplazarValorLimpiandoIndice(espacio,claveValor.valor, indice,entradasNuevas);
+			//notificarCoordinador(0) <-- comentado porque atenderConexiones sigue dando que tuti ok
+		}else{
+			if(tengoAtomicas(entradasNuevas,indice)){
+				reemplazarValorLimpiandoIndice(espacio,claveValor.valor, indice,entradasNuevas);
+				//notificarCoordinador(0) <-- comentado porque atenderConexiones sigue dando que tuti ok
+			}else{
+				//compactar: indiceMemoria = compactar(indice);
+				// enviar al coord NECESITO_COMPACTAR, aca deberia cortar este flujo y
+				// esperar un COMPACTA, compactar y luego enviar COMPACTACION_OK  y recibir un SEGUI o algo asi del coord
+				// para que el segui este bien deberia guardar la ultima claveValor  que quise setiar para hacerlo de nuevo
+					//  si puedo : notificarCoordinador(0)
+					// si no puedo:	notificarCoordinador(1); // ERROR: "no hay espacio"
+			}
+		}
 	}else{
 		if(entradasNuevas < entradasAnteriores){
-			// reemplazo ahi y libero las que sonbran.
+			liberarSobrantes(espacio->id,entradasNuevas);
+			reemplazarValor(espacio,claveValor.valor);
 		}else{
-			// iguales, remplazo ahi GG
+			reemplazarValor(espacio,claveValor.valor);
 		}
 	}
-	// tener en cuenta si el nuevo valor ocupa +o- Entradas
 }
 
 void guardarClaveValor(t_clavevalor claveValor,int *indice){
@@ -108,9 +120,14 @@ void guardarClaveValor(t_clavevalor claveValor,int *indice){
 	}else{
 		if(tengoAtomicas(entradas,indice)){
 			registrarNuevoEspacio(claveValor,indice,entradas);
+			//notificarCoordinador(0) <-- comentado porque atenderConexiones sigue dando que Tuti ok
 		}else{
-			//compactar. puedo guardar? guardo:error "no hay espacio" <-- por ahora no.
-			notificarCoordinador(1); // ERROR: "no hay espacio"
+			//compactar: indiceMemoria = compactar(indice);
+			// enviar al coord NECESITO_COMPACTAR, aca deberia cortar este flujo y
+			// esperar un COMPACTA, compactar y luego enviar COMPACTACION_OK  y recibir un SEGUI o algo asi del coord
+			// para que el segui este bien deberia guardar la ultima claveValor  que quise setiar para hacerlo de nuevo
+				//  si puedo : notificarCoordinador(0)
+				// si no puedo:	notificarCoordinador(1); // ERROR: "no hay espacio"
 		}
 	}
 }
@@ -274,9 +291,40 @@ void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo){
 
 // AUXILIARES
 
+void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas){
+	liberarSobrantes(espacio->id,0);
+	registrarEnIndiceMemoria(espacio->id,indice,entradasNuevas);
+	reemplazarValor(espacio,valor);
+}
+
+void registrarEnIndiceMemoria(int id,int* indice,int entradas){
+	for(int i = 0; i<entradas ; i++){
+		indiceMemoria[*indice + i] = id;
+	}
+	avanzarIndice(indice,entradas);
+}
+
+void reemplazarValor(t_espacio_memoria* espacio,char* valor){
+	free(espacio->valor); // por string_duplicate al crear el t_espacio_memoria
+	espacio->valor = string_duplicate(valor);
+}
+
+void liberarSobrantes(int id,int cantidadNecesaria){
+	int pos = posicion(id);
+	for(int i = pos + cantidadNecesaria ; indiceMemoria[i] == id ; i++){
+		indiceMemoria[i] = 0;
+	}
+}
+
+int posicion(int id){
+	int i;
+	for(i = 0;indiceMemoria[i] != id; i++);
+	return i;
+}
+
 void incrementarIndice(int *indice){
 	if(*indice < cantidad_entradas-1)
-		*indice+=1;
+		*indice= *indice +1;
 	else
 		*indice = 0;
 }
@@ -395,5 +443,5 @@ t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
 void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
 	t_espacio_memoria* nuevoEspacio = nuevoEspacioMemoria(claveValor);
 	list_add(memoria,nuevoEspacio);
-	avanzarIndice(indice,entradas);
+	registrarEnIndiceMemoria(nuevoEspacio->id,indice,entradas);
 }

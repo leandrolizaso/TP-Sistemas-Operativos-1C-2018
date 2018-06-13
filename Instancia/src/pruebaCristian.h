@@ -38,18 +38,20 @@ int tamanio_entradas;
 int* indiceMemoria;
 int id;
 
+void inicializar();
+void crearLog();
+void levantarConfig();
+void conectarCoordinador();
+void atenderConexiones();
+void liberarRecursos();
+void destructorEspacioMemoria(void* elem);
+
 void notificarCoordinador(int respuesta);
 void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice);
 void guardarClaveValor(t_clavevalor claveValor,int *indice);
 
 bool tengoLaClave(char* clave);
 t_espacio_memoria* conseguirEspacioMemoria(char* clave);
-
-void inicializar();
-void crearLog();
-void levantarConfig();
-void conectarCoordinador();
-void atenderConexiones();
 
 int entradasQueOcupa(char* valor);
 
@@ -70,7 +72,13 @@ void agregarNoAtomicos(int* nuevoIndiceMemoria,int* indiceNuevo);
 void asignar(int* unIndiceMemoria,int* indice,int valor,int cantidad);
 void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo);
 
-void liberarRecursos();
-void destructorEspacioMemoria(void* elem);
+void reemplazarValor(t_espacio_memoria* espacio,char* valor);
+void liberarSobrantes(int id,int cantidadNecesaria);
+int posicion(int id);
+
+void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas);
+void registrarEnIndiceMemoria(int id,int* indice,int entradas);
+
+
 
 #endif /* SRC_PRUEBACRISTIAN_H_ */
