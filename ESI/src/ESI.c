@@ -163,7 +163,6 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 	msg = string_from_format("Línea %s fue enviada al Coordinador por el ESI%d",line, ID);
 	log_debug(logger, msg);
 	free(msg);
-	destruir_paquete(paquete);
 	paquete = recibir(socket_coordinador);
 
 	switch (paquete->codigo_operacion) {
@@ -177,7 +176,6 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 			break;
 		case ERROR_OPERACION:
 			msg = string_from_format("ESI%d abortado. %s",ID,paquete->data);
-			free(paquete->data);
 			log_mensaje(msg);
 			free(msg);
 			msg = string_from_format("Línea: %s .Falló en su ejecución",line);
@@ -242,29 +240,30 @@ t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 	t_clavevalor clavevalor;
 	char* error;
 	switch (operacion.keyword) {
-	case GET:
+	case GET:{
 		clavevalor.clave = operacion.argumentos.GET.clave;
 		clavevalor.valor = NULL;
 		destruir_paquete(paquete);
 		return clavevalor;
-		break;
-	case SET:
+		break;}
+	case SET:{
 		clavevalor.clave = operacion.argumentos.SET.clave;
 		clavevalor.valor = operacion.argumentos.SET.valor;
 		return clavevalor;
-		break;
-	case STORE:
+		break;}
+	case STORE:{
 		clavevalor.clave = operacion.argumentos.STORE.clave;
 		clavevalor.valor = NULL;
 		destruir_paquete(paquete);
 		return clavevalor;
-		break;
-	default:
+		break;}
+	default:{
 		error = string_from_format("La keyword %d del esi %d no es válida",operacion.keyword, ID);
 		log_error(logger, error);
 		free(error);
 		destruir_paquete(paquete);
 		morir();
+		break;}
 	}
 	return clavevalor;
 }
