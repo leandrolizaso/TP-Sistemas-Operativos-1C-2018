@@ -39,12 +39,12 @@ void destruir_meta_instancia(t_meta_instancia* meta) {
 
 t_meta_instancia* equitative_load(char* clave) {
 	int cant_instancias = list_size(instancias); //TODO: contar solo las intancias conectadas
-	if(cant_instancias>0){
+	if (cant_instancias > 0) {
 		int caracter = *clave;
 		caracter = caracter - 97;
 		int rango = (26 / cant_instancias) + 1; //TODO: consultar sobre este +1
-		int n_instancia =  caracter / rango;
-		return list_get(instancias,n_instancia);
+		int n_instancia = caracter / rango;
+		return list_get(instancias, n_instancia);
 	}
 	return NULL;
 }
@@ -97,7 +97,7 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 			valor_mostrable);
 
 	log_trace(log_app, "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
-	sleep(config_get_int_value(config, CFG_DELAY)/1000+1);
+	sleep(config_get_int_value(config, CFG_DELAY) / 1000 + 1);
 	log_trace(log_app, "Seguimos!");
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
@@ -134,12 +134,12 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 	t_paquete* paquete = recibir(socket_planificador);
 	switch (paquete->codigo_operacion) {
 	case OPERACION_ESI_VALIDA: {
-		if(mensaje_esi.keyword == 0){
+		if (mensaje_esi.keyword == 0) {
 			enviar(socket_esi, EXITO_OPERACION, 0, NULL);
 			break;
 		}
 
-		int resultado_error = instancia_guardar(mensaje_esi.clave_valor);
+		int resultado_error = instancia_guardar(mensaje_esi.keyword,mensaje_esi.clave_valor);
 
 		if (resultado_error) {
 			//TODO: que mensaje mandar?
@@ -156,12 +156,12 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 	destruir_paquete(paquete);
 }
 
-int instancia_guardar(t_clavevalor cv) {
+int instancia_guardar(int keyword, t_clavevalor cv) {
 	t_meta_instancia* instancia = dictionary_get(claves, cv.clave);
-	if(instancia==NULL){
+	if (instancia == NULL) {
 		//TODO: seleccion de algoritmo
 		instancia = equitative_load(cv.clave);
-		if(instancia==NULL){
+		if (instancia == NULL) {
 			//no hay instancia para atender esta peticion;
 			return EXIT_FAILURE;
 		}
@@ -169,18 +169,35 @@ int instancia_guardar(t_clavevalor cv) {
 		//then eliminar clave
 		//return fallo
 	}
-	int tamanio = sizeof_clavevalor(cv);
-	void* buff = serializar_clavevalor(cv);
-	enviar(instancia->fd, SAVE_CLAVE, tamanio, buff);
-	t_paquete* paquete = recibir(instancia->fd);
 
+	int tamanio;
+	void* buff;
+	int operacion;
+	switch (keyword) {
+	case 1: {
+		tamanio = sizeof_clavevalor(cv);
+		buff = serializar_clavevalor(cv);
+		operacion = SAVE_CLAVE;
+		break;
+	}
+	case 2: { //store
+		tamanio = strlen_null(cv.clave);
+		buff = cv.clave;
+		operacion = DUMP_CLAVE;
+		break;
+	}
+	}
+
+	enviar(instancia->fd, operacion, tamanio, buff);
+	t_paquete* paquete = recibir(instancia->fd);
 	//TODO: validar si guardo o no
 	//if guardo exitosamente
 	dictionary_put(claves, cv.clave, instancia);
-	return EXIT_SUCCESS;
 	//else if no guardo
 	// if no guardo por falta de espacio
 	// then return fallo;
 	// else if no guardo por tener espacio pero necesitar defrag
 	// then enviar defrag a todas las intancias y retornar "instancia_guardar" (recursivo)
+	destruir_paquete(paquete);
+	return EXIT_SUCCESS;
 }
