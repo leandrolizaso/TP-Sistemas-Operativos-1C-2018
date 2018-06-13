@@ -564,28 +564,37 @@ void* consola(void* no_use) {
 
 			}
 
-			_Bool find_key(void* pointer){
-				t_clave* clave = (t_clave*) pointer;
-				return string_equals_ignore_case(clave->valor,token[1]);
-			}
-			sem_wait(m_blocked);
-			proceso_esi_t* esi = list_find(blocked_q, &key_equals);
-			if(esi!=NULL){
-				list_remove_by_condition(blocked_q, &key_equals);
-			}
-			sem_wait(m_key);
-			list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
 
-			sem_post(m_key);
+			_Bool find_key(void* pointer){
+				if(pointer!=NULL){
+					t_clave* clave = (t_clave*) pointer;
+					return string_equals_ignore_case(clave->valor,token[1]);
+				}else{
+					return false;
+				}
+			}
+
+			sem_wait(m_blocked);
+			sem_wait(m_ready);
+			if(list_find(blocked_q, &key_equals)!=NULL){
+				proceso_esi_t* esi = list_remove_by_condition(blocked_q, &key_equals);
+				esi->a_blocked=false;
+				list_add(ready_q, esi);
+
+			}
 			sem_post(m_blocked);
 
-			sem_wait(m_ready);
+			sem_wait(m_key);
+			list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
+			sem_post(m_key);
+
 			sem_wait(m_esi);
-			esi->a_blocked=false;
-			list_add(ready_q, esi);
-			planificar(); //Es necesario?
+			planificar();
 			sem_post(m_esi);
 			sem_post(m_ready);
+
+
+
 
 		}
 
@@ -597,13 +606,18 @@ void* consola(void* no_use) {
 						token[1]);
 			}
 
+			if(token[1]!=NULL){
+				sem_wait(m_blocked);
+				t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
+				sem_post(m_blocked);
+				printf("Los esis esperando el recurso %s son:\n",token[1]);
+				imprimir(esis_a_imprimir);
+				list_destroy(esis_a_imprimir);
+			}else{
+				puts("Se necesita ingresar una clave para utilizar este comando");
+			}
 
-			sem_wait(m_blocked);
-			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
-			sem_post(m_blocked);
-			printf("Los esis esperando el recurso %s son:\n",token[1]);
-			imprimir(esis_a_imprimir);
-			list_destroy(esis_a_imprimir);
+
 
 		}
 

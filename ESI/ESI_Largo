@@ -1,25 +1,11 @@
 GET futbol:messi
 SET futbol:messi TraemeLaCopa
-STORE futbol:messi
-GET futbol:messi
 SET futbol:messi TraemeLaCo
-STORE futbol:messi
-GET futbol:messi
 SET futbol:messi TraemeLaCopa
-STORE futbol:messi
-GET futbol:messi
 SET futbol:messi TraemeLaCo
-STORE futbol:messi
-GET futbol:messi
 SET futbol:messi TraemeLaCopa
-STORE futbol:messi
-GET futbol:messi
 SET futbol:messi TraemeLaCo
-STORE futbol:messi
-GET futbol:messi
 SET futbol:messi TraemeLaCopa
-STORE futbol:messi
-GET futbol:messi
 SET futbol:messi TraemeLaCo
 STORE futbol:messi
 GET futbol:messi
