@@ -35,24 +35,24 @@ t_config* config_aux;
 int socket_coordinador;
 int cantidad_entradas;
 int tamanio_entradas;
-int* indiceMemoria;
+int* indice_memoria;
 
-void notificarCoordinador(int respuesta);
-void guardarPisandoClaveValor(t_clavevalor claveValor);
-void guardarClaveValor(t_clavevalor claveValor);
+void notificar_coordinador(int respuesta);
+void guardar_pisando_clavevalor(t_clavevalor claveValor);
+void guardar_clavevalor(t_clavevalor claveValor);
 
-bool tengoLaClave(char* clave);
-t_espacio_memoria* conseguirEspacioMemoria(char* clave);
+bool tengo_clave(char* clave);
+t_espacio_memoria* conseguir_espacio_memoria(char* clave);
 
 void inicializar();
-void crearLog();
-void levantarConfig();
-void conectarCoordinador();
-void atenderConexiones();
+void crear_log();
+void levantar_config();
+void conectar_coordinador();
+void atender_conexiones();
 
-int entradasQueOcupa(char* valor);
+int entradas_que_ocupa(char* valor);
 
-void liberarRecursos();
+void liberar_recursos();
 
 
 #endif /* SRC_PRUEBACRISTIAN_H_ */
