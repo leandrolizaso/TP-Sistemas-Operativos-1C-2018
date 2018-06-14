@@ -42,6 +42,7 @@ _Bool block_config = true;
 _Bool ejecutando = false;
 _Bool pausado;
 char* recurso_bloqueante;
+_Bool flag_esi_muerto = false;
 proceso_esi_t * esi_ejecutando;
 
 /*Listas*/
@@ -368,11 +369,20 @@ int procesar_mensaje(int socket) {
 	}
 
 	case EXITO_OPERACION: {
-		if(pausado) break;
+
+		if(pausado&&flag_esi_muerto){
+			sem_wait(m_esi);
+			matar_esi(esi_ejecutando);
+			esi_ejecutando = NULL;
+			flag_esi_muerto = false;
+			sem_post(m_esi);
+			break;
+		} else if (pausado) break;
+
 		sem_wait(m_esi);
 
 
-		if(is_blocked(esi_ejecutando)){
+		if(is_in_list(esi_ejecutando->ID,blocked_q)){
 			enviar(esi_ejecutando->socket,VOLVE,0,NULL);
 			esi_ejecutando =NULL;
 			sem_wait(m_ready);
@@ -403,17 +413,17 @@ int procesar_mensaje(int socket) {
 	}
 
 	case ESI_FINALIZADO: {
-		sem_wait(m_rip);
 		sem_wait(m_esi);
+		sem_wait(m_rip);
 		char* esi_finaliza_msg=malloc(sizeof(char)*20);
 		strcpy(esi_finaliza_msg,"Finalizo ESI ");
 		string_append(&esi_finaliza_msg,string_itoa(esi_ejecutando->ID));
 		log_debug(rip_q,esi_finaliza_msg);
 		free(esi_finaliza_msg);
+		destructor_esi((void*)esi_ejecutando);
 		sem_post(m_rip);
-		liberar_esi(esi_ejecutando);
-		sem_wait(m_ready);
 		esi_ejecutando = NULL;
+		sem_wait(m_ready);
 		planificar();
 		sem_post(m_ready);
 		sem_post(m_esi);
@@ -554,27 +564,37 @@ void* consola(void* no_use) {
 
 			}
 
+
 			_Bool find_key(void* pointer){
-				t_clave* clave = (t_clave*) pointer;
-				return string_equals_ignore_case(clave->valor,token[1]);
+				if(pointer!=NULL){
+					t_clave* clave = (t_clave*) pointer;
+					return string_equals_ignore_case(clave->valor,token[1]);
+				}else{
+					return false;
+				}
 			}
+
 			sem_wait(m_blocked);
-			proceso_esi_t* esi = list_find(blocked_q, &key_equals);
-			list_remove_by_condition(blocked_q, &key_equals);
-			sem_wait(m_key);
-			if(list_find(blocked_key,&find_key)){
-				list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
+			sem_wait(m_ready);
+			if(list_find(blocked_q, &key_equals)!=NULL){
+				proceso_esi_t* esi = list_remove_by_condition(blocked_q, &key_equals);
+				esi->a_blocked=false;
+				list_add(ready_q, esi);
+
 			}
-			sem_post(m_key);
 			sem_post(m_blocked);
 
-			sem_wait(m_ready);
+			sem_wait(m_key);
+			list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
+			sem_post(m_key);
+
 			sem_wait(m_esi);
-			esi->a_blocked=false;
-			list_add(ready_q, esi);
-			planificar(); //Es necesario?
+			planificar();
 			sem_post(m_esi);
 			sem_post(m_ready);
+
+
+
 
 		}
 
@@ -586,24 +606,39 @@ void* consola(void* no_use) {
 						token[1]);
 			}
 
+			if(token[1]!=NULL){
+				sem_wait(m_blocked);
+				t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
+				sem_post(m_blocked);
+				printf("Los esis esperando el recurso %s son:\n",token[1]);
+				imprimir(esis_a_imprimir);
+				list_destroy(esis_a_imprimir);
+			}else{
+				puts("Se necesita ingresar una clave para utilizar este comando");
+			}
 
-			sem_wait(m_blocked);
-			t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
-			sem_post(m_blocked);
-			printf("Los esis esperando el recurso %s son:\n",token[1]);
-			imprimir(esis_a_imprimir);
-			list_destroy(esis_a_imprimir);
+
 
 		}
 
 		if (string_equals_ignore_case(token[0], "kill")) {
-			//kill(token[1]);
+			kill(atol(token[1]));
 		}
-		if (string_equals_ignore_case(token[0], "status")) {
-			//token[1]
-		}
+
 		if (string_equals_ignore_case(token[0], "deadlock")) {
-			puts("mostrando deadlock");
+			puts("Los siguientes ESIs estan en deadlock :(");
+			puts("Solucionar manualmente con kill <ID esi>");
+			sem_wait(m_blocked);
+			sem_wait(m_key);
+			t_list* esis_a_imprimir = list_filter(blocked_q,&tiene_asginado);
+			sem_post(m_key);
+			sem_post(m_blocked);
+			imprimir(esis_a_imprimir);
+			list_destroy(esis_a_imprimir);
+		}
+
+		if (string_equals_ignore_case(token[0], "status")) {
+					//token[1]
 		}
 
 		getline(&buffer, &tamanio, stdin);
@@ -705,29 +740,55 @@ _Bool menor_tiempo(void* pointer1, void* pointer2){
 	return sort_number(pointer1) <= sort_number(pointer2);
 }
 
-_Bool is_blocked(proceso_esi_t* esi){
+_Bool is_in_list(int id,t_list* lista){
 
 	_Bool mismo_id(void* un_esi){
-		return esi->ID == ((proceso_esi_t*)un_esi)->ID;
+		return id == ((proceso_esi_t*)un_esi)->ID;
 	}
 
-	return list_find(blocked_q,&mismo_id);
+	return list_find(lista,&mismo_id);
 }
-//sincronizar kill
-/* Para la consola
-void kill(proceso_esi_t* esi,int mensaje){
-	enviar(esi->socket,mensaje,0,NULL);
-	if(esi==esi_ejecutando){
-		list_add(rip_q,esi_ejecutando);
-		esi_ejecutando=NULL;
-		planificar();
+
+// Para la consola
+
+void kill(int id){
+	_Bool mismo_id(void* un_esi){
+		return id == ((proceso_esi_t*)un_esi)->ID;
+	}
+
+	void finalizar_esi(t_list* lista){
+		proceso_esi_t* esi =list_find(lista,&mismo_id);
+		enviar(esi->socket,FINALIZAR,0,NULL);
+		list_remove_and_destroy_by_condition(lista,&mismo_id,&destructor_esi);
+		char* esi_finaliza_msg = string_from_format("Finalizo ESI s%",string_itoa(esi->ID));
+		sem_wait(m_rip);
+		log_debug(rip_q,esi_finaliza_msg);
+		sem_post(m_rip);
+		free(esi_finaliza_msg);  //Hay que liberarlo?
+	}
+
+	sem_wait(m_esi);
+	if(id==esi_ejecutando->ID){
+		flag_esi_muerto=true;
+		sem_post(m_esi);
+		return;
+	}
+	sem_post(m_esi);
+
+	sem_wait(m_blocked);
+	sem_wait(m_ready);
+	if (is_in_list(id,blocked_q)){
+		finalizar_esi(blocked_q);
+
+	}else if(is_in_list(id,ready_q)){
+		finalizar_esi(ready_q);
 	}else{
-
+		puts("El ESI no se encuentra en el sistema");
 	}
-
+	sem_post(m_ready);
+	sem_post(m_blocked);
 }
 
-*/
 
 //Funciones auxiliares
 
@@ -757,8 +818,10 @@ void agregar_espacio(char* buffer) {
 
 void destructor_esi(void *elem) {
 	proceso_esi_t* esi = (proceso_esi_t*) elem;
+	liberar_recursos(elem);
 	free(esi->recurso_bloqueante);
 	free(esi);
+	//Liberar recursos de blocked_key
 }
 
 void destructor_key(void *elem) {
@@ -786,14 +849,44 @@ void error_de_esi(char* mensaje){
 	log_debug(rip_q,esi_finaliza_msg);
 	free(esi_finaliza_msg);
 	sem_post(m_rip);
-	liberar_esi(esi_ejecutando);
+	destructor_esi((void*)esi_ejecutando);
 	esi_ejecutando = NULL;
 	sem_wait(m_ready);
 	planificar();
 	sem_post(m_ready);
 }
 
-void liberar_esi(proceso_esi_t* esi){
-	free(esi->recurso_bloqueante);
-	free(esi);
+
+_Bool tiene_asginado(void* pointer){
+	proceso_esi_t* esi = (proceso_esi_t*) pointer;
+
+	_Bool id_equals(void* ptr) {
+		if (ptr != NULL) {
+		int id = ((t_clave*) ptr)->ID_esi;
+		return id == esi->ID;
+		} else return false;
+			}
+	return list_any_satisfy(blocked_key,&id_equals);
+}
+
+void matar_esi(){
+	enviar(esi_ejecutando->socket,FINALIZAR,0,NULL);
+	char* esi_finaliza_msg = string_from_format("Finalizo ESI s%",string_itoa(esi_ejecutando->ID));
+	destructor_esi((void*)esi_ejecutando);
+	sem_wait(m_rip);
+	log_debug(rip_q,esi_finaliza_msg);
+	sem_post(m_rip);
+	free(esi_finaliza_msg);
+}
+
+void liberar_recursos(void* pointer){
+	_Bool id_equals(void* ptr) {
+		if (ptr != NULL) {
+		int id = ((t_clave*) ptr)->ID_esi;
+		return id == ((proceso_esi_t*)pointer)->ID;
+		} else return false;
+	}
+	while(tiene_asginado(pointer)){
+		list_remove_and_destroy_by_condition(blocked_key,&id_equals,&destructor_key);
+	}
 }
