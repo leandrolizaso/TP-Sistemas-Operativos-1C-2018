@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <commons/config.h>
 #include <commons/collections/list.h>
+#include <sys/mman.h>
 #include "pruebaCristian.h"
 
 int main(int argc,char** argv){
@@ -68,12 +69,18 @@ void atenderConexiones(){
 		case DUMP_CLAVE: {
 			log_trace(logger, "DUMP_CLAVE");
 			t_espacio_memoria* espacio = conseguirEspacioMemoria(paquete->data);
+			puts(espacio->valor);
 			if (espacio == NULL) {
 				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
 				// CLAVE_NO_TOMADA <-- abortar ESI
 			} else {
-				// mmap para guardar el valor con un texto plano con el nombre de la clave <<--- ia bere khe ago
-				// solo eso?
+				FILE* archivo = fopen(espacio->clave,"w");
+				int fd = fileno(archivo);
+				char* memoria_mapeada = (char*)mmap(NULL,strlen_null(espacio->valor), PROT_READ|PROT_WRITE,MAP_SHARED, fd, 0);
+				memcpy(memoria_mapeada,espacio->valor,strlen(espacio->valor));
+				fclose(archivo);
+				close(fd);
+				free(espacio);
 			}
 			destruir_paquete(paquete);
 			notificarCoordinador(0);					//para que de bien
