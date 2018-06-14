@@ -37,6 +37,7 @@ t_config* config;
 
 /*otras variables*/
 int id_base = 1;
+int system_clock=0;
 int cant_claves;
 _Bool block_config = true;
 _Bool ejecutando = false;
@@ -492,6 +493,8 @@ void* consola(void* no_use) {
 	puts(" bloquear <clave> <ID esi>");
 	puts(" desbloquear <clave>");
 	puts(" listar <clave>");
+	puts(" deadlock");
+	
 	
 	char* buffer;
 
@@ -534,25 +537,29 @@ void* consola(void* no_use) {
 				} else return false;
 			}
 
-			sem_wait(m_esi);
-			sem_wait(m_ready);
-			if (id_equals(esi_ejecutando)) {
-				esi_ejecutando->a_blocked = true;
-				strcpy(recurso_bloqueante,token[1]);
-			}else {
-				proceso_esi_t* esi_a_bloquear = list_find(ready_q, &id_equals);
-				if(esi_a_bloquear==NULL){
-					puts("El esi no esta ejecutando ni en ready");
-				}else{
-					list_remove_by_condition(ready_q, &id_equals);
-					sem_wait(m_blocked);
-					bloquear(esi_a_bloquear, token[1]);
-					sem_post(m_blocked);
-				}
-			}
-			sem_post(m_ready);
-			sem_post(m_esi);
+			if(token[1]!=NULL && token[2]!=NULL){
 
+				sem_wait(m_esi);
+				sem_wait(m_ready);
+				if (id_equals(esi_ejecutando)) {
+					esi_ejecutando->a_blocked = true;
+					strcpy(recurso_bloqueante,token[1]);
+				}else {
+					proceso_esi_t* esi_a_bloquear = list_find(ready_q, &id_equals);
+					if(esi_a_bloquear==NULL){
+						puts("El esi no esta ejecutando ni en ready");
+					}else{
+						list_remove_by_condition(ready_q, &id_equals);
+						sem_wait(m_blocked);
+						bloquear(esi_a_bloquear, token[1]);
+						sem_post(m_blocked);
+					}
+				}
+				sem_post(m_ready);
+				sem_post(m_esi);
+			}else{
+				puts("Se necesita ingresar una clave y un ESI para utilizar este comando");
+			}
 		}
 
 		if (string_equals_ignore_case(token[0], "desbloquear")) {
@@ -574,25 +581,30 @@ void* consola(void* no_use) {
 				}
 			}
 
-			sem_wait(m_blocked);
-			sem_wait(m_ready);
-			if(list_find(blocked_q, &key_equals)!=NULL){
-				proceso_esi_t* esi = list_remove_by_condition(blocked_q, &key_equals);
-				esi->a_blocked=false;
-				list_add(ready_q, esi);
+			if(token[1]!=NULL){
+				sem_wait(m_blocked);
+				sem_wait(m_ready);
+				if(list_find(blocked_q, &key_equals)!=NULL){
+					proceso_esi_t* esi = list_remove_by_condition(blocked_q, &key_equals);
+					esi->a_blocked=false;
+					list_add(ready_q, esi);
 
+				}
+				sem_post(m_blocked);
+
+				sem_wait(m_key);
+				if(list_find(blocked_q, &key_equals)==NULL){
+					list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
+				}
+				sem_post(m_key);
+
+				sem_wait(m_esi);
+				planificar();
+				sem_post(m_esi);
+				sem_post(m_ready);
+			}else{
+				puts("Se necesita ingresar una clave para utilizar este comando");
 			}
-			sem_post(m_blocked);
-
-			sem_wait(m_key);
-			list_remove_and_destroy_by_condition(blocked_key,&find_key,&destructor_key);
-			sem_post(m_key);
-
-			sem_wait(m_esi);
-			planificar();
-			sem_post(m_esi);
-			sem_post(m_ready);
-
 
 
 
@@ -622,7 +634,11 @@ void* consola(void* no_use) {
 		}
 
 		if (string_equals_ignore_case(token[0], "kill")) {
-			kill(atol(token[1]));
+			if(token[1]!=NULL){
+				kill(atol(token[1]));
+			} else{
+				puts("Se necesita ingresar un ESI para utilizar este comando");
+			}
 		}
 
 		if (string_equals_ignore_case(token[0], "deadlock")) {
@@ -666,6 +682,7 @@ proceso_esi_t* nuevo_processo_esi(int socket_esi) {
 	nuevo_esi->socket = socket_esi;
 	nuevo_esi->viene_de_blocked = false;
 	nuevo_esi->a_blocked = false;
+	nuevo_esi->waiting_time=system_clock;
 	return nuevo_esi;
 }
 
@@ -805,7 +822,10 @@ void aumentar_rafaga(proceso_esi_t* esi){
 	}else{
 		esi->ejecuto_ant++;
 	}
+
+	system_clock++;
 }
+
 
 void agregar_espacio(char* buffer) {
 	int i = 0;

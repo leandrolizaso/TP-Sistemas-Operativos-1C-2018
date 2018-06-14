@@ -8,6 +8,7 @@ typedef struct {
 	double estimacion_ant;
 	double duracion_raf_ant;
 	double ejecuto_ant;
+	double waiting_time;
 	char* recurso_bloqueante;
 	_Bool viene_de_blocked;
 	_Bool a_blocked;  //lo uso para lograr la atomicidad de las operaciones si el esi ejecutando es bloqueado por consola
