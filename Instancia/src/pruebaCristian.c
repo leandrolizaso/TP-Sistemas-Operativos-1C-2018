@@ -6,20 +6,20 @@
 
 int main(int argc,char** argv){
 	inicializar(argv[1]);
-	atender_conexiones();
-	liberar_recursos();
+	atenderConexiones();
+	liberarRecursos();
 	return EXIT_SUCCESS;
 }
 
 void inicializar(char* path){
-	levantar_config(path);
-	crear_log();
-	conectar_coordinador();
-	indice_memoria = malloc(sizeof(int)*cantidad_entradas);
+	levantarConfig(path);
+	crearLog();
+	conectarCoordinador();
+	indiceMemoria = malloc(sizeof(int)*cantidad_entradas);
 	memoria = list_create();
 }
 
-void levantar_config(char* path) {
+void levantarConfig(char* path) {
 
 	config_aux = config_create(path);
 
@@ -61,7 +61,7 @@ void levantar_config(char* path) {
 
 }
 
-void crear_log() {
+void crearLog() {
 	char* aux= string_new();
 	string_append(&aux,config.nombre);
 	string_append(&aux,".log");
@@ -69,7 +69,7 @@ void crear_log() {
 	free(aux);
 }
 
-void conectar_coordinador() {
+void conectarCoordinador() {
 	log_trace(logger,"conectarCoordionador()");
 	socket_coordinador = conectar_a_server(config.ip_coordinador,config.puerto_coordinador);
 
@@ -89,7 +89,7 @@ void conectar_coordinador() {
 	}
 }
 
-void atender_conexiones(){
+void atenderConexiones(){
 	log_trace(logger,"atenderConexiones()");
 	t_paquete* paquete;
 	paquete = recibir(socket_coordinador);
@@ -102,19 +102,19 @@ void atender_conexiones(){
 		case SAVE_CLAVE:{
 			log_trace(logger,"SAVE_CLAVE");
 			t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
-			if (tengo_clave(claveValor.clave)) {
-				guardar_pisando_clavevalor(claveValor);
+			if (tengoLaClave(claveValor.clave)) {
+				guardarPisandoClaveValor(claveValor);
 			} else {
-				guardar_clavevalor(claveValor);
+				guardarClaveValor(claveValor);
 			}
-			notificar_coordinador(0);
+			notificarCoordinador(0);
 			// en cada guardar deberia tener un notificar y depende del error/exito notificar
 			// ahora notifico cero, para que todinho salga bien
 			destruir_paquete(paquete);
 		break;}
 		case DUMP_CLAVE:{
 			log_trace(logger,"DUMP_CLAVE");
-			t_espacio_memoria* memory = conseguir_espacio_memoria(paquete->data);
+			t_espacio_memoria* memory = conseguirEspacioMemoria(paquete->data);
 			if(memory == NULL){
 				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
 			}else{
@@ -125,7 +125,7 @@ void atender_conexiones(){
 			}
 
 			destruir_paquete(paquete);
-			notificar_coordinador(0);//para que de bien
+			notificarCoordinador(0);//para que de bien
 		break;}
 		default:{
 			error = string_from_format("El codigo de operación %d no es válido", paquete->codigo_operacion);
@@ -140,7 +140,7 @@ void atender_conexiones(){
 	destruir_paquete(paquete);
 }
 
-void notificar_coordinador(int respuesta){
+void notificarCoordinador(int respuesta){
 	log_trace(logger,"notificador_coordinador(%d)",respuesta);
 	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),&respuesta);
 }
@@ -153,22 +153,22 @@ void notificar_coordinador(int respuesta){
 //			 si: guardo
 //			 no: compacto <-- por ahora no. Entonces ahora es mandar un error por falta de espacio
 
-void guardar_pisando_clavevalor(t_clavevalor claveValor){
+void guardarPisandoClaveValor(t_clavevalor claveValor){
 	// tener en cuenta si el nuevo valor ocupa +o- Entradas
 }
 
-void guardar_clavevalor(t_clavevalor claveValor){
+void guardarClaveValor(t_clavevalor claveValor){
 }
 
 // Creacion y Destruccion
 
 void finalizar(){
-	liberar_recursos();
+	liberarRecursos();
 	exit(EXIT_SUCCESS);
 }
 
-void liberar_recursos(){
-	free(indice_memoria);
+void liberarRecursos(){
+	free(indiceMemoria);
 	config_destroy(config_aux);
 	log_destroy(logger);
 	list_destroy(memoria);
@@ -176,24 +176,24 @@ void liberar_recursos(){
 
 // PARA LISTAS
 
-bool tengo_clave(char* clave){
-	bool contiene_clave(void* parte_memoria){
-		return string_equals_ignore_case(((t_espacio_memoria*)parte_memoria)->clave,clave);
+bool tengoLaClave(char* clave){
+	bool contieneClave(void* unaParteDeMemoria){
+		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
 
-	return list_any_satisfy(memoria,&contiene_clave);
+	return list_any_satisfy(memoria,&contieneClave);
 }
 
-t_espacio_memoria* conseguir_espacio_memoria(char* clave){
-	bool contiene_clave(void* parte_memoria){
-		return string_equals_ignore_case(((t_espacio_memoria*)parte_memoria)->clave,clave);
+t_espacio_memoria* conseguirEspacioMemoria(char* clave){
+	bool contieneClave(void* unaParteDeMemoria){
+		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
-	return list_find(memoria,&contiene_clave);
+	return list_find(memoria,&contieneClave);
 }
 
 // AUXILIARES
 
-int entradas_que_ocupa(char* valor){
+int entradasQueOcupa(char* valor){
 	int largo = strlen_null(valor)-1;
 	int cantidad = largo/tamanio_entradas;
 	if(largo % tamanio_entradas)
