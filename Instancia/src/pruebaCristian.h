@@ -1,12 +1,12 @@
 /*
- * Instancia.h
+ * pruebaCritian.h
  *
  *  Created on: 8 jun. 2018
  *      Author: utnso
  */
 
-#ifndef SRC_INSTANCIA_H_
-#define SRC_INSTANCIA_H_
+#ifndef SRC_PRUEBACRISTIAN_H_
+#define SRC_PRUEBACRISTIAN_H_
 
 #include <commons/log.h>
 #include <pelao/sockets.h>
@@ -55,4 +55,4 @@ int entradas_que_ocupa(char* valor);
 void liberar_recursos();
 
 
-#endif /* SRC_INSTANCIA_H_ */
+#endif /* SRC_PRUEBACRISTIAN_H_ */

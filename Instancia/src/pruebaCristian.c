@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include <commons/config.h>
 #include <commons/collections/list.h>
-
-#include "Instancia.h"
+#include "pruebaCristian.h"
 
 int main(int argc,char** argv){
 	inicializar(argv[1]);
