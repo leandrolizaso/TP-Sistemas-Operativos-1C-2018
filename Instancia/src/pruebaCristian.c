@@ -344,8 +344,7 @@ void registrarEnIndiceMemoria(int id,int* indice,int entradas){
 }
 
 void reemplazarValor(t_espacio_memoria* espacio,char* valor){
-	free(espacio->valor); // por string_duplicate al crear el t_espacio_memoria
-	espacio->valor = string_duplicate(valor);
+	espacio->valor = valor;
 }
 
 void liberarSobrantes(int id,int cantidadNecesaria){
@@ -472,8 +471,8 @@ int cantidadEntradasOcupadas(int indiceAux){
 
 t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
 	t_espacio_memoria* nuevoEspacio = malloc(sizeof(t_espacio_memoria));
-	nuevoEspacio->clave = string_duplicate(claveValor.clave);
-	nuevoEspacio->valor = string_duplicate(claveValor.valor);
+	nuevoEspacio->clave = claveValor.clave;
+	nuevoEspacio->valor = claveValor.valor;
 	nuevoEspacio->id = id;
 	id++;
 	return nuevoEspacio;
