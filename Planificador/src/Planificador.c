@@ -537,7 +537,6 @@ void* consola(void* no_use) {
 		if (string_equals_ignore_case(token[0], "bloquear")) {
 
 			_Bool id_equals(void* pointer) {
-
 				if (pointer != NULL) {
 					char* id = string_itoa(((proceso_esi_t*) pointer)->ID);
 					return string_equals_ignore_case(id, token[2]);
@@ -617,21 +616,10 @@ void* consola(void* no_use) {
 
 		}
 
-		if (string_equals_ignore_case(token[0], "listar")) {
-
-			_Bool bloqueadoPorRecurso(void* parametro) {
-				proceso_esi_t* esi = parametro;
-				return string_equals_ignore_case(esi->recurso_bloqueante,
-						token[1]);
-			}
+		if (string_equals_ignore_case(token[0], "listar")){
 
 			if(token[1]!=NULL){
-				sem_wait(m_blocked);
-				t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
-				sem_post(m_blocked);
-				printf("Los esis esperando el recurso %s son:\n",token[1]);
-				imprimir(esis_a_imprimir);
-				list_destroy(esis_a_imprimir);
+				listar(token[1]);
 			}else{
 				puts("Se necesita ingresar una clave para utilizar este comando");
 			}
@@ -661,7 +649,13 @@ void* consola(void* no_use) {
 		}
 
 		if (string_equals_ignore_case(token[0], "status")) {
-					//token[1]
+			if(token[1]!=NULL){
+				//Solicito al coordinador numero de instancia, valor y en que instancia deberia estar actualmente
+				//Deberia responderme por el puerto en que le hablo y no en el que multiplexo?
+				listar(token[1]);
+			} else{
+				puts("Se necesita ingresar una clave para utilizar este comando");
+			}
 		}
 
 		getline(&buffer, &tamanio, stdin);
@@ -823,6 +817,20 @@ void kill(int id){
 	sem_post(m_blocked);
 }
 
+void listar(char* recurso){
+	
+	_Bool bloqueadoPorRecurso(void* parametro) {
+		proceso_esi_t* esi = parametro;
+		return string_equals_ignore_case(esi->recurso_bloqueante,recurso);
+	}
+
+	sem_wait(m_blocked);
+	t_list* esis_a_imprimir = list_filter(blocked_q,&bloqueadoPorRecurso);
+	sem_post(m_blocked);
+	printf("Los esis esperando el recurso %s son:\n",recurso);
+	imprimir(esis_a_imprimir);
+	list_destroy(esis_a_imprimir);
+}
 
 //Funciones auxiliares
 
