@@ -37,7 +37,7 @@ t_config* config;
 
 /*otras variables*/
 int id_base = 1;
-int system_clock=0;
+int system_clock=0;  
 int cant_claves;
 _Bool block_config = true;
 _Bool ejecutando = false;
@@ -471,18 +471,25 @@ void planificar() {
 			}
 
 			case HRRN: {
+				list_sort(ready_q,&mayor_ratio);
+				esi_ejecutando = list_get(ready_q, 0);
+				list_remove(ready_q, 0);
+				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				aumentar_rafaga(esi_ejecutando);
 				break;
 			}
 			}
 			}
-			}	else {
+			}	else if(algoritmo==SJFCD) {
 				if(esi_ejecutando!=NULL){list_add(ready_q,esi_ejecutando);}
 				list_sort(ready_q,&menor_tiempo);
 				esi_ejecutando = list_get(ready_q, 0);
 				list_remove(ready_q, 0);
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
 				aumentar_rafaga(esi_ejecutando);
-	}
+				} else {
+					perror("No se conoce el algoritmo de planificacion");
+				}
 }
 
 //consola planificador
@@ -702,6 +709,7 @@ void bloquear(proceso_esi_t* esi, char* recurso) {
 	esi->ejecuto_ant=0;
 	estimar_proxima_rafaga(esi);
 	strcpy(esi->recurso_bloqueante,recurso);
+	esi->waiting_time = system_clock;
 	list_add(blocked_q, esi);
 }
 
@@ -755,6 +763,15 @@ _Bool menor_tiempo(void* pointer1, void* pointer2){
 	}
 
 	return sort_number(pointer1) <= sort_number(pointer2);
+}
+
+_Bool mayor_ratio(void* ptr1, void* ptr2){
+
+	float ratio_calc(proceso_esi_t* esi){
+		return 1 + (system_clock - esi->waiting_time)/(esi->estimacion_ant);
+	}
+
+	return ratio_calc((proceso_esi_t*)ptr1) >= ratio_calc((proceso_esi_t*)ptr2);
 }
 
 _Bool is_in_list(int id,t_list* lista){

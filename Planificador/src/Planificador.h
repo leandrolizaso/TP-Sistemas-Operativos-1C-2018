@@ -50,6 +50,7 @@ _Bool is_in_list(int id_esi, t_list* lista);
 _Bool tiene_asginado(void* pointer);
 void matar_esi();
 void kill(int id);
+_Bool mayor_ratio(void* ptr1, void* ptr2);
 
 #define FIFO 600
 #define SJFCD 601
