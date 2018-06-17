@@ -19,7 +19,7 @@
 typedef struct {
 	char* clave;
 	char* valor;
-	int* id;
+	int id;
 }t_espacio_memoria;
 
 typedef struct {
