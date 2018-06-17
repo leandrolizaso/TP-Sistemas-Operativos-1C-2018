@@ -46,8 +46,7 @@ void atenderConexiones(){
 			switch(algoritmo){
 
 			case CIRC: {
-				t_clavevalor claveValor = deserializar_clavevalor(
-						paquete->data);
+				t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
 				if (tengoLaClave(claveValor.clave)) {
 					guardarPisandoClaveValor(claveValor, &indice);
 				} else {
@@ -135,12 +134,22 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 				reemplazarValorLimpiandoIndice(espacio,claveValor.valor, indice,entradasNuevas);
 				//notificarCoordinador(0) <-- comentado porque atenderConexiones sigue dando que tuti ok
 			}else{
-				//compactar: indiceMemoria = compactar(indice);
-				// enviar al coord NECESITO_COMPACTAR, aca deberia cortar este flujo y
-				// esperar un COMPACTA, compactar y luego enviar COMPACTACION_OK  y recibir un SEGUI o algo asi del coord
-				// para que el segui este bien deberia guardar la ultima claveValor  que quise setiar para hacerlo de nuevo
-					//  si puedo : notificarCoordinador(0)
-					// si no puedo:	notificarCoordinador(1); // ERROR: "no hay espacio"
+//				if (tengoEntradas(entradas)) {
+//					enviar(socket_coordinador, NECESITO_COMPACTAR, 0, NULL);
+//					t_paquete* paqueteCoord;
+//					paqueteCoord = recibir(socket_coordinador);
+//					if (paqueteCoord->codigo_operacion == COMPACTA) {
+//						indiceMemoria = compactar(indice);
+//						guardarPisandoClaveValor(claveValor, indice);
+//						enviar(socket_coordinador, COMPACTACION_OK, 0, NULL);
+//					} else {
+//						//que hacemo ? xd
+//					}
+//					destruir_paquete(paqueteCoord);
+//				} else {
+//					//notificarCoordinador(1); // ERROR: "no hay espacio"
+//				}
+//				COMENTADO por falta de definiciones en protocolo
 			}
 		}
 	}else{
@@ -162,12 +171,22 @@ void guardarClaveValor(t_clavevalor claveValor,int *indice){
 			registrarNuevoEspacio(claveValor,indice,entradas);
 			//notificarCoordinador(0) <-- comentado porque atenderConexiones sigue dando que Tuti ok
 		}else{
-			//compactar: indiceMemoria = compactar(indice);
-			// enviar al coord NECESITO_COMPACTAR, aca deberia cortar este flujo y
-			// esperar un COMPACTA, compactar y luego enviar COMPACTACION_OK  y recibir un SEGUI o algo asi del coord
-			// para que el segui este bien deberia guardar la ultima claveValor  que quise setiar para hacerlo de nuevo
-				//  si puedo : notificarCoordinador(0)
-				// si no puedo:	notificarCoordinador(1); // ERROR: "no hay espacio"
+//			if(tengoEntradas(entradas)){
+//				enviar(socket_coordinador,NECESITO_COMPACTAR,0,NULL);
+//				t_paquete* paqueteCoord;
+//				paqueteCoord = recibir(socket_coordinador);
+//				if(paqueteCoord->codigo_operacion == COMPACTA){
+//					indiceMemoria = compactar(indice);
+//					guardarClaveValor(claveValor,indice);
+//					enviar(socket_coordinador,COMPACTACION_OK,0,NULL);
+//				}else{
+//				   //que hacemo ? xd
+//				}
+//				destruir_paquete(paqueteCoord);
+//			}else{
+//				//notificarCoordinador(1); // ERROR: "no hay espacio"
+//			}
+//				COMENTADO por falta de definiciones en protocolo
 		}
 	}
 }
@@ -498,6 +517,23 @@ bool esAtomica(int indice){
 	if(indice== cantidad_entradas - 1)
 		return true;
 	return indiceMemoria[indice] != indiceMemoria[indice + 1];
+}
+
+bool tengoEntradas(int cantidad){
+	int libres = 0;
+	bool encontre = false;
+	for(int i = 0 ; i < cantidad_entradas && !encontre ; i++){
+
+		if (indiceMemoria[i] == 0 || esAtomica(i))
+			libres++;
+		else if (!esAtomica(i)) {
+			int cantidad = cantidadEntradasOcupadas(i);
+			avanzarIndice(&i, cantidad - 1);
+		}
+		if(libres == cantidad)
+			encontre = true;
+	}
+	return encontre;
 }
 
 int cantidadEntradasOcupadas(int indiceAux){

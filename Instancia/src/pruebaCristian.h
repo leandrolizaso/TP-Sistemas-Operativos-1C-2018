@@ -61,8 +61,8 @@ t_espacio_memoria* conseguirEspacioMemoria(char* clave);
 
 int entradasQueOcupa(char* valor);
 
+bool tengoEntradas(int cantidad);
 bool tengoLibres(int entradas,int *indice);
-
 bool tengoAtomicas(int entradas,int *indice);
 bool esAtomica(int indice);
 int cantidadEntradasOcupadas(int indiceAux);
