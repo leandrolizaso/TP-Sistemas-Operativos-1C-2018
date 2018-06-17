@@ -172,9 +172,12 @@ void guardarClaveValor(t_clavevalor claveValor,int *indice){
 	}
 }
 
-void notificarCoordinador(int respuesta){
-	log_trace(logger,"notificador_coordinador(%d)",respuesta);
-	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),&respuesta);
+void notificarCoordinador(int indice){
+	int* respuesta = malloc(sizeof(int*));
+	*respuesta = indice;
+	log_trace(logger,"notificador_coordinador(%d)",*respuesta);
+	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),respuesta);
+	free(respuesta);
 }
 
 // PARA LISTAS
