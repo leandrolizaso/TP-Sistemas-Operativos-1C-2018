@@ -2,13 +2,14 @@
 #include <stdlib.h>
 #include <commons/config.h>
 #include <commons/collections/list.h>
+#include "pruebaCristian.h"
+
 #include <commons/string.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-#include "pruebaCristian.h"
 
 int main(int argc,char** argv){
 	inicializar(argv[1]);
@@ -48,7 +49,6 @@ void atenderConexiones(){
 				t_clavevalor claveValor = deserializar_clavevalor(
 						paquete->data);
 				if (tengoLaClave(claveValor.clave)) {
-					puts("vivo");
 					guardarPisandoClaveValor(claveValor, &indice);
 				} else {
 					guardarClaveValor(claveValor, &indice);
@@ -76,35 +76,31 @@ void atenderConexiones(){
 			log_trace(logger, "DUMP_CLAVE");
 			t_espacio_memoria* espacio = conseguirEspacioMemoria(paquete->data);
 			if (espacio == NULL) {
-				puts("Sin espacio");
 				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
 				// CLAVE_NO_TOMADA <-- abortar ESI
 			} else {
-				puts("Bajando clave");
 				char* punto_montaje = malloc(strlen(config.point_mount)+strlen(espacio->clave)+2);
-				strcpy(punto_montaje,config.point_mount);
-				string_append(&punto_montaje,"/");
-				string_append(&punto_montaje,espacio->clave);
+				strcpy(punto_montaje, config.point_mount);
+				string_append(&punto_montaje, "/");
+				string_append(&punto_montaje, espacio->clave);
 				struct stat sb;
-				if(!(stat(config.point_mount, &sb) == 0 && S_ISDIR(sb.st_mode))){
-					mkdir(config.point_mount,S_IRWXU);
+				if (!(stat(config.point_mount, &sb) == 0 && S_ISDIR(sb.st_mode))) {
+					mkdir(config.point_mount, S_IRWXU);
 				}
 				int fd = open(punto_montaje, O_RDWR | O_CREAT, S_IRWXU);
-				ftruncate(fd,strlen_null(espacio->valor));
-				char* memoria_mapeada = mmap(NULL,strlen_null(espacio->valor), PROT_READ|PROT_WRITE,MAP_SHARED, fd, 0);
-				memcpy(memoria_mapeada,espacio->valor,strlen(espacio->valor));
-				msync((void*) memoria_mapeada,strlen_null(espacio->valor),MS_SYNC);
+				ftruncate(fd, strlen_null(espacio->valor));
+				char* memoria_mapeada = mmap(NULL, strlen_null(espacio->valor),PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+				memcpy(memoria_mapeada, espacio->valor, strlen(espacio->valor));
+				msync((void*) memoria_mapeada, strlen_null(espacio->valor),MS_SYNC);
 				close(fd);
 				free(punto_montaje);
-				free(espacio);
 			}
 			destruir_paquete(paquete);
-			notificarCoordinador(0);					//para que de bien
+			notificarCoordinador(0);//para que de bien
 			break;
 		}
 		default: {
-			error = string_from_format("El codigo de operación %d no es válido",
-					paquete->codigo_operacion);
+			error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
 			log_error(logger, error);
 			free(error);
 			imRunning = 0;
@@ -191,26 +187,20 @@ void destructorEspacioMemoria(void* elem){
 }
 
 bool tengoLaClave(char* clave){
-	if(list_is_empty(memoria))
-		return false;              //   <-- no necesario aparentemente
-	_Bool contieneClave(void* unaParteDeMemoria){
-		return strcmp(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
+//	if(list_is_empty(memoria))
+//		return false;                 <-- no necesario aparentemente
+	bool contieneClave(void* unaParteDeMemoria){
+		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
-	
-	return list_any_satisfy(memoria,&contieneClave); //rompe aca?
+
+	return list_any_satisfy(memoria,&contieneClave);
 }
 
 t_espacio_memoria* conseguirEspacioMemoria(char* clave){
 	bool contieneClave(void* unaParteDeMemoria){
 		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
-	t_espacio_memoria* ptr = (t_espacio_memoria*)list_find(memoria,&contieneClave);
-	int index;
-	if(ptr!=NULL){
-		return ptr;
-	} else if(tengoLibres(memoria,&index)){
-		return list_get(memoria,index);
-	}
+	return list_find(memoria,&contieneClave);
 }
 
 // inicializar
@@ -357,7 +347,7 @@ void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo){
 	}
 }
 
-// AUXILIARES
+// Auxiliares t_espacio_memoria
 
 void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas){
 	liberarSobrantes(espacio->id,0);
@@ -365,17 +355,34 @@ void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int*
 	reemplazarValor(espacio,valor);
 }
 
+void reemplazarValor(t_espacio_memoria* espacio,char* valor){
+	free(espacio->valor);
+	espacio->valor = string_duplicate(valor);
+}
+
+t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
+	t_espacio_memoria* nuevoEspacio = malloc(sizeof(t_espacio_memoria));
+	nuevoEspacio->clave = string_duplicate(claveValor.clave);
+	nuevoEspacio->valor = string_duplicate(claveValor.valor);
+	nuevoEspacio->id = id;
+	id++;
+	return nuevoEspacio;
+}
+
+void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
+	t_espacio_memoria* nuevoEspacio = nuevoEspacioMemoria(claveValor);
+	list_add(memoria,nuevoEspacio);
+	registrarEnIndiceMemoria(nuevoEspacio->id,indice,entradas);
+}
+
+
+// Auxiliares indiceMemoria
+
 void registrarEnIndiceMemoria(int id,int* indice,int entradas){
 	for(int i = 0; i<entradas ; i++){
 		indiceMemoria[*indice + i] = id;
 	}
 	avanzarIndice(indice,entradas);
-}
-
-void reemplazarValor(t_espacio_memoria* espacio,char* valor){
-	free(espacio->valor);
-	espacio->valor=malloc(sizeof(char)*strlen_null(espacio->valor));
-	strcpy(espacio->valor,valor);
 }
 
 void liberarSobrantes(int id,int cantidadNecesaria){
@@ -498,21 +505,4 @@ int cantidadEntradasOcupadas(int indiceAux){
 		acum++;
 	}
 	return acum;
-}
-
-t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
-	t_espacio_memoria* nuevoEspacio = malloc(sizeof(t_espacio_memoria));
-	nuevoEspacio->clave = malloc(sizeof(char)*40);  //ver cuando se libera esto
-	strcpy(nuevoEspacio->clave,claveValor.clave);
-	nuevoEspacio->valor = malloc(sizeof(char)*strlen_null(claveValor.valor));
-	strcpy(nuevoEspacio->valor,claveValor.valor);
-	nuevoEspacio->id = id;
-	id++;
-	return nuevoEspacio;
-}
-
-void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
-	t_espacio_memoria* nuevoEspacio = nuevoEspacioMemoria(claveValor);
-	list_add(memoria,nuevoEspacio);
-	registrarEnIndiceMemoria(nuevoEspacio->id,indice,entradas);
 }

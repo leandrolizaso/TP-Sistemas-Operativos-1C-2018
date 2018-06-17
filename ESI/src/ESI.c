@@ -249,6 +249,7 @@ t_clavevalor extraerClaveValor(t_esi_operacion operacion,t_paquete* paquete){
 	case SET:{
 		clavevalor.clave = operacion.argumentos.SET.clave;
 		clavevalor.valor = operacion.argumentos.SET.valor;
+		destruir_paquete(paquete);
 		return clavevalor;
 		break;}
 	case STORE:{
