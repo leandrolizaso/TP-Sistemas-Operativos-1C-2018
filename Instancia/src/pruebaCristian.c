@@ -38,7 +38,7 @@ void atenderConexiones(){
 
 	while(imRunning){
 		log_trace(logger,"atenderConexiones() #imRunning");
-		t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
+
 		switch (paquete->codigo_operacion) {
 		case SAVE_CLAVE: {
 			log_trace(logger, "SAVE_CLAVE");
@@ -46,7 +46,7 @@ void atenderConexiones(){
 			switch(algoritmo){
 
 			case CIRC: {
-
+				t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
 				if (tengoLaClave(claveValor.clave)) {
 					guardarPisandoClaveValor(claveValor, &indice);
 				} else {
