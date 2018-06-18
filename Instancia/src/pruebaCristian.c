@@ -123,38 +123,11 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	int entradasNuevas = entradasQueOcupa(claveValor.valor);
 
 	if(entradasNuevas > entradasAnteriores){
-		if(tengoLibres(entradasNuevas,indice)){
-			reemplazarValorLimpiandoIndice(espacio,claveValor.valor, indice,entradasNuevas);
-			notificarCoordinador(0);
-		}else{
-			if(tengoAtomicas(entradasNuevas,indice)){
-				reemplazarValorLimpiandoIndice(espacio,claveValor.valor, indice,entradasNuevas);
-				notificarCoordinador(0);
-			}else{
-//				if (tengoEntradas(entradas)) {
-//					enviar(socket_coordinador, NECESITO_COMPACTAR, 0, NULL);
-//					t_paquete* paqueteCoord;
-//					paqueteCoord = recibir(socket_coordinador);
-//					if (paqueteCoord->codigo_operacion == COMPACTA) {
-//						indiceMemoria = compactar(indice);
-//						guardarPisandoClaveValor(claveValor, indice);
-//						ESTO enviar(socket_coordinador, COMPACTACION_OK, 0, NULL); O ESTO notificarCoordinador(0); ??
-//					} else {
-//						//que hacemo? me deberia mandar COMPACTA si o si xd
-//					}
-//					destruir_paquete(paqueteCoord);
-//				} else {
-//					//notificarCoordinador(1); // ERROR: "no hay espacio"
-//				}
-//				COMENTADO por falta de definiciones en protocolo
-			}
-		}
-	}else{
-		if(entradasNuevas <= entradasAnteriores){
-			liberarSobrantes(espacio->id,entradasNuevas);
-			reemplazarValor(espacio,claveValor.valor);
-			notificarCoordinador(0);
-		}
+		//notificarCoordinador(4); Aborar ESI por querer hacer SET con un valor que ocupa mas entradas que el anterior
+	} else {
+		liberarSobrantes(espacio->id, entradasNuevas);
+		reemplazarValor(espacio, claveValor.valor);
+		notificarCoordinador(0);
 	}
 }
 
