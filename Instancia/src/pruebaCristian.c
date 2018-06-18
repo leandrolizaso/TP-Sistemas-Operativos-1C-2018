@@ -38,7 +38,7 @@ void atenderConexiones(){
 
 	while(imRunning){
 		log_trace(logger,"atenderConexiones() #imRunning");
-
+		t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
 		switch (paquete->codigo_operacion) {
 		case SAVE_CLAVE: {
 			log_trace(logger, "SAVE_CLAVE");
@@ -46,15 +46,12 @@ void atenderConexiones(){
 			switch(algoritmo){
 
 			case CIRC: {
-				t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
+
 				if (tengoLaClave(claveValor.clave)) {
 					guardarPisandoClaveValor(claveValor, &indice);
 				} else {
 					guardarClaveValor(claveValor, &indice);
 				}
-				notificarCoordinador(0);
-				// en cada guardar deberia tener un notificar y depende del error/exito notificar
-				// ahora notifico cero, para que todinho salga bien
 				destruir_paquete(paquete);
 				break;
 			}
@@ -128,11 +125,11 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	if(entradasNuevas > entradasAnteriores){
 		if(tengoLibres(entradasNuevas,indice)){
 			reemplazarValorLimpiandoIndice(espacio,claveValor.valor, indice,entradasNuevas);
-			//notificarCoordinador(0) <-- comentado porque atenderConexiones sigue dando que tuti ok
+			notificarCoordinador(0);
 		}else{
 			if(tengoAtomicas(entradasNuevas,indice)){
 				reemplazarValorLimpiandoIndice(espacio,claveValor.valor, indice,entradasNuevas);
-				//notificarCoordinador(0) <-- comentado porque atenderConexiones sigue dando que tuti ok
+				notificarCoordinador(0);
 			}else{
 //				if (tengoEntradas(entradas)) {
 //					enviar(socket_coordinador, NECESITO_COMPACTAR, 0, NULL);
@@ -141,9 +138,9 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 //					if (paqueteCoord->codigo_operacion == COMPACTA) {
 //						indiceMemoria = compactar(indice);
 //						guardarPisandoClaveValor(claveValor, indice);
-//						enviar(socket_coordinador, COMPACTACION_OK, 0, NULL);
+//						ESTO enviar(socket_coordinador, COMPACTACION_OK, 0, NULL); O ESTO notificarCoordinador(0); ??
 //					} else {
-//						//que hacemo ? xd
+//						//que hacemo? me deberia mandar COMPACTA si o si xd
 //					}
 //					destruir_paquete(paqueteCoord);
 //				} else {
@@ -153,11 +150,10 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 			}
 		}
 	}else{
-		if(entradasNuevas < entradasAnteriores){
+		if(entradasNuevas <= entradasAnteriores){
 			liberarSobrantes(espacio->id,entradasNuevas);
 			reemplazarValor(espacio,claveValor.valor);
-		}else{
-			reemplazarValor(espacio,claveValor.valor);
+			notificarCoordinador(0);
 		}
 	}
 }
@@ -166,26 +162,27 @@ void guardarClaveValor(t_clavevalor claveValor,int *indice){
 	int entradas = entradasQueOcupa(claveValor.valor);
 	if(tengoLibres(entradas,indice)){
 		registrarNuevoEspacio(claveValor,indice,entradas);
+		notificarCoordinador(0);
 	}else{
 		if(tengoAtomicas(entradas,indice)){
 			registrarNuevoEspacio(claveValor,indice,entradas);
-			//notificarCoordinador(0) <-- comentado porque atenderConexiones sigue dando que Tuti ok
+			notificarCoordinador(0);
 		}else{
-//			if(tengoEntradas(entradas)){
-//				enviar(socket_coordinador,NECESITO_COMPACTAR,0,NULL);
-//				t_paquete* paqueteCoord;
-//				paqueteCoord = recibir(socket_coordinador);
-//				if(paqueteCoord->codigo_operacion == COMPACTA){
-//					indiceMemoria = compactar(indice);
-//					guardarClaveValor(claveValor,indice);
-//					enviar(socket_coordinador,COMPACTACION_OK,0,NULL);
-//				}else{
-//				   //que hacemo ? xd
+//				if (tengoEntradas(entradas)) {
+//					enviar(socket_coordinador, NECESITO_COMPACTAR, 0, NULL);
+//					t_paquete* paqueteCoord;
+//					paqueteCoord = recibir(socket_coordinador);
+//					if (paqueteCoord->codigo_operacion == COMPACTA) {
+//						indiceMemoria = compactar(indice);
+//						guardarClaveValor(claveValor, indice);
+//						ESTO enviar(socket_coordinador, COMPACTACION_OK, 0, NULL); O ESTO notificarCoordinador(0); ??
+//					} else {
+//						//que hacemo? me deberia mandar COMPACTA si o si xd
+//					}
+//					destruir_paquete(paqueteCoord);
+//				} else {
+//					//notificarCoordinador(1); // ERROR: "no hay espacio"
 //				}
-//				destruir_paquete(paqueteCoord);
-//			}else{
-//				//notificarCoordinador(1); // ERROR: "no hay espacio"
-//			}
 //				COMENTADO por falta de definiciones en protocolo
 		}
 	}
