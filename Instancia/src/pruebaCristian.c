@@ -23,7 +23,8 @@ void inicializar(char* path){
 	crearLog();
 	conectarCoordinador();
 	indiceMemoria = calloc(cantidad_entradas, sizeof(int));
-	memoria = list_create();
+	tabla = list_create();
+	memoria = malloc(sizeof(char)*cantidad_entradas*tamanio_entradas);
 }
 
 void atenderConexiones(){
@@ -98,9 +99,10 @@ void atenderConexiones(){
 
 void liberarRecursos(){
 	free(indiceMemoria);
+	free(memoria);
 	config_destroy(config_aux);
 	log_destroy(logger);
-	list_destroy_and_destroy_elements(memoria,&destructorEspacioMemoria);
+	list_destroy_and_destroy_elements(tabla,&destructorEspacioMemoria);
 }
 
 void guardar(t_clavevalor claveValor,int *indice){
@@ -178,7 +180,7 @@ void notificarCoordinador(int indice){
 void destructorEspacioMemoria(void* elem){
 	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 	free(espacio->clave);
-	free(espacio->valor);
+	//free(espacio->valor);
 	free(espacio);
 }
 
@@ -189,14 +191,14 @@ bool tengoLaClave(char* clave){
 		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
 
-	return list_any_satisfy(memoria,&contieneClave);
+	return list_any_satisfy(tabla,&contieneClave);
 }
 
 t_espacio_memoria* conseguirEspacioMemoria(char* clave){
 	bool contieneClave(void* unaParteDeMemoria){
 		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
-	return list_find(memoria,&contieneClave);
+	return list_find(tabla,&contieneClave);
 }
 
 // inicializar
@@ -352,14 +354,17 @@ void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int*
 }
 
 void reemplazarValor(t_espacio_memoria* espacio,char* valor){
-	free(espacio->valor);
-	espacio->valor = string_duplicate(valor);
+	int pos = posicion(espacio->id);
+	espacio->valor = memoria + sizeof(char) * pos * tamanio_entradas;
+	memcpy(memoria + sizeof(char) * pos * tamanio_entradas, valor,strlen(valor));
 }
 
 t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
 	t_espacio_memoria* nuevoEspacio = malloc(sizeof(t_espacio_memoria));
 	nuevoEspacio->clave = string_duplicate(claveValor.clave);
-	nuevoEspacio->valor = string_duplicate(claveValor.valor);
+	int pos = posicion(id);
+	nuevoEspacio->valor = memoria + sizeof(char)*pos*tamanio_entradas;
+	memcpy(memoria + sizeof(char)*pos*tamanio_entradas,claveValor.valor,strlen_null(claveValor.valor));
 	nuevoEspacio->id = id;
 	nuevoEspacio->ultima_referencia = time;
 	id++;
@@ -367,9 +372,9 @@ t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
 }
 
 void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
+	registrarEnIndiceMemoria(id,indice,entradas);
 	t_espacio_memoria* nuevoEspacio = nuevoEspacioMemoria(claveValor);
-	list_add(memoria,nuevoEspacio);
-	registrarEnIndiceMemoria(nuevoEspacio->id,indice,entradas);
+	list_add(tabla,nuevoEspacio);
 }
 
 

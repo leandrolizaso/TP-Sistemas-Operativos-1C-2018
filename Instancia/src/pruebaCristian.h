@@ -32,7 +32,7 @@ typedef struct {
 	int intervalo;
 } t_config_instancia;
 
-t_list* memoria;
+t_list* tabla;
 t_config_instancia config;
 t_log* logger;
 t_config* config_aux;
@@ -44,6 +44,7 @@ int tamanio_entradas;
 int* indiceMemoria;
 int id;
 int time;
+char* memoria;
 
 void inicializar();
 void definirAlgoritmo();
