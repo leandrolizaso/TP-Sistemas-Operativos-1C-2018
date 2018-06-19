@@ -43,29 +43,32 @@ void atenderConexiones(){
 		case SAVE_CLAVE: {
 			log_trace(logger, "SAVE_CLAVE");
 
-			switch(algoritmo){
+			t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
+			if (tengoLaClave(claveValor.clave))
+				guardarPisandoClaveValor(claveValor, &indice);
+			else {
 
-			case CIRC: {
-				t_clavevalor claveValor = deserializar_clavevalor(paquete->data);
-				if (tengoLaClave(claveValor.clave)) {
-					guardarPisandoClaveValor(claveValor, &indice);
-				} else {
-					guardarClaveValor(claveValor, &indice);
+				switch(algoritmo){
+
+				case CIRC: {
+					guardarCIRC(claveValor, &indice);
+					break;
 				}
-				destruir_paquete(paquete);
-				break;
-			}
-			case LRU: {
+				case LRU: {
+					guardarLRU(claveValor,&indice);
+					break;
+				}
 
-				break;
-			}
+				case BSU: {
+					guardarBSU(claveValor,&indice);
+					break;
+				}
 
-			case BSU: {
-
-				break;
-			}
+				}
 
 			}
+			destruir_paquete(paquete);
+
 			break;
 		}
 		case DUMP_CLAVE: {
@@ -117,6 +120,10 @@ void liberarRecursos(){
 	list_destroy_and_destroy_elements(memoria,&destructorEspacioMemoria);
 }
 
+void guardarLRU(t_clavevalor claveValor,int *indice){}
+
+void guardarBSU(t_clavevalor claveValor,int *indice){}
+
 void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	t_espacio_memoria* espacio = conseguirEspacioMemoria(claveValor.clave);//no verif por NULL dado que ya se hizo antes
 	int entradasAnteriores = entradasQueOcupa(espacio->valor);
@@ -131,7 +138,7 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	}
 }
 
-void guardarClaveValor(t_clavevalor claveValor,int *indice){
+void guardarCIRC(t_clavevalor claveValor,int *indice){
 	int entradas = entradasQueOcupa(claveValor.valor);
 	if(tengoLibres(entradas,indice)){
 		registrarNuevoEspacio(claveValor,indice,entradas);
