@@ -138,8 +138,7 @@ void guardar(t_clavevalor claveValor,int *indice){
 				paqueteCoord = recibir(socket_coordinador);
 				if (paqueteCoord->codigo_operacion == 123456) { // 123456 = COMPACTA
 					indiceMemoria = compactar(indice); // el compactar debe tener en cuenta que depende del algoritmo
-					guardar(claveValor, indice);
-					//ESTO enviar(socket_coordinador, COMPACTACION_OK, 0, NULL); O ESTO notificarCoordinador(0); ??
+					guardar(claveValor, indice); // aca adentro se notifica
 				} else {
 					//que hacemo? me deberia mandar COMPACTA si o si xd
 				}
