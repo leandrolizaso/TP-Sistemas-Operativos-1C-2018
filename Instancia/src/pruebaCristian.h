@@ -57,10 +57,8 @@ void destructorEspacioMemoria(void* elem);
 void notificarCoordinador(int respuesta);
 
 void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice);
+void guardar(t_clavevalor claveValor,int *indice);
 
-void guardarCIRC(t_clavevalor claveValor,int *indice);
-void guardarLRU(t_clavevalor claveValor,int *indice);
-void guardarBSU(t_clavevalor claveValor,int *indice);
 
 bool tengoLaClave(char* clave);
 t_espacio_memoria* conseguirEspacioMemoria(char* clave);

@@ -48,25 +48,7 @@ void atenderConexiones(){
 			if (tengoLaClave(claveValor.clave))
 				guardarPisandoClaveValor(claveValor, &indice);
 			else {
-
-				switch(algoritmo){
-
-				case CIRC: {
-					guardarCIRC(claveValor, &indice);
-					break;
-				}
-				case LRU: {
-					guardarLRU(claveValor,&indice);
-					break;
-				}
-
-				case BSU: {
-					guardarBSU(claveValor,&indice);
-					break;
-				}
-
-				}
-
+				guardar(claveValor, &indice);
 			}
 			destruir_paquete(paquete);
 
@@ -121,37 +103,51 @@ void liberarRecursos(){
 	list_destroy_and_destroy_elements(memoria,&destructorEspacioMemoria);
 }
 
-void guardarLRU(t_clavevalor claveValor,int *indice){}
+void guardar(t_clavevalor claveValor,int *indice){
 
-void guardarBSU(t_clavevalor claveValor,int *indice){}
-
-void guardarCIRC(t_clavevalor claveValor,int *indice){
 	int entradas = entradasQueOcupa(claveValor.valor);
-	if(tengoLibres(entradas,indice)){
-		registrarNuevoEspacio(claveValor,indice,entradas);
-		notificarCoordinador(0);
-	}else{
-		if(tengoAtomicas(entradas,indice)){
+
+	if(tengoEntradas(entradas)){
+		if(tengoLibres(entradas,indice)){
 			registrarNuevoEspacio(claveValor,indice,entradas);
 			notificarCoordinador(0);
 		}else{
-//				if (tengoEntradas(entradas)) {
-//					enviar(socket_coordinador, NECESITO_COMPACTAR, 0, NULL);
-//					t_paquete* paqueteCoord;
-//					paqueteCoord = recibir(socket_coordinador);
-//					if (paqueteCoord->codigo_operacion == COMPACTA) {
-//						indiceMemoria = compactar(indice);
-//						guardarClaveValor(claveValor, indice);
-//						ESTO enviar(socket_coordinador, COMPACTACION_OK, 0, NULL); O ESTO notificarCoordinador(0); ??
-//					} else {
-//						//que hacemo? me deberia mandar COMPACTA si o si xd
-//					}
-//					destruir_paquete(paqueteCoord);
-//				} else {
-//					//notificarCoordinador(1); // ERROR: "no hay espacio"
-//				}
-//				COMENTADO por falta de definiciones en protocolo
+			if (tengoAtomicas(entradas, indice)) {
+
+				switch (algoritmo) {
+
+				case CIRC: {
+					registrarNuevoEspacio(claveValor, indice, entradas);
+					notificarCoordinador(0);
+					break;
+				}
+				case LRU: {
+
+					break;
+				}
+				case BSU: {
+
+					break;
+				}
+
+				}
+
+			} else {
+//				enviar(socket_coordinador, NECESITO_COMPACTAR, 0, NULL);
+				t_paquete* paqueteCoord;
+				paqueteCoord = recibir(socket_coordinador);
+				if (paqueteCoord->codigo_operacion == 123456) { // 123456 = COMPACTA
+					indiceMemoria = compactar(indice); // el compactar debe tener en cuenta que depende del algoritmo
+					guardar(claveValor, indice);
+					//ESTO enviar(socket_coordinador, COMPACTACION_OK, 0, NULL); O ESTO notificarCoordinador(0); ??
+				} else {
+					//que hacemo? me deberia mandar COMPACTA si o si xd
+				}
+				destruir_paquete(paqueteCoord);
+			}
 		}
+	}else{
+//		notificarCoordinador(1); // ERROR: "no hay espacio"
 	}
 }
 
