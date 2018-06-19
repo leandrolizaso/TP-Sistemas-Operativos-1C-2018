@@ -300,7 +300,30 @@ int* compactar(int* indice){
 	agregarAtomicos(nuevoIndiceMemoria,&indiceNuevo);
 	*indice = indiceNuevo;
 	free(indiceMemoria);
+	actualizarMemoria();
 	return nuevoIndiceMemoria;
+}
+
+
+void actualizarMemoria(){
+	int i = 0;
+	while(indiceMemoria[i] != 0 && i< cantidad_entradas){
+		int id = indiceMemoria[i];
+		t_espacio_memoria* espacio = conseguirEspacioMemoriaID(id);
+		memcpy(memoria + i*tamanio_entradas*sizeof(char),espacio->valor,strlen_null(espacio->valor));
+		if(esAtomica(i))
+			incrementarIndice(&i);
+		else
+			avanzarIndice(&i,cantidadEntradasOcupadas(i));
+	}
+
+}
+
+t_espacio_memoria* conseguirEspacioMemoriaID(int id){
+	bool contieneID(void* unaParteDeMemoria){
+		return ((t_espacio_memoria*)unaParteDeMemoria)->id = id;
+	}
+	return list_find(tabla,&contieneID);
 }
 
 void agregarNoAtomicos(int* nuevoIndiceMemoria,int* indiceNuevo){

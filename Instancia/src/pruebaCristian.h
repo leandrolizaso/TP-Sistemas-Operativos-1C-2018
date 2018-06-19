@@ -63,6 +63,7 @@ void guardar(t_clavevalor claveValor,int *indice);
 
 bool tengoLaClave(char* clave);
 t_espacio_memoria* conseguirEspacioMemoria(char* clave);
+t_espacio_memoria* conseguirEspacioMemoriaID(int id);
 
 int entradasQueOcupa(char* valor);
 
@@ -82,6 +83,8 @@ int* compactar(int* indice);
 void agregarNoAtomicos(int* nuevoIndiceMemoria,int* indiceNuevo);
 void asignar(int* unIndiceMemoria,int* indice,int valor,int cantidad);
 void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo);
+
+void actualizarMemoria();
 
 void reemplazarValor(t_espacio_memoria* espacio,char* valor);
 void liberarSobrantes(int id,int cantidadNecesaria);
