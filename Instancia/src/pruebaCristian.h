@@ -20,6 +20,7 @@ typedef struct {
 	char* clave;
 	char* valor;
 	int id;
+	int ultima_referencia;
 }t_espacio_memoria;
 
 typedef struct {
@@ -42,6 +43,7 @@ int cantidad_entradas;
 int tamanio_entradas;
 int* indiceMemoria;
 int id;
+int time;
 
 void inicializar();
 void definirAlgoritmo();

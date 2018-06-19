@@ -32,6 +32,7 @@ void atenderConexiones(){
 	id = 1;
 	int imRunning = 1;
 	int indice = 0;
+	time = 0;
 
 	t_paquete* paquete;
 	paquete = recibir(socket_coordinador);
@@ -107,7 +108,7 @@ void atenderConexiones(){
 			break;
 		}
 		}
-
+	time++;
 	paquete = recibir(socket_coordinador);
 	}
 	destruir_paquete(paquete);
@@ -164,6 +165,7 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	} else {
 		liberarSobrantes(espacio->id, entradasNuevas);
 		reemplazarValor(espacio, claveValor.valor);
+		espacio->ultima_referencia = time;
 		notificarCoordinador(0);
 	}
 }
@@ -364,6 +366,7 @@ t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
 	nuevoEspacio->clave = string_duplicate(claveValor.clave);
 	nuevoEspacio->valor = string_duplicate(claveValor.valor);
 	nuevoEspacio->id = id;
+	nuevoEspacio->ultima_referencia = time;
 	id++;
 	return nuevoEspacio;
 }
