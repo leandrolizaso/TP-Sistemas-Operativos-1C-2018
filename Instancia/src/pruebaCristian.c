@@ -124,20 +124,6 @@ void guardarLRU(t_clavevalor claveValor,int *indice){}
 
 void guardarBSU(t_clavevalor claveValor,int *indice){}
 
-void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
-	t_espacio_memoria* espacio = conseguirEspacioMemoria(claveValor.clave);//no verif por NULL dado que ya se hizo antes
-	int entradasAnteriores = entradasQueOcupa(espacio->valor);
-	int entradasNuevas = entradasQueOcupa(claveValor.valor);
-
-	if(entradasNuevas > entradasAnteriores){
-		//notificarCoordinador(4); Aborar ESI por querer hacer SET con un valor que ocupa mas entradas que el anterior
-	} else {
-		liberarSobrantes(espacio->id, entradasNuevas);
-		reemplazarValor(espacio, claveValor.valor);
-		notificarCoordinador(0);
-	}
-}
-
 void guardarCIRC(t_clavevalor claveValor,int *indice){
 	int entradas = entradasQueOcupa(claveValor.valor);
 	if(tengoLibres(entradas,indice)){
@@ -165,6 +151,20 @@ void guardarCIRC(t_clavevalor claveValor,int *indice){
 //				}
 //				COMENTADO por falta de definiciones en protocolo
 		}
+	}
+}
+
+void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
+	t_espacio_memoria* espacio = conseguirEspacioMemoria(claveValor.clave);//no verif por NULL dado que ya se hizo antes
+	int entradasAnteriores = entradasQueOcupa(espacio->valor);
+	int entradasNuevas = entradasQueOcupa(claveValor.valor);
+
+	if(entradasNuevas > entradasAnteriores){
+		//notificarCoordinador(4); Aborar ESI por querer hacer SET con un valor que ocupa mas entradas que el anterior
+	} else {
+		liberarSobrantes(espacio->id, entradasNuevas);
+		reemplazarValor(espacio, claveValor.valor);
+		notificarCoordinador(0);
 	}
 }
 
