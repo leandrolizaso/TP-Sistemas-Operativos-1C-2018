@@ -24,7 +24,7 @@ void inicializar(char* path){
 	conectarCoordinador();
 	indiceMemoria = calloc(cantidad_entradas, sizeof(int));
 	tabla = list_create();
-	memoria = calloc(sizeof(char)*cantidad_entradas*tamanio_entradas);
+	memoria = calloc(cantidad_entradas*tamanio_entradas,sizeof(char));
 }
 
 void atenderConexiones(){
@@ -365,13 +365,17 @@ void escribirEnArchivo(t_espacio_memoria* espacio){
 	if (!(stat(config.point_mount, &sb) == 0 && S_ISDIR(sb.st_mode))) {
 		mkdir(config.point_mount, S_IRWXU);
 	}
+	int tamanio = sizeof(char)*(espacio->tamanio + 1);
+	char* valor = calloc(tamanio,sizeof(char));
+	memcpy(valor,espacio->valor,espacio->tamanio);
 	int fd = open(punto_montaje, O_RDWR | O_CREAT, S_IRWXU);
-	ftruncate(fd, strlen_null(espacio->valor));
-	char* memoria_mapeada = mmap(NULL, strlen_null(espacio->valor),PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	memcpy(memoria_mapeada, espacio->valor, strlen(espacio->valor));
-	msync((void*) memoria_mapeada, strlen_null(espacio->valor),MS_SYNC);
+	ftruncate(fd, tamanio);
+	char* memoria_mapeada = mmap(NULL, tamanio,PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	memcpy(memoria_mapeada, valor, tamanio);
+	msync((void*) memoria_mapeada, tamanio,MS_SYNC);
 	close(fd);
 	free(punto_montaje);
+	free(valor);
 }
 
 void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas){
@@ -382,16 +386,20 @@ void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int*
 
 void reemplazarValor(t_espacio_memoria* espacio,char* valor){
 	int pos = posicion(espacio->id);
+	int tamanio = strlen(valor);
 	espacio->valor = memoria + sizeof(char) * pos * tamanio_entradas;
-	memcpy(memoria + sizeof(char) * pos * tamanio_entradas, valor,strlen(valor));
+	memcpy(memoria + sizeof(char) * pos * tamanio_entradas, valor,tamanio);
+	espacio->tamanio = tamanio;
 }
 
 t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
 	t_espacio_memoria* nuevoEspacio = malloc(sizeof(t_espacio_memoria));
 	nuevoEspacio->clave = string_duplicate(claveValor.clave);
 	int pos = posicion(id);
+	int tamanio = strlen(claveValor.valor);
 	nuevoEspacio->valor = memoria + sizeof(char)*pos*tamanio_entradas;
-	memcpy(memoria + sizeof(char)*pos*tamanio_entradas,claveValor.valor,strlen_null(claveValor.valor));
+	memcpy(memoria + sizeof(char)*pos*tamanio_entradas,claveValor.valor,tamanio);
+	nuevoEspacio->tamanio = tamanio;
 	nuevoEspacio->id = id;
 	nuevoEspacio->ultima_referencia = time;
 	id++;
@@ -403,7 +411,6 @@ void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
 	t_espacio_memoria* nuevoEspacio = nuevoEspacioMemoria(claveValor);
 	list_add(tabla,nuevoEspacio);
 }
-
 
 // Auxiliares indiceMemoria
 

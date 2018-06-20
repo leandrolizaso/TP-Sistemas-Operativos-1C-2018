@@ -19,6 +19,7 @@
 typedef struct {
 	char* clave;
 	char* valor;
+	int tamanio;
 	int id;
 	int ultima_referencia;
 }t_espacio_memoria;
