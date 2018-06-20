@@ -24,7 +24,7 @@ void inicializar(char* path){
 	conectarCoordinador();
 	indiceMemoria = calloc(cantidad_entradas, sizeof(int));
 	tabla = list_create();
-	memoria = malloc(sizeof(char)*cantidad_entradas*tamanio_entradas);
+	memoria = calloc(sizeof(char)*cantidad_entradas*tamanio_entradas);
 }
 
 void atenderConexiones(){
