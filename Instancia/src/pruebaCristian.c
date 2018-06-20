@@ -62,21 +62,7 @@ void atenderConexiones(){
 				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
 				// CLAVE_NO_TOMADA <-- abortar ESI
 			} else {
-				char* punto_montaje = malloc(strlen(config.point_mount)+strlen(espacio->clave)+2);
-				strcpy(punto_montaje, config.point_mount);
-				string_append(&punto_montaje, "/");
-				string_append(&punto_montaje, espacio->clave);
-				struct stat sb;
-				if (!(stat(config.point_mount, &sb) == 0 && S_ISDIR(sb.st_mode))) {
-					mkdir(config.point_mount, S_IRWXU);
-				}
-				int fd = open(punto_montaje, O_RDWR | O_CREAT, S_IRWXU);
-				ftruncate(fd, strlen_null(espacio->valor));
-				char* memoria_mapeada = mmap(NULL, strlen_null(espacio->valor),PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-				memcpy(memoria_mapeada, espacio->valor, strlen(espacio->valor));
-				msync((void*) memoria_mapeada, strlen_null(espacio->valor),MS_SYNC);
-				close(fd);
-				free(punto_montaje);
+				escribirEnArchivo(espacio);
 			}
 			destruir_paquete(paquete);
 			notificarCoordinador(0);//para que de bien
@@ -369,6 +355,24 @@ void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo){
 }
 
 // Auxiliares t_espacio_memoria
+
+void escribirEnArchivo(t_espacio_memoria* espacio){
+	char* punto_montaje = malloc(strlen(config.point_mount)+strlen(espacio->clave)+2);
+	strcpy(punto_montaje, config.point_mount);
+	string_append(&punto_montaje, "/");
+	string_append(&punto_montaje, espacio->clave);
+	struct stat sb;
+	if (!(stat(config.point_mount, &sb) == 0 && S_ISDIR(sb.st_mode))) {
+		mkdir(config.point_mount, S_IRWXU);
+	}
+	int fd = open(punto_montaje, O_RDWR | O_CREAT, S_IRWXU);
+	ftruncate(fd, strlen_null(espacio->valor));
+	char* memoria_mapeada = mmap(NULL, strlen_null(espacio->valor),PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	memcpy(memoria_mapeada, espacio->valor, strlen(espacio->valor));
+	msync((void*) memoria_mapeada, strlen_null(espacio->valor),MS_SYNC);
+	close(fd);
+	free(punto_montaje);
+}
 
 void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas){
 	liberarSobrantes(espacio->id,0);
