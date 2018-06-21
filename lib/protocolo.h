@@ -48,14 +48,14 @@
 
 
 /* Instancia a Coordinador */
-#define SOLICITAR_CONFIG 206
-
 #define RESPUESTA_INTANCIA 401
-#define DUMP_CLAVE 402
+#define NEED_COMPACTAR 402
 
 /* Coordinador a Instancia */
-#define ENVIAR_CONFIG 207 // este mensaje tambien lo usa planificador luego del handshake para enviar al coordinador
-#define SAVE_CLAVE 208	// SE define codigo para guardar clave
+//#define ENVIAR_CONFIG 207 // este mensaje tambien lo usa planificador luego del handshake para enviar al coordinador
+#define SAVE_CLAVE 206	// codigo para guardar clave
+#define DUMP_CLAVE 207  // codigo para bajar a archivo
+#define COMPACTA 208
 /* Serializacion/Desserializacion */
 
 int strlen_null(char* str);
