@@ -69,7 +69,7 @@ void atenderConexiones(){
 			break;
 		}
 		case COMPACTA:{
-			compactar(indice);
+			compactar(&indice);
 			break;
 		}
 		default: {
