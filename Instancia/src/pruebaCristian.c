@@ -68,6 +68,10 @@ void atenderConexiones(){
 			notificarCoordinador(0);//para que de bien
 			break;
 		}
+		case COMPACTA:{
+			compactar(indice);
+			break;
+		}
 		default: {
 			error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
 			log_error(logger, error);
@@ -121,16 +125,8 @@ void guardar(t_clavevalor claveValor,int *indice){
 				}
 
 			} else {
-//				enviar(socket_coordinador, NECESITO_COMPACTAR, 0, NULL);
-				t_paquete* paqueteCoord;
-				paqueteCoord = recibir(socket_coordinador);
-				if (paqueteCoord->codigo_operacion == 123456) { // 123456 = COMPACTA
-					indiceMemoria = compactar(indice); // el compactar debe tener en cuenta que depende del algoritmo
-					guardar(claveValor, indice); // aca adentro se notifica
-				} else {
-					//que hacemo? me deberia mandar COMPACTA si o si xd
-				}
-				destruir_paquete(paqueteCoord);
+				// liberar(entradas - entradasLibres);
+				enviar(socket_coordinador, NEED_COMPACTAR, 0, NULL);
 			}
 		}
 	}else{
