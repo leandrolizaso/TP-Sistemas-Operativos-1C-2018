@@ -95,5 +95,7 @@ void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int*
 void registrarEnIndiceMemoria(int id,int* indice,int entradas);
 
 void escribirEnArchivo(t_espacio_memoria* espacio);
+char* extraerValor(t_espacio_memoria* espacio);
+void mostrar(t_espacio_memoria* espacio);
 
 #endif /* SRC_PRUEBACRISTIAN_H_ */

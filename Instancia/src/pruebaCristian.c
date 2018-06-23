@@ -52,7 +52,6 @@ void atenderConexiones(){
 				guardar(claveValor, &indice);
 			}
 			destruir_paquete(paquete);
-
 			break;
 		}
 		case DUMP_CLAVE: {
@@ -61,11 +60,12 @@ void atenderConexiones(){
 			if (espacio == NULL) {
 				//notificar_coordinador(3); // <-- 3 = ERROR: se quiere hacer STORE de una clave que no se posee.
 				// CLAVE_NO_TOMADA <-- abortar ESI
+				// no deberia pasar esto dado que el coord sabe cuando reemplazo una clave
 			} else {
 				escribirEnArchivo(espacio);
 			}
 			destruir_paquete(paquete);
-			notificarCoordinador(0);//para que de bien
+			notificarCoordinador(0);
 			break;
 		}
 		case COMPACTA:{
@@ -81,6 +81,8 @@ void atenderConexiones(){
 			break;
 		}
 		}
+	puts("\n Post Operacion quede asi:");
+	list_iterate(tabla,&mostrar);
 	time++;
 	paquete = recibir(socket_coordinador);
 	}
@@ -95,13 +97,19 @@ void liberarRecursos(){
 	list_destroy_and_destroy_elements(tabla,&destructorEspacioMemoria);
 }
 
+void mostrar(t_espacio_memoria* espacio){
+	char* valor = extraerValor(espacio);
+	printf("\nClave: %s    Valor: %s\n",espacio->clave,valor);
+	free(valor);
+}
+
 void guardar(t_clavevalor claveValor,int *indice){
 
 	int entradas = entradasQueOcupa(claveValor.valor);
 
 	if(tengoEntradas(entradas)){
 		if(tengoLibres(entradas,indice)){
-			registrarNuevoEspacio(claveValor,indice,entradas);
+			registrarNuevoEspacio(claveValor,indice,entradas); // TODO: idem abajo
 			notificarCoordinador(0);
 		}else{
 			if (tengoAtomicas(entradas, indice)) {
@@ -110,7 +118,7 @@ void guardar(t_clavevalor claveValor,int *indice){
 
 				case CIRC: {
 					registrarNuevoEspacio(claveValor, indice, entradas);
-					notificarCoordinador(0);
+					notificarCoordinador(0); // TODO: se debe tener en cuantas y que claves se reemplazaron,notif coord
 					break;
 				}
 				case LRU: {
@@ -125,7 +133,7 @@ void guardar(t_clavevalor claveValor,int *indice){
 				}
 
 			} else {
-				// liberar(entradas - entradasLibres);
+				// liberar(entradas - entradasLibres); TODO: ademas eliminar de la tabla
 				enviar(socket_coordinador, NEED_COMPACTAR, 0, NULL);
 			}
 		}
@@ -140,7 +148,7 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	int entradasNuevas = entradasQueOcupa(claveValor.valor);
 
 	if(entradasNuevas > entradasAnteriores){
-		//notificarCoordinador(4); Aborar ESI por querer hacer SET con un valor que ocupa mas entradas que el anterior
+		//notificarCoordinador(4); Abortar ESI por querer hacer SET con un valor que ocupa mas entradas que el anterior
 	} else {
 		liberarSobrantes(espacio->id, entradasNuevas);
 		reemplazarValor(espacio, claveValor.valor);
@@ -162,7 +170,6 @@ void notificarCoordinador(int indice){
 void destructorEspacioMemoria(void* elem){
 	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 	free(espacio->clave);
-	//free(espacio->valor);
 	free(espacio);
 }
 
@@ -362,8 +369,7 @@ void escribirEnArchivo(t_espacio_memoria* espacio){
 		mkdir(config.point_mount, S_IRWXU);
 	}
 	int tamanio = sizeof(char)*(espacio->tamanio + 1);
-	char* valor = calloc(tamanio,sizeof(char));
-	memcpy(valor,espacio->valor,espacio->tamanio);
+	char* valor = extraerValor(espacio);
 	int fd = open(punto_montaje, O_RDWR | O_CREAT, S_IRWXU);
 	ftruncate(fd, tamanio);
 	char* memoria_mapeada = mmap(NULL, tamanio,PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -374,11 +380,18 @@ void escribirEnArchivo(t_espacio_memoria* espacio){
 	free(valor);
 }
 
+char* extraerValor(t_espacio_memoria* espacio){
+	int tamanio = espacio->tamanio + 1;
+	char* valor = calloc(tamanio,sizeof(char));
+	memcpy(valor,espacio->valor,espacio->tamanio);
+	return valor;
+}
+
 void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas){
 	liberarSobrantes(espacio->id,0);
 	registrarEnIndiceMemoria(espacio->id,indice,entradasNuevas);
 	reemplazarValor(espacio,valor);
-}
+}//ya no se usa dado que ahora los SET ocupan igual o menos cant de entradas
 
 void reemplazarValor(t_espacio_memoria* espacio,char* valor){
 	int pos = posicion(espacio->id);
@@ -412,6 +425,14 @@ void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
 
 void registrarEnIndiceMemoria(int id,int* indice,int entradas){
 	for(int i = 0; i<entradas ; i++){
+		int idPos = indiceMemoria[*indice + i];
+		if( idPos != 0){
+			bool eliminarEspacio(void* elem) {
+				t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
+				return espacio->id == idPos;
+			}
+			list_remove_by_condition(tabla,&eliminarEspacio);
+		}
 		indiceMemoria[*indice + i] = id;
 	}
 	avanzarIndice(indice,entradas);
