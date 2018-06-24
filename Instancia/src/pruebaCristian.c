@@ -576,3 +576,24 @@ int cantidadEntradasOcupadas(int indiceAux){
 	}
 	return acum;
 }
+void dump (t_espacio_memoria* tabla){
+	int ocupadas;
+	int index= 0;
+	int pos= 0;
+	posicion(pos);
+	//int size_tabla = list_size(tabla) + 1;
+
+	ocupadas = cantidad_entradas;
+
+	//void list_iterate(tabla, void(*closure)(void*));
+
+	while (index < ocupadas + 1) {
+
+			escribirEnArchivo(tabla);
+			pos++;
+			posicion(pos);
+			index++;
+	};
+	alarm(config.intervalo);
+	log_info(logger, "Se guardaron los datos");
+  }
