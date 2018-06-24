@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <sys/time.h>
 #include <commons/config.h>
 #include <commons/collections/list.h>
 #include "pruebaCristian.h"
@@ -25,6 +27,7 @@ void inicializar(char* path){
 	indiceMemoria = calloc(cantidad_entradas, sizeof(int));
 	tabla = list_create();
 	memoria = calloc(cantidad_entradas*tamanio_entradas,sizeof(char));
+	signal(SIGALRM, dump(t_espacio_memoria* lista));
 }
 
 void atenderConexiones(){
