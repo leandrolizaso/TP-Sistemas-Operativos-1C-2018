@@ -431,7 +431,7 @@ void registrarEnIndiceMemoria(int id,int* indice,int entradas){
 				t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 				return espacio->id == idPos;
 			}
-			list_remove_by_condition(tabla,&eliminarEspacio);
+			list_remove_and_destroy_by_condition(tabla,&eliminarEspacio,&destructorEspacioMemoria);
 		}
 		indiceMemoria[*indice + i] = id;
 	}
