@@ -161,7 +161,7 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 }
 
 void notificarCoordinador(int tamanio,char* buffer){
-	log_trace(logger,"Se notifico al coord. Tamanio: %d    Buffer &s",tamanio,buffer);
+	log_trace(logger,"Se notifico al coord. Tamanio: %d    Buffer %s \n",tamanio,buffer);
 	enviar(socket_coordinador,RESPUESTA_INTANCIA,tamanio*sizeof(char),buffer);
 }
 
