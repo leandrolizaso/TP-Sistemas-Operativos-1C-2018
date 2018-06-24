@@ -64,12 +64,14 @@ void atenderConexiones(){
 			} else {
 				escribirEnArchivo(espacio);
 			}
+			notificarCoordinador(0,NULL);
 			destruir_paquete(paquete);
-			notificarCoordinador(0);
 			break;
 		}
 		case COMPACTA:{
 			compactar(&indice);
+			notificarCoordinador(0,NULL);
+			destruir_paquete(paquete);
 			break;
 		}
 		default: {
@@ -109,8 +111,8 @@ void guardar(t_clavevalor claveValor,int *indice){
 
 	if(tengoEntradas(entradas)){
 		if(tengoLibres(entradas,indice)){
-			registrarNuevoEspacio(claveValor,indice,entradas); // TODO: idem abajo
-			notificarCoordinador(0);
+			registrarNuevoEspacio(claveValor,indice,entradas); //TODO: tratar char* a recibir para hacer free
+			notificarCoordinador(0,NULL);
 		}else{
 			if (tengoAtomicas(entradas, indice)) {
 
@@ -118,7 +120,8 @@ void guardar(t_clavevalor claveValor,int *indice){
 
 				case CIRC: {
 					registrarNuevoEspacio(claveValor, indice, entradas);
-					notificarCoordinador(0); // TODO: se debe tener en cuantas y que claves se reemplazaron,notif coord
+					notificarCoordinador(0,"claves");
+					// TODO: se debe tener en cuanta cuantass y que claves se reemplazaron al notificar coord
 					break;
 				}
 				case LRU: {
@@ -153,16 +156,13 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 		liberarSobrantes(espacio->id, entradasNuevas);
 		reemplazarValor(espacio, claveValor.valor);
 		espacio->ultima_referencia = time;
-		notificarCoordinador(0);
+		notificarCoordinador(0,NULL);
 	}
 }
 
-void notificarCoordinador(int indice){
-	int* respuesta = malloc(sizeof(int*));
-	*respuesta = indice;
-	log_trace(logger,"notificador_coordinador(%d)",*respuesta);
-	enviar(socket_coordinador,RESPUESTA_INTANCIA,sizeof(int),respuesta);
-	free(respuesta);
+void notificarCoordinador(int tamanio,char* buffer){
+	log_trace(logger,"Se notifico al coord. Tamanio: %d    Buffer &s",tamanio,buffer);
+	enviar(socket_coordinador,RESPUESTA_INTANCIA,tamanio*sizeof(char),buffer);
 }
 
 // PARA LISTAS

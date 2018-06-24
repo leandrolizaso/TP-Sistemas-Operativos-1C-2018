@@ -56,7 +56,7 @@ void atenderConexiones();
 void liberarRecursos();
 void destructorEspacioMemoria(void* elem);
 
-void notificarCoordinador(int respuesta);
+void notificarCoordinador(int tamanio,char* buffer);
 
 void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice);
 void guardar(t_clavevalor claveValor,int *indice);
