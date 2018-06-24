@@ -98,4 +98,6 @@ void escribirEnArchivo(t_espacio_memoria* espacio);
 char* extraerValor(t_espacio_memoria* espacio);
 void mostrar(t_espacio_memoria* espacio);
 
+void dump (t_espacio_memoria* tabla);
+
 #endif /* SRC_PRUEBACRISTIAN_H_ */
