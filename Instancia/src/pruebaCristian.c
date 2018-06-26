@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <sys/time.h>
 #include <commons/config.h>
 #include <commons/collections/list.h>
 #include "pruebaCristian.h"
@@ -23,8 +25,9 @@ void inicializar(char* path){
 	crearLog();
 	conectarCoordinador();
 	indiceMemoria = calloc(cantidad_entradas, sizeof(int));
-	tabla = list_create();
+	tabla = list_create();  // 
 	memoria = calloc(cantidad_entradas*tamanio_entradas,sizeof(char));
+	signal(SIGALRM, dump(lista));
 }
 
 void atenderConexiones(){
@@ -34,7 +37,9 @@ void atenderConexiones(){
 	int imRunning = 1;
 	int indice = 0;
 	time = 0;
-
+	
+	alarm(config.intervalo);
+	
 	t_paquete* paquete;
 	paquete = recibir(socket_coordinador);
 
@@ -359,7 +364,7 @@ void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo){
 
 // Auxiliares t_espacio_memoria
 
-void escribirEnArchivo(t_espacio_memoria* espacio){
+void escribirEnArchivo(t_espacio_memoria* espacio){ //No deberia recibir t_list*???
 	char* punto_montaje = malloc(strlen(config.point_mount)+strlen(espacio->clave)+2);
 	strcpy(punto_montaje, config.point_mount);
 	string_append(&punto_montaje, "/");
@@ -576,3 +581,25 @@ int cantidadEntradasOcupadas(int indiceAux){
 	}
 	return acum;
 }
+void dump (t_list* tabla){
+	int ocupadas;
+	int index= 0;
+	int pos= 0;
+	posicion(pos);
+	//int size_tabla = list_size(tabla) + 1;
+
+	ocupadas = cantidad_entradas;
+
+	//void list_iterate(tabla, void(*closure)(void*));
+
+	while (index < ocupadas + 1) {
+			
+		
+			escribirEnArchivo(tabla);
+			pos++;
+			posicion(pos);
+			index++;
+	};
+	alarm(config.intervalo);
+	log_info(logger, "Se guardaron los datos");
+  }
