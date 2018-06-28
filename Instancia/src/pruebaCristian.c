@@ -27,7 +27,7 @@ void inicializar(char* path){
 	indiceMemoria = calloc(cantidad_entradas, sizeof(int));
 	tabla = list_create();  // 
 	memoria = calloc(cantidad_entradas*tamanio_entradas,sizeof(char));
-	signal(SIGALRM, dump(lista));
+	signal(SIGALRM, dump);
 }
 
 void atenderConexiones(){
@@ -581,25 +581,10 @@ int cantidadEntradasOcupadas(int indiceAux){
 	}
 	return acum;
 }
-void dump (t_list* tabla){
-	int ocupadas;
-	int index= 0;
-	int pos= 0;
-	posicion(pos);
-	//int size_tabla = list_size(tabla) + 1;
-
-	ocupadas = cantidad_entradas;
-
-	//void list_iterate(tabla, void(*closure)(void*));
-
-	while (index < ocupadas + 1) {
-			
-		
-			escribirEnArchivo(tabla);
-			pos++;
-			posicion(pos);
-			index++;
-	};
+void dump (){
+	
+	list_iterate(tabla, escribirEnArchivo);	
+	log_info(logger, "Se guardaron los datos backup");
 	alarm(config.intervalo);
-	log_info(logger, "Se guardaron los datos");
-  }
+  
+}
