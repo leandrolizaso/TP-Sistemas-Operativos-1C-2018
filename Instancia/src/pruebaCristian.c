@@ -106,7 +106,7 @@ void liberarRecursos(){
 
 void mostrar(t_espacio_memoria* espacio){
 	char* valor = extraerValor(espacio);
-	printf("\nClave: %s    Valor: %s\n",espacio->clave,valor);
+	printf("\nClave: %s   Valor: %s  ID: %d   Pos: %d \n",espacio->clave,valor,espacio->id,espacio->pos);
 	free(valor);
 }
 
@@ -404,6 +404,7 @@ void reemplazarValor(t_espacio_memoria* espacio,char* valor){
 	espacio->valor = memoria + sizeof(char) * pos * tamanio_entradas;
 	memcpy(memoria + sizeof(char) * pos * tamanio_entradas, valor,tamanio);
 	espacio->tamanio = tamanio;
+	espacio->pos = pos;
 }
 
 t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
@@ -416,6 +417,7 @@ t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
 	nuevoEspacio->tamanio = tamanio;
 	nuevoEspacio->id = id;
 	nuevoEspacio->ultima_referencia = time;
+	nuevoEspacio->pos = pos;
 	id++;
 	return nuevoEspacio;
 }
