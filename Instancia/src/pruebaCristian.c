@@ -38,6 +38,8 @@ void atenderConexiones(){
 	int indice = 0;
 	time = 0;
 	
+	alarm(config.intervalo);
+
 	t_paquete* paquete;
 	paquete = recibir(socket_coordinador);
 
