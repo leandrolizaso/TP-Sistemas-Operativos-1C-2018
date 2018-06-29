@@ -25,9 +25,9 @@ void inicializar(char* path){
 	crearLog();
 	conectarCoordinador();
 	indiceMemoria = calloc(cantidad_entradas, sizeof(int));
-	tabla = list_create();  // 
+	tabla = list_create();
 	memoria = calloc(cantidad_entradas*tamanio_entradas,sizeof(char));
-	signal(SIGALRM, dump(lista));
+	//signal(SIGALRM, dump(lista));
 }
 
 void atenderConexiones(){
@@ -38,7 +38,7 @@ void atenderConexiones(){
 	int indice = 0;
 	time = 0;
 	
-	alarm(config.intervalo);
+	//alarm(config.intervalo);
 	
 	t_paquete* paquete;
 	paquete = recibir(socket_coordinador);
@@ -593,8 +593,6 @@ void dump (t_list* tabla){
 	//void list_iterate(tabla, void(*closure)(void*));
 
 	while (index < ocupadas + 1) {
-			
-		
 			escribirEnArchivo(tabla);
 			pos++;
 			posicion(pos);
