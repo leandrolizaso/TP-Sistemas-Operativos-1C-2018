@@ -86,6 +86,10 @@ void agregarNoAtomicos(int* nuevoIndiceMemoria,int* indiceNuevo);
 void asignar(int* unIndiceMemoria,int* indice,int valor,int cantidad);
 void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo);
 
+void actualizarIndiceMemoria();
+void compactarMemoria();
+
+void moverValor(t_espacio_memoria* espacio);
 void actualizarMemoria();
 
 void reemplazarValor(t_espacio_memoria* espacio,char* valor);

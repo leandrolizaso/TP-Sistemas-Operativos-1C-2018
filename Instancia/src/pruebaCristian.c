@@ -313,12 +313,12 @@ int* compactar(int* indice){
 	agregarAtomicos(nuevoIndiceMemoria,&indiceNuevo);
 	*indice = indiceNuevo;
 	free(indiceMemoria);
-	actualizarMemoria();
+	actualizarIndiceMemoria();
 	return nuevoIndiceMemoria;
 }
 
 
-void actualizarMemoria(){
+void actualizarIndiceMemoria(){
 	int i = 0;
 	while(indiceMemoria[i] != 0 && i< cantidad_entradas){
 		int id = indiceMemoria[i];
