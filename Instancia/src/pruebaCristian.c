@@ -89,6 +89,9 @@ void atenderConexiones(){
 		}
 	puts("\n Post Operacion quede asi:");
 	list_iterate(tabla,&mostrar);
+	mostrarIndiceMemoria();
+	printf("\nIndice: %d \n",indice);
+
 	time++;
 	paquete = recibir(socket_coordinador);
 	}
@@ -101,6 +104,14 @@ void liberarRecursos(){
 	config_destroy(config_aux);
 	log_destroy(logger);
 	list_destroy_and_destroy_elements(tabla,&destructorEspacioMemoria);
+}
+
+void mostrarIndiceMemoria(){
+	printf("\nLos numeros son: ");
+	for (int i = 0; i < cantidad_entradas; i++) {
+		printf("%d ", indiceMemoria[i]);
+	}
+	puts("\n");
 }
 
 void mostrar(t_espacio_memoria* espacio){
