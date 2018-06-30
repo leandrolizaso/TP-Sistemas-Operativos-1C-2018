@@ -306,7 +306,27 @@ void conectarCoordinador() {
 
 // Compactar
 
-int* compactar(int* indice){
+void compactar(int *indice){
+	int i = 0;
+	int cant = 0;
+	indiceMemoria = compactarIndice(&i);
+
+	if(tengoLibres(1,&i))
+		cant = cantidadEntradasOcupadas(posicion(0));
+
+	int *nuevoIndiceMemoria = calloc(cantidad_entradas,sizeof(int));
+	agregarAtomicos(nuevoIndiceMemoria,&cant);
+
+	if(cant==0)
+		cant = cantidadEntradasOcupadas(posicion(0));
+
+	memcpy(nuevoIndiceMemoria+cant,indiceMemoria,(cantidad_entradas - cant)*sizeof(int));
+	free(indiceMemoria);
+	indiceMemoria = nuevoIndiceMemoria;
+	*indice = 0;
+}
+
+int* compactarIndice(int* indice){
 	int *nuevoIndiceMemoria = calloc(cantidad_entradas,sizeof(int));
 	int indiceNuevo = 0;
 	agregarNoAtomicos(nuevoIndiceMemoria,&indiceNuevo);
@@ -316,7 +336,6 @@ int* compactar(int* indice){
 	actualizarIndiceMemoria();
 	return nuevoIndiceMemoria;
 }
-
 
 void actualizarIndiceMemoria(){
 	int i = 0;
