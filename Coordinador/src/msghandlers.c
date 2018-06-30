@@ -31,12 +31,12 @@ char* keywordtos(int keyword) {
 	}
 }
 
-void destruir_meta_instancia(t_meta_instancia* meta) {
-	free(meta->nombre);
-	free(meta);
+void destruir_instancia(t_instancia* instancia) {
+	free(instancia->nombre);
+	free(instancia);
 }
 
-t_meta_instancia* equitative_load(char* clave) {
+t_instancia* key_explicit(char* clave) {
 	int cant_instancias = list_size(instancias); //TODO: contar solo las intancias conectadas
 	if (cant_instancias > 0) {
 		int caracter = *clave;
@@ -64,7 +64,7 @@ void do_handhsake(int socket, t_paquete* paquete) {
 	}
 	case HANDSHAKE_INSTANCIA: {
 		//TODO: en realidad hay que validar si esta instancia posta es nueva
-		t_meta_instancia* instancia_nueva = malloc(sizeof(t_meta_instancia));
+		t_instancia* instancia_nueva = malloc(sizeof(t_instancia));
 		instancia_nueva->conectada = true;
 		instancia_nueva->fd = socket;
 		instancia_nueva->nombre = strdup(paquete->data);
@@ -163,10 +163,10 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 }
 
 int instancia_guardar(int keyword, t_clavevalor cv) {
-	t_meta_instancia* instancia = dictionary_get(claves, cv.clave);
+	t_instancia* instancia = dictionary_get(claves, cv.clave);
 	if (instancia == NULL) {
 		//TODO: seleccion de algoritmo
-		instancia = equitative_load(cv.clave);
+		instancia = key_explicit(cv.clave);
 		if (instancia == NULL) {
 			//no hay instancia para atender esta peticion;
 			return EXIT_FAILURE;

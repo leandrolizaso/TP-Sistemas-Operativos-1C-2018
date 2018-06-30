@@ -1,7 +1,7 @@
 /*
  ============================================================================
  Name        : Coordinador.c
- Author      : 
+ Author      :
  Version     :
  Copyright   : Your copyright notice
  Description : Hello World in C, Ansi-style
@@ -61,8 +61,7 @@ int main(int argc, char* argv[]) {
 	free(ip_planificador);
 	free(port);
 	dictionary_destroy(claves);
-	list_destroy_and_destroy_elements(instancias,
-			(void*) destruir_meta_instancia);
+	list_destroy_and_destroy_elements(instancias, (void*)destruir_instancia);
 	config_destroy(config);
 
 	printf("Finalizado");

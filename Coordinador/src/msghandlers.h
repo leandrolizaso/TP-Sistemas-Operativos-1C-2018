@@ -9,10 +9,15 @@ int instancia_guardar(int keyword, t_clavevalor clave_valor);
 
 typedef struct {
 	int fd;
-	int conectada;
 	char* nombre;
-} t_meta_instancia;
+} t_instancia;
 
-void destruir_meta_instancia(t_meta_instancia* meta);
+typedef struct {
+	char* clave;
+	int entradas;
+	t_instancia* instancia;
+} t_clave;
+
+void destruir_instancia(t_instancia* instancia);
 
 #endif /* SRC_MSGHANDLERS_H_ */
