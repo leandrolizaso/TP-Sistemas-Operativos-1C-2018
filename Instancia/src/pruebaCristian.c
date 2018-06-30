@@ -126,11 +126,16 @@ void guardar(t_clavevalor claveValor,int *indice){
 
 	if(tengoEntradas(entradas)){
 		if(tengoLibres(entradas,indice)){
+			char* log = string_from_format("tengoLibres:   entradas: %d, indice: %d\n",entradas,*indice);
+			log_debug(logger,log);
+			free(log);
 			registrarNuevoEspacio(claveValor,indice,entradas); //TODO: tratar char* a recibir para hacer free
 			notificarCoordinador(0,NULL);
 		}else{
 			if (tengoAtomicas(entradas, indice)) {
-
+				char* log = string_from_format("tengoAtomicas:   entradas: %d, indice: %d\n",entradas,*indice);
+				log_debug(logger, log);
+				free(log);
 				switch (algoritmo) {
 
 				case CIRC: {
@@ -156,16 +161,19 @@ void guardar(t_clavevalor claveValor,int *indice){
 			}
 		}
 	}else{
+		log_error(logger,"Sin espacio papuu");
 //		notificarCoordinador(1); // ERROR: "no hay espacio"
 	}
 }
 
 void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 	t_espacio_memoria* espacio = conseguirEspacioMemoria(claveValor.clave);//no verif por NULL dado que ya se hizo antes
-	int entradasAnteriores = entradasQueOcupa(espacio->valor);
+	char* valor = extraerValor(espacio);
+	int entradasAnteriores = entradasQueOcupa(valor);
 	int entradasNuevas = entradasQueOcupa(claveValor.valor);
 
 	if(entradasNuevas > entradasAnteriores){
+		log_error(logger,"Valor invalido, ocupa mas entradas que el anterior.");
 		//notificarCoordinador(4); Abortar ESI por querer hacer SET con un valor que ocupa mas entradas que el anterior
 	} else {
 		liberarSobrantes(espacio->id, entradasNuevas);
@@ -173,6 +181,7 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 		espacio->ultima_referencia = time;
 		notificarCoordinador(0,NULL);
 	}
+	free(valor);
 }
 
 void notificarCoordinador(int tamanio,char* buffer){
@@ -442,17 +451,17 @@ void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
 
 void registrarEnIndiceMemoria(int id,int* indice,int entradas){
 	for(int i = 0; i<entradas ; i++){
-		int idPos = indiceMemoria[*indice + i];
+		int idPos = indiceMemoria[*indice];
 		if( idPos != 0){
-			bool eliminarEspacio(void* elem) {
+			bool espacioID(void* elem) {
 				t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 				return espacio->id == idPos;
 			}
-			list_remove_and_destroy_by_condition(tabla,&eliminarEspacio,&destructorEspacioMemoria);
+			list_remove_and_destroy_by_condition(tabla,&espacioID,&destructorEspacioMemoria);
 		}
-		indiceMemoria[*indice + i] = id;
+		indiceMemoria[*indice] = id;
+		incrementarIndice(indice);
 	}
-	avanzarIndice(indice,entradas);
 }
 
 void liberarSobrantes(int id,int cantidadNecesaria){
@@ -537,7 +546,10 @@ bool tengoAtomicas(int entradas,int *indice){
 			encontre = true;
 			if(indiceAux == 0)
 				indiceAux = cantidad_entradas;
+			if(*indice == 0)
+				indiceAux++;
 			*indice = indiceAux - entradas;
+
 		}
 		else{
 			if (vueltas <= 2) {
