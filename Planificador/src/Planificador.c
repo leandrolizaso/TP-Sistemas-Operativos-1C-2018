@@ -33,6 +33,7 @@ double alfa;
 
 t_log* logger;
 t_log* rip_q;
+t_log* estimaciones;
 t_config* config;
 
 /*otras variables*/
@@ -94,10 +95,9 @@ void levantoConfig(char* path) {
 
 	//Creo log y cargo configuracion inicial
 
-	logger = log_create("planificador.log", "PLANIFICADOR", false,
-			LOG_LEVEL_TRACE);
-	rip_q = log_create("RIP_QUEUE.log", "PLANIFICADOR", false,
-				LOG_LEVEL_TRACE);
+	logger = log_create("planificador.log", "PLANIFICADOR", false,LOG_LEVEL_TRACE);
+	rip_q = log_create("RIP_QUEUE.log", "PLANIFICADOR", false,LOG_LEVEL_TRACE);
+	estimaciones = log_create("Estimaciones.log", "PLANIFICADOR", false,LOG_LEVEL_TRACE);
 
 	config = config_create(path);
 
@@ -240,6 +240,7 @@ void finalizar() {
 	config_destroy(config);
 	log_destroy(logger);
 	log_destroy(rip_q);
+	log_destroy(estimaciones);
 
 	free(recurso_bloqueante);
 
@@ -847,7 +848,7 @@ void aumentar_rafaga(proceso_esi_t* esi){
 	}else{
 		esi->ejecuto_ant++;
 	}
-
+	logguear_estimaciones();
 	system_clock++;
 }
 
@@ -934,4 +935,14 @@ void liberar_recursos(void* pointer){
 	while(tiene_asginado(pointer)){
 		list_remove_and_destroy_by_condition(blocked_key,&id_equals,&destructor_key);
 	}
+}
+
+void logguear_estimaciones(){
+	log_debug(estimaciones,string_from_format("ESI%d Estimacion: %f ratio: %f",esi_ejecutando->ID, esi_ejecutando->estimacion_ant,esi_ejecutando->waiting_time));
+	for(int i=0;i<list_size(ready_q);i++){
+		proceso_esi_t* esi = list_get(ready_q,i);
+		log_debug(estimaciones,string_from_format("ESI%d Estimacion: %f ratio: %f",esi->ID, esi->estimacion_ant,esi->waiting_time));
+	}
+		log_debug(estimaciones,"");
+
 }

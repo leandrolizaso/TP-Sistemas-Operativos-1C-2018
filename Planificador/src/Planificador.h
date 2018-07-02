@@ -52,6 +52,7 @@ void matar_esi();
 void kill(int id);
 _Bool mayor_ratio(void* ptr1, void* ptr2);
 void listar(char* recurso);
+void logguear_estimaciones();
 
 #define FIFO 600
 #define SJFCD 601
