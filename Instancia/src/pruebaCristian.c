@@ -158,6 +158,7 @@ void guardar(t_clavevalor claveValor,int *indice){
 			} else {
 				// liberar(entradas - entradasLibres); TODO: ademas eliminar de la tabla
 				enviar(socket_coordinador, NEED_COMPACTAR, 0, NULL);
+				log_debug(logger,"Envie NEED_COMPACTAR");
 			}
 		}
 	}else{
@@ -308,23 +309,40 @@ void conectarCoordinador() {
 
 void compactar(int *indice){
 	int i = 0;
-	int cant = 0;
 	indiceMemoria = compactarIndice(&i);
-
-	if(tengoLibres(1,&i))
-		cant = cantidadEntradasOcupadas(posicion(0));
-
-	int *nuevoIndiceMemoria = calloc(cantidad_entradas,sizeof(int));
-	agregarAtomicos(nuevoIndiceMemoria,&cant);
-
-	if(cant==0)
-		cant = cantidadEntradasOcupadas(posicion(0));
-
-	memcpy(nuevoIndiceMemoria+cant,indiceMemoria,(cantidad_entradas - cant)*sizeof(int));
-	free(indiceMemoria);
-	indiceMemoria = nuevoIndiceMemoria;
+	compactarMemoria();
 	*indice = 0;
 }
+
+void compactarMemoria(){
+	list_iterate(tabla,&moverValor);
+	actualizarPosicionTabla();
+	actualizarMemoria();
+}
+
+void moverValor(t_espacio_memoria* espacio){
+	char* valor = extraerValor(espacio);
+	espacio->valor = valor;
+}
+void actualizarMemoria(){
+	int id;
+	int cant;
+	for(int i = 0 ; i<cantidad_entradas;){
+		id = indiceMemoria[i];
+		if(id != 0){
+			t_espacio_memoria* espacio = conseguirEspacioMemoriaID(id);
+			cant = cantidadEntradasOcupadas(i);
+			memcpy(memoria + sizeof(char)*i*tamanio_entradas,espacio->valor,espacio->tamanio);
+			free(espacio->valor);
+			espacio->valor = memoria + sizeof(char)*i*tamanio_entradas;
+			avanzarIndice(&i,cant-1);
+		}
+		incrementarIndice(&i);
+		if(i == 0)
+			i = cantidad_entradas;
+	}
+}
+
 
 int* compactarIndice(int* indice){
 	int *nuevoIndiceMemoria = calloc(cantidad_entradas,sizeof(int));
@@ -333,27 +351,49 @@ int* compactarIndice(int* indice){
 	agregarAtomicos(nuevoIndiceMemoria,&indiceNuevo);
 	*indice = indiceNuevo;
 	free(indiceMemoria);
-	actualizarIndiceMemoria();
-	return nuevoIndiceMemoria;
+
+	indiceMemoria = nuevoIndiceMemoria;
+
+	int cant = 0;
+	if(tengoLibres(1,indice))
+		cant = cantidadEntradasOcupadas(posicion(0));
+
+	int * nuevoIndiceMemoria2 = calloc(cantidad_entradas,sizeof(int));
+	agregarAtomicos(nuevoIndiceMemoria2,&cant);
+
+	if(cant==0)
+		cant = cantidadEntradasOcupadas(posicion(0));
+
+	memcpy(nuevoIndiceMemoria2+cant,indiceMemoria,(cantidad_entradas - cant)*sizeof(int));
+	free(indiceMemoria);
+
+	return nuevoIndiceMemoria2;
 }
 
-void actualizarIndiceMemoria(){
+void actualizarPosicionTabla(){
 	int i = 0;
-	while(indiceMemoria[i] != 0 && i< cantidad_entradas){
+
+	if(indiceMemoria[i] == 0)
+		i= cantidadEntradasOcupadas(i);
+
+	while (i < cantidad_entradas) {
 		int id = indiceMemoria[i];
 		t_espacio_memoria* espacio = conseguirEspacioMemoriaID(id);
-		memcpy(memoria + i*tamanio_entradas*sizeof(char),espacio->valor,strlen_null(espacio->valor));
-		if(esAtomica(i))
+		espacio->pos = i;
+		mostrar(espacio);
+		if (esAtomica(i))
 			incrementarIndice(&i);
 		else
-			avanzarIndice(&i,cantidadEntradasOcupadas(i));
+			avanzarIndice(&i, cantidadEntradasOcupadas(i));
+		if(i == 0)
+			i = cantidad_entradas;
 	}
 
 }
 
 t_espacio_memoria* conseguirEspacioMemoriaID(int id){
 	bool contieneID(void* unaParteDeMemoria){
-		return ((t_espacio_memoria*)unaParteDeMemoria)->id = id;
+		return ((t_espacio_memoria*)unaParteDeMemoria)->id == id;
 	}
 	return list_find(tabla,&contieneID);
 }
@@ -384,11 +424,8 @@ void asignar(int* unIndiceMemoria,int* indice,int valor,int cantidad){
 }
 
 void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo){
-
 	int i = 0;
-
 	while(i< cantidad_entradas){
-
 		if(esAtomica(i) && indiceMemoria[i] != 0){
 			nuevoIndiceMemoria[*indiceNuevo]= indiceMemoria[i];
 			incrementarIndice(indiceNuevo);
@@ -563,10 +600,12 @@ bool tengoAtomicas(int entradas,int *indice){
 
 		if(libres == entradas){
 			encontre = true;
+			if(*indice == 0 && indiceAux != 1)
+				incrementarIndice(&indiceAux);
+
 			if(indiceAux == 0)
 				indiceAux = cantidad_entradas;
-			if(*indice == 0)
-				indiceAux++;
+
 			*indice = indiceAux - entradas;
 
 		}
@@ -616,7 +655,7 @@ bool tengoEntradas(int cantidad){
 }
 
 int cantidadEntradasOcupadas(int indiceAux){
-	int acum = 0;
+	int acum = 1;
 	int i = indiceAux;
 	while(indiceMemoria[i] == indiceMemoria[i + 1] && i<cantidad_entradas-1){
 		i++;
