@@ -458,7 +458,6 @@ void planificar() {
 				esi_ejecutando = list_get(ready_q, 0);
 				list_remove(ready_q, 0);
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-				log_debug(logger,string_from_format("El ESi %d ejecuta linea",esi_ejecutando->ID));
 				break;
 			}
 
@@ -938,6 +937,7 @@ void liberar_recursos(void* pointer){
 }
 
 void logguear_estimaciones(){
+	log_debug(logger,string_from_format("El ESi %d ejecuta linea",esi_ejecutando->ID));
 	log_debug(estimaciones,string_from_format("ESI%d Estimacion: %f ratio: %f",esi_ejecutando->ID, esi_ejecutando->estimacion_ant,esi_ejecutando->waiting_time));
 	for(int i=0;i<list_size(ready_q);i++){
 		proceso_esi_t* esi = list_get(ready_q,i);
