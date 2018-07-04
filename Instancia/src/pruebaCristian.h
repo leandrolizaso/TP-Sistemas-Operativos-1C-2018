@@ -94,18 +94,21 @@ void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo);
 
 void compactar(int* indice);
 void actualizarIndiceMemoria();
+void actualizarPosicionTabla();
 void compactarMemoria();
 
-void moverValor(t_espacio_memoria* espacio);
+void moverValor(void* elem);
 void actualizarMemoria();
 
 void reemplazarValor(t_espacio_memoria* espacio,char* valor);
 void liberarSobrantes(int id,int cantidadNecesaria);
 int posicion(int id);
 
-void escribirEnArchivo(t_espacio_memoria* espacio);
+void escribirEnArchivo(void* elem);
 char* extraerValor(t_espacio_memoria* espacio);
-void mostrar(t_espacio_memoria* espacio);
+
+void mostrar(void* elem);
+void mostrarIndiceMemoria();
 
 void dump ();
 

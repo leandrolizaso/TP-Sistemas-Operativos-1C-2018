@@ -87,7 +87,7 @@ void atenderConexiones(){
 		}
 		}
 	puts("\n Post Operacion quede asi:");
-	list_iterate(tabla,&mostrar);
+	list_iterate(tabla,mostrar);
 	mostrarIndiceMemoria();
 	printf("\nIndice: %d \n",indice);
 
@@ -102,7 +102,7 @@ void liberarRecursos(){
 	free(memoria);
 	config_destroy(config_aux);
 	log_destroy(logger);
-	list_destroy_and_destroy_elements(tabla,&destructorEspacioMemoria);
+	list_destroy_and_destroy_elements(tabla,destructorEspacioMemoria);
 }
 
 void mostrarIndiceMemoria(){
@@ -113,7 +113,8 @@ void mostrarIndiceMemoria(){
 	puts("\n");
 }
 
-void mostrar(t_espacio_memoria* espacio){
+void mostrar(void* elem){
+	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 	char* valor = extraerValor(espacio);
 	printf("\nClave: %s   Valor: %s  ID: %d   Pos: %d \n",espacio->clave,valor,espacio->id,espacio->pos);
 	free(valor);
@@ -326,12 +327,13 @@ void compactar(int *indice){
 }
 
 void compactarMemoria(){
-	list_iterate(tabla,&moverValor);
+	list_iterate(tabla,moverValor);
 	actualizarPosicionTabla();
 	actualizarMemoria();
 }
 
-void moverValor(t_espacio_memoria* espacio){
+void moverValor(void* elem){
+	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 	char* valor = extraerValor(espacio);
 	espacio->valor = valor;
 }
@@ -450,7 +452,8 @@ void agregarAtomicos(int* nuevoIndiceMemoria,int*indiceNuevo){
 
 // Auxiliares t_espacio_memoria
 
-void escribirEnArchivo(t_espacio_memoria* espacio){ //No deberia recibir t_list*???
+void escribirEnArchivo(void* elem){
+	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 	char* punto_montaje = malloc(strlen(config.point_mount)+strlen(espacio->clave)+2);
 	strcpy(punto_montaje, config.point_mount);
 	string_append(&punto_montaje, "/");
