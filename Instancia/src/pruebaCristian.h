@@ -76,7 +76,13 @@ bool esAtomica(int indice);
 int cantidadEntradasOcupadas(int indiceAux);
 
 t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor);
-void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas);
+char* registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas,int* tamanio);
+
+
+char* registrarEnIndiceMemoria(int id,int* indice,int entradas,int* tamanio);
+void agregarClave(char* claves,int idPos,int* largo);
+//void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas);
+
 
 void incrementarIndice(int *indice);
 void avanzarIndice(int *indice,int veces);
@@ -96,9 +102,6 @@ void actualizarMemoria();
 void reemplazarValor(t_espacio_memoria* espacio,char* valor);
 void liberarSobrantes(int id,int cantidadNecesaria);
 int posicion(int id);
-
-void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas);
-void registrarEnIndiceMemoria(int id,int* indice,int entradas);
 
 void escribirEnArchivo(t_espacio_memoria* espacio);
 char* extraerValor(t_espacio_memoria* espacio);

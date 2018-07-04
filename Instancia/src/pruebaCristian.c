@@ -43,7 +43,6 @@ void atenderConexiones(){
 	paquete = recibir(socket_coordinador);
 
 	while(imRunning){
-		log_trace(logger,"atenderConexiones() #imRunning");
 
 		switch (paquete->codigo_operacion) {
 		case SAVE_CLAVE: {
@@ -123,14 +122,16 @@ void mostrar(t_espacio_memoria* espacio){
 void guardar(t_clavevalor claveValor,int *indice){
 
 	int entradas = entradasQueOcupa(claveValor.valor);
-
+	int tamanio = 0;
+	char* clavesReemplazadas;
 	if(tengoEntradas(entradas)){
 		if(tengoLibres(entradas,indice)){
 			char* log = string_from_format("tengoLibres:   entradas: %d, indice: %d\n",entradas,*indice);
 			log_debug(logger,log);
 			free(log);
-			registrarNuevoEspacio(claveValor,indice,entradas); //TODO: tratar char* a recibir para hacer free
-			notificarCoordinador(0,NULL);
+			clavesReemplazadas = registrarNuevoEspacio(claveValor,indice,entradas,&tamanio); //TODO: tratar char* a recibir para hacer free, deberia ser null
+			notificarCoordinador(tamanio,clavesReemplazadas);
+			clavesReemplazadas?free(clavesReemplazadas):puts("deberia ser NULL");
 		}else{
 			if (tengoAtomicas(entradas, indice)) {
 				char* log = string_from_format("tengoAtomicas:   entradas: %d, indice: %d\n",entradas,*indice);
@@ -139,8 +140,9 @@ void guardar(t_clavevalor claveValor,int *indice){
 				switch (algoritmo) {
 
 				case CIRC: {
-					registrarNuevoEspacio(claveValor, indice, entradas);
-					notificarCoordinador(0,"claves");
+					clavesReemplazadas = registrarNuevoEspacio(claveValor, indice, entradas,&tamanio);
+					notificarCoordinador(tamanio,clavesReemplazadas);
+					clavesReemplazadas?free(clavesReemplazadas):puts("NO deberia ser NULL");
 					// TODO: se debe tener en cuanta cuantass y que claves se reemplazaron al notificar coord
 					break;
 				}
@@ -186,8 +188,17 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 }
 
 void notificarCoordinador(int tamanio,char* buffer){
-	log_trace(logger,"Se notifico al coord. Tamanio: %d    Buffer %s \n",tamanio,buffer);
-	enviar(socket_coordinador,RESPUESTA_INTANCIA,tamanio*sizeof(char),buffer);
+	log_trace(logger,"Se notifico al coord. Tamanio: %d  ",tamanio,buffer);
+	int tam = 0;
+	char* clave;
+	int largo;
+	while(tam<tamanio){
+		clave = buffer + tam;
+		largo = strlen_null(clave);
+		log_trace(logger,"Clave reemplazada: %s  ",clave);
+		tam = tam + largo;
+	}
+	enviar(socket_coordinador,RESPUESTA_INTANCIA,tamanio*sizeof(char),(void*)buffer);
 }
 
 // PARA LISTAS
@@ -324,6 +335,7 @@ void moverValor(t_espacio_memoria* espacio){
 	char* valor = extraerValor(espacio);
 	espacio->valor = valor;
 }
+
 void actualizarMemoria(){
 	int id;
 	int cant;
@@ -342,7 +354,6 @@ void actualizarMemoria(){
 			i = cantidad_entradas;
 	}
 }
-
 
 int* compactarIndice(int* indice){
 	int *nuevoIndiceMemoria = calloc(cantidad_entradas,sizeof(int));
@@ -467,17 +478,18 @@ char* extraerValor(t_espacio_memoria* espacio){
 	return valor;
 }
 
-void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas){
-	liberarSobrantes(espacio->id,0);
-	registrarEnIndiceMemoria(espacio->id,indice,entradasNuevas);
-	reemplazarValor(espacio,valor);
-}//ya no se usa dado que ahora los SET ocupan igual o menos cant de entradas
+//void reemplazarValorLimpiandoIndice(t_espacio_memoria* espacio,char* valor, int* indice,int entradasNuevas){
+//	liberarSobrantes(espacio->id,0);
+//	registrarEnIndiceMemoria(espacio->id,indice,entradasNuevas);
+//	reemplazarValor(espacio,valor);
+//}//ya no se usa dado que ahora los SET ocupan igual o menos cant de entradas
 
 void reemplazarValor(t_espacio_memoria* espacio,char* valor){
 	int pos = posicion(espacio->id);
 	int tamanio = strlen(valor);
-	espacio->valor = memoria + sizeof(char) * pos * tamanio_entradas;
-	memcpy(memoria + sizeof(char) * pos * tamanio_entradas, valor,tamanio);
+	int offset = sizeof(char) * pos * tamanio_entradas;
+	espacio->valor = memoria + offset;
+	memcpy(memoria + offset, valor,tamanio);
 	espacio->tamanio = tamanio;
 	espacio->pos = pos;
 }
@@ -497,28 +509,44 @@ t_espacio_memoria* nuevoEspacioMemoria(t_clavevalor claveValor){
 	return nuevoEspacio;
 }
 
-void registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas){
-	registrarEnIndiceMemoria(id,indice,entradas);
+char* registrarNuevoEspacio(t_clavevalor claveValor,int* indice,int entradas,int* tamanio){
+	char* clavesReemplazadas = registrarEnIndiceMemoria(id,indice,entradas,tamanio);
 	t_espacio_memoria* nuevoEspacio = nuevoEspacioMemoria(claveValor);
 	list_add(tabla,nuevoEspacio);
+	return clavesReemplazadas;
 }
 
 // Auxiliares indiceMemoria
 
-void registrarEnIndiceMemoria(int id,int* indice,int entradas){
+char* registrarEnIndiceMemoria(int id,int* indice,int entradas,int* tamanio){
+
+	char* clavesReemplazadas = calloc(entradas*(40+1),sizeof(char));
+	int largo = 0;
 	for(int i = 0; i<entradas ; i++){
 		int idPos = indiceMemoria[*indice];
 		if( idPos != 0){
+			agregarClave(clavesReemplazadas,idPos,&largo);
 			bool espacioID(void* elem) {
 				t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 				return espacio->id == idPos;
 			}
 			list_remove_and_destroy_by_condition(tabla,&espacioID,&destructorEspacioMemoria);
+			avanzarIndice(&i,cantidadEntradasOcupadas(i)-1);
 		}
 		indiceMemoria[*indice] = id;
 		incrementarIndice(indice);
 	}
+	*tamanio = largo;
+	return clavesReemplazadas;
 }
+
+void agregarClave(char* claves,int idPos,int* largo){
+	t_espacio_memoria* espacio = conseguirEspacioMemoriaID(idPos);
+	int largoClave = strlen(espacio->clave);
+	memcpy(claves + *largo,espacio->clave,largoClave+1);
+	*largo += (largoClave + 1);
+}
+
 
 void liberarSobrantes(int id,int cantidadNecesaria){
 	int pos = posicion(id);
