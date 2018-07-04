@@ -6,4 +6,3 @@ GET futbol:maradona
 SET futbol:maradona eEeE
 GET futbol:meza 
 SET futbol:meza altoGaturro
-
