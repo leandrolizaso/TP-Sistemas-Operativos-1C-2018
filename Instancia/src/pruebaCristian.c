@@ -134,33 +134,39 @@ void guardar(t_clavevalor claveValor,int *indice){
 			notificarCoordinador(tamanio,clavesReemplazadas);
 			clavesReemplazadas?free(clavesReemplazadas):puts("deberia ser NULL");
 		}else{
-			if (tengoAtomicas(entradas, indice)) {
-				char* log = string_from_format("tengoAtomicas:   entradas: %d, indice: %d\n",entradas,*indice);
-				log_debug(logger, log);
-				free(log);
-				switch (algoritmo) {
+			switch(algoritmo){
+			case CIRC: {
 
-				case CIRC: {
-					clavesReemplazadas = registrarNuevoEspacio(claveValor, indice, entradas,&tamanio);
-					notificarCoordinador(tamanio,clavesReemplazadas);
-					clavesReemplazadas?free(clavesReemplazadas):puts("NO deberia ser NULL");
-					break;
-				}
-				case LRU: {
-
-					break;
-				}
-				case BSU: {
-
-					break;
+				if (tengoAtomicas(entradas, indice)) {
+					char* log = string_from_format("tengoAtomicas:   entradas: %d, indice: %d\n",entradas,*indice);
+					log_debug(logger, log);
+					free(log);
+					clavesReemplazadas = registrarNuevoEspacio(claveValor,indice, entradas, &tamanio);
+					notificarCoordinador(tamanio, clavesReemplazadas);
+					clavesReemplazadas?free(clavesReemplazadas) :puts("NO deberia ser NULL");
+				}else{
+					enviar(socket_coordinador, NEED_COMPACTAR, 0, NULL);
+					log_debug(logger,"Envie NEED_COMPACTAR");
 				}
 
+				break;
+			}
+			case LRU:{
+				// liberar(entradas - entradasLibres,claves,tamanio); TODO: poner en 0 y con los id armar char* claves y acumular tamanio ademas eliminar de la tabla
+				if (tengoLibres(entradas, indice)){
+					char* log = string_from_format("tengoLibres post Liberar:   entradas: %d, indice: %d\n",entradas, *indice);
+					log_debug(logger, log);
+					free(log);
+					clavesReemplazadas = registrarNuevoEspacio(claveValor,indice, entradas, &tamanio);
+					notificarCoordinador(tamanio, clavesReemplazadas);
+				}else{
+					enviar(socket_coordinador, NEED_COMPACTAR, tamanio, clavesReemplazadas); //TODO: en el LRU se libera antes de compactar.
+					log_debug(logger,"Envie NEED_COMPACTAR");
 				}
-
-			} else {
-				// liberar(entradas - entradasLibres); TODO: ademas eliminar de la tabla
-				enviar(socket_coordinador, NEED_COMPACTAR, 0, NULL);
-				log_debug(logger,"Envie NEED_COMPACTAR");
+				if(clavesReemplazadas)
+					free(clavesReemplazadas);
+				break;
+			}
 			}
 		}
 	}else{
