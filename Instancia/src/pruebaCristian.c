@@ -130,7 +130,7 @@ void guardar(t_clavevalor claveValor,int *indice){
 			char* log = string_from_format("tengoLibres:   entradas: %d, indice: %d\n",entradas,*indice);
 			log_debug(logger,log);
 			free(log);
-			clavesReemplazadas = registrarNuevoEspacio(claveValor,indice,entradas,&tamanio); //TODO: tratar char* a recibir para hacer free, deberia ser null
+			clavesReemplazadas = registrarNuevoEspacio(claveValor,indice,entradas,&tamanio);
 			notificarCoordinador(tamanio,clavesReemplazadas);
 			clavesReemplazadas?free(clavesReemplazadas):puts("deberia ser NULL");
 		}else{
@@ -144,7 +144,6 @@ void guardar(t_clavevalor claveValor,int *indice){
 					clavesReemplazadas = registrarNuevoEspacio(claveValor, indice, entradas,&tamanio);
 					notificarCoordinador(tamanio,clavesReemplazadas);
 					clavesReemplazadas?free(clavesReemplazadas):puts("NO deberia ser NULL");
-					// TODO: se debe tener en cuanta cuantass y que claves se reemplazaron al notificar coord
 					break;
 				}
 				case LRU: {
@@ -199,7 +198,9 @@ void notificarCoordinador(int tamanio,char* buffer){
 		log_trace(logger,"Clave reemplazada: %s  ",clave);
 		tam = tam + largo;
 	}
-	enviar(socket_coordinador,RESPUESTA_INTANCIA,tamanio*sizeof(char),(void*)buffer);
+	enviar(socket_coordinador,RESPUESTA_INTANCIA,tamanio*sizeof(char),buffer);
+	//TODO:solo mando la/s clave/s...el Coord deberia tener en sus registros los valores tambien? digo por los algoritmos..
+	//o le envio los valores tambien ? :OOO
 }
 
 // PARA LISTAS
