@@ -1,0 +1,9 @@
+GET futbol:ansaldi
+SET futbol:ansaldi nnvR
+GET futbol:sampaoli
+SET futbol:sampaoli topu
+GET futbol:maradona
+SET futbol:maradona eEeE
+GET futbol:meza 
+SET futbol:meza altoGaturro
+
