@@ -13,5 +13,6 @@
 t_config* leer_config(int argc, char* argv[]);
 int config_incorrecta(t_config* config);
 int recibir_mensaje(int socket);
+void loggear(char* level_char, char* template, ...);
 
 #endif /* SRC_COORDINADOR_H_ */

@@ -8,7 +8,6 @@
 #include "Coordinador.h"
 #include "msghandlers.h"
 
-extern t_log* log_app;
 extern t_log* log_operaciones;
 
 extern int socket_planificador;
@@ -50,8 +49,7 @@ t_meta_instancia* equitative_load(char* clave) {
 }
 
 void do_handhsake(int socket, t_paquete* paquete) {
-	log_debug(log_app, "Handshake Recibido (%d). Enviando Handshake.\n",
-			socket);
+	loggear("info", "Handshake Recibido (%d). Enviando Handshake.\n", socket);
 
 	int tamanio = 0;
 	void* data = NULL;
@@ -92,13 +90,20 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 	if (valor_mostrable == NULL) { //hack para no ver "(null)" en los log de operaciones
 		valor_mostrable = "";
 	}
-	log_info(log_operaciones, "ESI %d\t%s %s %s\n", mensaje_esi.id_esi,
+
+	loggear("info", "ESI %d\t%s %s %s\n", mensaje_esi.id_esi,
 			keywordtos(mensaje_esi.keyword), mensaje_esi.clave_valor.clave,
 			valor_mostrable);
 
-	log_trace(log_app, "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
+	/* Este logger no debe ser wrappeado por loggear*/
+	log_info(log_operaciones, "ESI %d\t%s %s %s\n", mensaje_esi.id_esi,
+			keywordtos(mensaje_esi.keyword), mensaje_esi.clave_valor.clave,
+			valor_mostrable);
+	/* Asi me aseguro de tener un archivo limpio*/
+
+	loggear("trace", "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
 	sleep(config_get_int_value(config, CFG_DELAY) / 1000 + 1);
-	log_trace(log_app, "Seguimos!");
+	loggear("trace", "Seguimos!");
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
 	switch (mensaje_esi.keyword) {
@@ -112,7 +117,7 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 		operacion = STORE_CLAVE;
 		break;
 	default:
-		log_error(log_app, "Se recibio una operacion invalida del ESI %d: %d",
+		loggear("error", "Se recibio una operacion invalida del ESI %d: %d",
 				mensaje_esi.id_esi, mensaje_esi.keyword);
 	}
 
@@ -139,7 +144,8 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 			break;
 		}
 
-		int resultado_error = instancia_guardar(mensaje_esi.keyword,mensaje_esi.clave_valor);
+		int resultado_error = instancia_guardar(mensaje_esi.keyword,
+				mensaje_esi.clave_valor);
 
 		if (resultado_error) {
 			//TODO: que mensaje mandar?
