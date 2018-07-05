@@ -152,19 +152,22 @@ void guardar(t_clavevalor claveValor,int *indice){
 				break;
 			}
 			case LRU:{
-				// liberar(entradas - entradasLibres,claves,tamanio); TODO: poner en 0 y con los id armar char* claves y acumular tamanio ademas eliminar de la tabla
+				clavesReemplazadas = liberar(entradas - entradasLibres(),&tamanio);
 				if (tengoLibres(entradas, indice)){
 					char* log = string_from_format("tengoLibres post Liberar:   entradas: %d, indice: %d\n",entradas, *indice);
 					log_debug(logger, log);
 					free(log);
-					clavesReemplazadas = registrarNuevoEspacio(claveValor,indice, entradas, &tamanio);
 					notificarCoordinador(tamanio, clavesReemplazadas);
+					//esto de fantasma es para registrar en la tabla,indiceMemoria y actualizar el indice.
+					//fantama es un puntero a 41*entradas que no tienen nada porque liberar puso esas posiciones en 0
+					//el tamanio al no reemplazar queda igual que antes.
+					char* fantasma= registrarNuevoEspacio(claveValor,indice, entradas, &tamanio);
+					fantasma?free(fantasma):puts("Nunca por aca.");
 				}else{
-					enviar(socket_coordinador, NEED_COMPACTAR, tamanio, clavesReemplazadas); //TODO: en el LRU se libera antes de compactar.
+					enviar(socket_coordinador, NEED_COMPACTAR, tamanio, clavesReemplazadas);
 					log_debug(logger,"Envie NEED_COMPACTAR");
 				}
-				if(clavesReemplazadas)
-					free(clavesReemplazadas);
+				clavesReemplazadas?free(clavesReemplazadas):puts("Quizas tengo ceros separados.");
 				break;
 			}
 			}
@@ -209,6 +212,28 @@ void notificarCoordinador(int tamanio,char* buffer){
 	//o le envio los valores tambien ? :OOO
 }
 
+int entradasLibres(){
+	int acum = 0;
+	for(int i = 0; i < cantidad_entradas; i++)
+		if(indiceMemoria[i] == 0)
+			acum++;
+	return acum;
+}
+
+char* liberar(int entradas,int* tamanio){
+	char* clavesReemplazadas = calloc(entradas*41,sizeof(char));
+	for(int i = 0 ; i < entradas ; i++){
+		t_espacio_memoria* espacio = conseguirEspacioMenosUsado();
+		indiceMemoria[posicion(espacio->id)] = 0;
+		agregarClave(clavesReemplazadas,espacio->id,tamanio);
+		bool mismoID(void* unaParteDeMemoria) {
+			return ((t_espacio_memoria*) unaParteDeMemoria)->id == espacio->id;
+		}
+		list_remove_and_destroy_by_condition(tabla, mismoID,destructorEspacioMemoria);
+	}
+	return clavesReemplazadas;
+}
+
 // PARA LISTAS
 
 void destructorEspacioMemoria(void* elem){
@@ -232,6 +257,32 @@ t_espacio_memoria* conseguirEspacioMemoria(char* clave){
 		return string_equals_ignore_case(((t_espacio_memoria*)unaParteDeMemoria)->clave,clave);
 	}
 	return list_find(tabla,&contieneClave);
+}
+
+t_espacio_memoria* conseguirEspacioMemoriaID(int id){
+	bool contieneID(void* unaParteDeMemoria){
+		return ((t_espacio_memoria*)unaParteDeMemoria)->id == id;
+	}
+	return list_find(tabla,contieneID);
+}
+
+t_espacio_memoria* conseguirEspacioMenosUsado(){
+	t_list* espaciosAtomicos = list_filter(tabla,esUnEspacioAtomico);
+	list_sort(espaciosAtomicos,menosUsado);
+	t_espacio_memoria* espacio = list_get(espaciosAtomicos, 0);
+	list_destroy(espaciosAtomicos);
+	return espacio;
+}
+
+bool menosUsado(void* elem1,void* elem2){
+	t_espacio_memoria* primerEspacio = (t_espacio_memoria*) elem1;
+	t_espacio_memoria* segundoEspacio = (t_espacio_memoria*) elem2;
+	return primerEspacio->ultima_referencia <= segundoEspacio->ultima_referencia;
+}
+
+bool esUnEspacioAtomico(void* elem){
+	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
+	return espacio->tamanio <= tamanio_entradas;
 }
 
 // inicializar
@@ -411,13 +462,6 @@ void actualizarPosicionTabla(){
 
 }
 
-t_espacio_memoria* conseguirEspacioMemoriaID(int id){
-	bool contieneID(void* unaParteDeMemoria){
-		return ((t_espacio_memoria*)unaParteDeMemoria)->id == id;
-	}
-	return list_find(tabla,&contieneID);
-}
-
 void agregarNoAtomicos(int* nuevoIndiceMemoria,int* indiceNuevo){
 	int i = 0;
 	int indice = 0;
@@ -552,11 +596,10 @@ char* registrarEnIndiceMemoria(int id,int* indice,int entradas,int* tamanio){
 
 void agregarClave(char* claves,int idPos,int* largo){
 	t_espacio_memoria* espacio = conseguirEspacioMemoriaID(idPos);
-	int largoClave = strlen(espacio->clave);
-	memcpy(claves + *largo,espacio->clave,largoClave+1);
-	*largo += (largoClave + 1);
+	int largoClave = strlen_null(espacio->clave);
+	memcpy(claves + *largo,espacio->clave,largoClave);
+	*largo += largoClave;
 }
-
 
 void liberarSobrantes(int id,int cantidadNecesaria){
 	int pos = posicion(id);
@@ -703,9 +746,7 @@ int cantidadEntradasOcupadas(int indiceAux){
 }
 
 void dump (){
-	
 	list_iterate(tabla, escribirEnArchivo);	
 	log_info(logger, "Se guardaron los datos backup");
 	alarm(config.intervalo);
-  
 }

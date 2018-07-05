@@ -112,4 +112,11 @@ void mostrarIndiceMemoria();
 
 void dump ();
 
+int entradasLibres();
+char* liberar(int entradas,int* tamanio);
+t_espacio_memoria* conseguirEspacioMenosUsado();
+bool menosUsado(void* elem1,void* elem2);
+bool esUnEspacioAtomico(void* elem);
+
+
 #endif /* SRC_PRUEBACRISTIAN_H_ */
