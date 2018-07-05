@@ -116,7 +116,7 @@ void mostrarIndiceMemoria(){
 void mostrar(void* elem){
 	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 	char* valor = extraerValor(espacio);
-	printf("\nClave: %s   Valor: %s  ID: %d   Pos: %d \n",espacio->clave,valor,espacio->id,espacio->pos);
+	printf("\nClave: %s   Valor: %s   ID: %d   Pos: %d   Ult_Ref: %d\n",espacio->clave,valor,espacio->id,espacio->pos,espacio->ultima_referencia);
 	free(valor);
 }
 
@@ -451,7 +451,6 @@ void actualizarPosicionTabla(){
 		int id = indiceMemoria[i];
 		t_espacio_memoria* espacio = conseguirEspacioMemoriaID(id);
 		espacio->pos = i;
-		mostrar(espacio);
 		if (esAtomica(i))
 			incrementarIndice(&i);
 		else
@@ -459,7 +458,6 @@ void actualizarPosicionTabla(){
 		if(i == 0)
 			i = cantidad_entradas;
 	}
-
 }
 
 void agregarNoAtomicos(int* nuevoIndiceMemoria,int* indiceNuevo){
