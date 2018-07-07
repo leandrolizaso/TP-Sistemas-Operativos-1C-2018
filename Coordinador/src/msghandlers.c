@@ -7,6 +7,7 @@
 #include <commons/collections/list.h>
 #include "Coordinador.h"
 #include "msghandlers.h"
+#include "shared.h"
 
 extern t_log* log_operaciones;
 
@@ -63,12 +64,10 @@ void do_handhsake(int socket, t_paquete* paquete) {
 		break;
 	}
 	case HANDSHAKE_INSTANCIA: {
-		//TODO: en realidad hay que validar si esta instancia posta es nueva
 		t_instancia* instancia_nueva = malloc(sizeof(t_instancia));
-		instancia_nueva->conectada = true;
 		instancia_nueva->fd = socket;
 		instancia_nueva->nombre = strdup(paquete->data);
-		list_add(instancias, instancia_nueva);
+		registrar_instancia(instancia_nueva);
 
 		tamanio = sizeof(int) * 2;
 		data = malloc(tamanio);
@@ -82,6 +81,7 @@ void do_handhsake(int socket, t_paquete* paquete) {
 		break;
 	}
 	enviar(socket, HANDSHAKE_COORDINADOR, tamanio, data);
+	free(data);
 }
 
 void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {

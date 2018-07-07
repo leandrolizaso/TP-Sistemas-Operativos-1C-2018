@@ -10,6 +10,7 @@ int instancia_guardar(int keyword, t_clavevalor clave_valor);
 typedef struct {
 	int fd;
 	char* nombre;
+	int ocupado;
 } t_instancia;
 
 typedef struct {
