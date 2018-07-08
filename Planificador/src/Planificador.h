@@ -47,12 +47,14 @@ void liberar_recursos(void* esi);
 void destructor_key(void* pointer);
 void destructor_esi(void* pointer);
 _Bool is_in_list(int id_esi, t_list* lista);
+_Bool is_in_list_socket(int socket, t_list* lista,int* id);
 _Bool tiene_asginado(void* pointer);
 void matar_esi();
 void kill(int id);
 _Bool mayor_ratio(void* ptr1, void* ptr2);
 void listar(char* recurso);
 void logguear_estimaciones();
+void find_esi_dead(int socket);
 
 #define FIFO 600
 #define SJFCD 601

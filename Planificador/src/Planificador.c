@@ -434,6 +434,7 @@ int procesar_mensaje(int socket) {
 
 	default:
 		log_debug(logger,string_from_format("Mensaje erroneo. Recibi el codigo de operacion %d",paquete->codigo_operacion));
+		//find_esi_dead(socket);
 		destruir_paquete(paquete);
 		return -1;
 	}
@@ -501,6 +502,7 @@ void* consola(void* no_use) {
 	puts(" desbloquear <clave>");
 	puts(" listar <clave>");
 	puts(" deadlock");
+	puts(" kill <ID>");
 	
 	
 	char* buffer;
@@ -777,6 +779,18 @@ _Bool is_in_list(int id,t_list* lista){
 	return list_find(lista,&mismo_id);
 }
 
+_Bool is_in_list_socket(int socket,t_list* lista, int* id){
+
+	_Bool mismo_id(void* un_esi){
+		if(socket == ((proceso_esi_t*)un_esi)->socket){
+			*id = ((proceso_esi_t*)un_esi)->ID;
+			return true;
+		}
+	}
+
+	return list_find(lista,&mismo_id);
+}
+
 // Para la consola
 
 void kill(int id){
@@ -945,4 +959,18 @@ void logguear_estimaciones(){
 	}
 		log_debug(estimaciones,"");
 
+}
+
+void find_esi_dead(int socket){
+	if(esi_ejecutando->socket==socket){
+		matar_esi();
+		return;
+	}
+	
+	int id_esi=0;
+	if(is_in_list_socket(socket,ready_q,&id_esi)||is_in_list_socket(socket,blocked_q,&id_esi)){
+		kill(id_esi);
+	}
+
+	return;
 }
