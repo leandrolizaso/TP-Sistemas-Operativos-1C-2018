@@ -1,9 +1,0 @@
-GET futbol:messi 
-SET futbol:messi holi
-GET futbol:ansaldi
-SET futbol:ansaldi nnvR
-GET futbol:sampaoli
-SET futbol:sampaoli peladoPuto
-STORE futbol:messi
-STORE futbol:ansaldi
-STORE futbol:sampaoli

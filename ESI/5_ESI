@@ -1,6 +1,0 @@
-GET futbol:meza 
-SET futbol:meza altoGaturro
-GET futbol:ansaldi
-SET futbol:ansaldi nnvR
-GET futbol:sampaoli
-SET futbol:sampaoli topu
