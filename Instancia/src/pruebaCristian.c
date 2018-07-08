@@ -505,7 +505,6 @@ void escribirEnArchivo(void* elem){
 	t_espacio_memoria* espacio = (t_espacio_memoria*) elem;
 	char* punto_montaje = malloc(strlen(config.point_mount)+strlen(espacio->clave)+2);
 	strcpy(punto_montaje, config.point_mount);
-	string_append(&punto_montaje, "/");
 	string_append(&punto_montaje, espacio->clave);
 	struct stat sb;
 	if (!(stat(config.point_mount, &sb) == 0 && S_ISDIR(sb.st_mode))) {
