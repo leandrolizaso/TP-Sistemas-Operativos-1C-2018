@@ -667,43 +667,36 @@ bool tengoLibres(int entradas,int *indice){
 }
 
 bool tengoAtomicas(int entradas,int *indice){
-	int indiceAux = *indice;
+	int indiceAuxiliar = *indice;
 	int libres = 0;
-	bool encontre = false;
 	int vueltas = 0;
-	while( vueltas <= 2 && !encontre){
+	bool encontre = false;
 
-		if(*indice == indiceAux)
+	while(!encontre && vueltas < 3){
+
+		if (indiceAuxiliar == *indice)
 			vueltas++;
-
-		if(libres == entradas){
+		if (libres == entradas) {
 			encontre = true;
-			if(*indice == 0 && indiceAux != 1)
-				incrementarIndice(&indiceAux);
 
-			if(indiceAux == 0)
-				indiceAux = cantidad_entradas;
+			if(indiceAuxiliar == 0)
+				*indice = cantidad_entradas;
+			else
+				*indice = indiceAuxiliar;
 
-			*indice = indiceAux - entradas;
-
-		}
-		else{
-			if (vueltas <= 2) {
-				if (indiceMemoria[indiceAux] == 0 || esAtomica(indiceAux))
-					libres++;
-				else{
-					libres = 0;
-					if(!esAtomica(indiceAux)){
-						int cantidad = cantidadEntradasOcupadas(indiceAux);
-						avanzarIndice(&indiceAux,cantidad-1);
-					}
-				}
-			}
-			incrementarIndice(&indiceAux);
+			*indice -= entradas;
 		}
 
-		if(indiceAux == 0 && libres!=entradas )
+		if(indiceAuxiliar == 0)
 			libres = 0;
+
+		if (esAtomica(indiceAuxiliar) || indiceMemoria[indiceAuxiliar] == 0) {
+			libres++;
+			incrementarIndice(&indiceAuxiliar);
+		} else {
+			libres = 0;
+			avanzarIndice(&indiceAuxiliar,cantidadEntradasOcupadas(indiceAuxiliar));
+		}
 	}
 	return encontre;
 }
