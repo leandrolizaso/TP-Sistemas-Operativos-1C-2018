@@ -44,7 +44,10 @@ t_instancia* key_explicit(char* clave) {
 	return NULL;
 }
 
-void do_handhsake(int socket, t_paquete* paquete) {
+void* do_handhsake(void* args) {
+	t_params* params = args;
+	int socket = params->socket;
+	t_paquete* paquete = params->paquete;
 	loggear("info", "Handshake Recibido (%d). Enviando Handshake.\n", socket);
 
 	int tamanio = 0;
@@ -73,10 +76,19 @@ void do_handhsake(int socket, t_paquete* paquete) {
 		break;
 	}
 	enviar(socket, HANDSHAKE_COORDINADOR, tamanio, data);
+	destruir_paquete(params->paquete);
+	free(params);
 	free(data);
+	return NULL;
 }
 
-void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
+void* do_esi_request(void* args) {
+	t_params* params = args;
+	int socket_esi = params->socket;
+	t_mensaje_esi mensaje_esi = deserializar_mensaje_esi(params->paquete->data);
+	destruir_paquete(params->paquete);
+	free(params);
+
 	char* valor_mostrable = mensaje_esi.clave_valor.valor;
 	char* clave = mensaje_esi.clave_valor.clave;
 	if (valor_mostrable == NULL) { //hack para no ver "(null)" en los log de operaciones
@@ -152,6 +164,7 @@ void do_esi_request(int socket_esi, t_mensaje_esi mensaje_esi) {
 		break;
 	}
 	destruir_paquete(paquete);
+	return NULL;
 }
 
 int instancia_guardar(int keyword, t_clavevalor cv) {

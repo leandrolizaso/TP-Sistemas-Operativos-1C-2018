@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <pthread.h>
 #include <pelao/sockets.h>
 #include <pelao/protocolo.h>
 #include <commons/config.h>
@@ -132,21 +133,32 @@ int recibir_mensaje(int socket) {
 
 	t_paquete* paquete = recibir(socket);
 
+	t_params* params = malloc(sizeof(t_params));
+	params->socket = socket;
+	params->paquete = paquete;
+
 	switch (paquete->codigo_operacion) {
 	case HANDSHAKE_ESI:
 	case HANDSHAKE_INSTANCIA:
-	case HANDSHAKE_PLANIFICADOR:
-		do_handhsake(socket, paquete);
+	case HANDSHAKE_PLANIFICADOR: {
+		pthread_t hilito;
+		pthread_create(&hilito, NULL, do_handhsake, params);
+		pthread_detach(hilito);
 		break;
-	case OPERACION:
-		do_esi_request(socket, deserializar_mensaje_esi(paquete->data));
+	}
+	case OPERACION: {
+		pthread_t hilito;
+		pthread_create(&hilito, NULL, do_esi_request, &params);
+		pthread_detach(hilito);
 		break;
-	default:
-		//TODO tratar mejor las desconexiones (si es instancia marcar desconectada)
+	}
+	default: {
 		destruir_paquete(paquete);
 		return END_CONNECTION;
 	}
-	destruir_paquete(paquete);
+	}
+	// Cada hilo debe encargarse de destruir el paquete.
+	//destruir_paquete(paquete);
 	return CONTINUE_COMMUNICATION;
 }
 
