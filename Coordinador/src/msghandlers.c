@@ -34,14 +34,11 @@ char* keywordtos(int keyword) {
 
 t_instancia* key_explicit(char* clave) {
 	int cant_instancias = list_size(instancias);
-	if (cant_instancias > 0) {
-		int caracter = *clave;
-		caracter = caracter - 97;
-		int rango = (26 / cant_instancias) + 1;
-		int n_instancia = caracter / rango;
-		return list_get(instancias, n_instancia);
-	}
-	return NULL;
+	int caracter = *clave;
+	caracter = caracter - 97;
+	int rango = (26 / cant_instancias) + 1;
+	int n_instancia = caracter / rango;
+	return list_get(instancias, n_instancia);
 }
 
 t_instancia* equitative_load(char* clave) {
@@ -191,56 +188,61 @@ void* do_esi_request(void* args) {
 
 int instancia_guardar(int keyword, t_clavevalor cv) {
 	t_clave* clave = dictionary_get(claves, cv.clave);
-	t_instancia* instancia;
 
-	if (clave != NULL) {
-		instancia = clave->instancia;
-	} else {
-		char* algoritmo = config_get_string_value(config, CFG_ALGO);
-
-		if (strcmp(algoritmo, "LSU")) {
-			instancia = least_space_used(cv.clave);
-		} else if (strcmp(algoritmo, "EL")) {
-			instancia = equitative_load(cv.clave);
-		} else if (strcmp(algoritmo, "KE")) {
-			instancia = key_explicit(cv.clave);
-		}
-
-		if (instancia == NULL) {
+	if (clave->instancia == NULL) {
+		if (list_size(instancias) <= 0) {
 			loggear("warning",
 					"Todavia no se registraron instancias, por lo que no se puede atender al ESI.");
 			return EXIT_FAILURE;
 		}
+
+		char* algoritmo = config_get_string_value(config, CFG_ALGO);
+
+		if (strcmp(algoritmo, "LSU")) {
+			clave->instancia = least_space_used(cv.clave);
+		} else if (strcmp(algoritmo, "EL")) {
+			clave->instancia = equitative_load(cv.clave);
+		} else if (strcmp(algoritmo, "KE")) {
+			clave->instancia = key_explicit(cv.clave);
+		}
 	}
 
-	int tamanio;
-	void* buff;
-	int operacion;
-	switch (keyword) {
-	case 1: { //set
-		tamanio = sizeof_clavevalor(cv);
-		buff = serializar_clavevalor(cv);
-		operacion = SAVE_CLAVE;
-		break;
-	}
-	case 2: { //store
-		tamanio = strlen_null(cv.clave);
-		buff = cv.clave;
-		operacion = DUMP_CLAVE;
-		break;
-	}
+	if (keyword == 1) { //SET
+
+		enviar(clave->instancia->fd, SAVE_CLAVE, sizeof_clavevalor(cv),
+				serializar_clavevalor(cv));
+		t_paquete* paquete = recibir(clave->instancia->fd);
+
+		switch (paquete->codigo_operacion) {
+		case NEED_COMPACTAR: {
+			//levantar un hilo para cada instancia
+			//enviarles "COMPACTA"
+			//join de todos esos hilos
+			return instancia_guardar(keyword, cv);
+		}
+		case RESPUESTA_INTANCIA: {
+			int entradas_ocupadas = strlen_null(cv.valor)
+					/ config_get_int_value(config, CFG_ENTRYSIZE);
+			clave->entradas = entradas_ocupadas;
+			clave->instancia->ocupado += entradas_ocupadas;
+
+			if (paquete->tamanio > 0) {
+				//hubo reemplazos
+				//deserializar las claves, separando por '\0'
+				//por cada unas de esas
+				//    clave_reemplazada = list_find(claves,...);
+				//    clave->instancia->ocupado -= clave_reemplazada->entradas
+				//    clave->instancia = NULL;
+			}
+			return EXIT_SUCCESS;
+		}
+		}
+	} else { //STORE
+		enviar(clave->instancia->fd, DUMP_CLAVE, strlen_null(cv.clave),
+				cv.clave);
+		t_paquete* paquete = recibir(clave->instancia->fd);
+		destruir_paquete(paquete);
+		return EXIT_SUCCESS;
 	}
 
-	enviar(instancia->fd, operacion, tamanio, buff);
-	t_paquete* paquete = recibir(instancia->fd);
-	//TODO: validar si guardo o no
-	//if guardo exitosamente
-	dictionary_put(claves, cv.clave, instancia);
-	//else if no guardo
-	// if no guardo por falta de espacio
-	// then return fallo;
-	// else if no guardo por tener espacio pero necesitar defrag
-	// then enviar defrag a todas las intancias y retornar "instancia_guardar" (recursivo)
-	destruir_paquete(paquete);
-	return EXIT_SUCCESS;
 }

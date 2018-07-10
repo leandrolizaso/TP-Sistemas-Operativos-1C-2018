@@ -3,13 +3,14 @@
 #include <commons/collections/dictionary.h>
 #include <commons/collections/list.h>
 
-extern t_dictionary* claves;
+//extern t_dictionary* claves;
 extern t_list* instancias;
 
 void registrar_instancia(int socket, char* nombre_instancia){
 	t_instancia* instancia_nueva = malloc(sizeof(t_instancia));
 	instancia_nueva->fd = socket;
 	instancia_nueva->nombre = nombre_instancia;
+	instancia_nueva->ocupado = 0;
 	list_add(instancias, instancia_nueva);
 }
 
