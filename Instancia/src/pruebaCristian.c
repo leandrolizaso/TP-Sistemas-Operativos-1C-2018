@@ -106,7 +106,7 @@ void liberarRecursos(){
 }
 
 void mostrarIndiceMemoria(){
-	printf("\nLos numeros son: ");
+	printf("\nIndice memoria: ");
 	for (int i = 0; i < cantidad_entradas; i++) {
 		printf("%d ", indiceMemoria[i]);
 	}
