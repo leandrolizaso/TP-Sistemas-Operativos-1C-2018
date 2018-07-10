@@ -1,8 +1,19 @@
 #ifndef SRC_SHARED_H_
 #define SRC_SHARED_H_
 
-void registrar_instancia(t_instancia* instancia);
-char* obtener_instancia_por_clave(char* clave);
-void guardsar_clave_instancia(char* instancia, char* clave, int entradas);
+typedef struct {
+	int fd;
+	char* nombre;
+	int ocupado;
+} t_instancia;
+
+typedef struct {
+	char* clave;
+	int entradas;
+	t_instancia* instancia;
+} t_clave;
+
+void registrar_instancia(int socket, char* nombre_instancia);
+void destruir_instancia(t_instancia* instancia);
 
 #endif /* SRC_SHARED_H_ */

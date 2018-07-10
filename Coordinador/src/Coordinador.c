@@ -20,6 +20,7 @@
 #include <commons/log.h>
 #include "Coordinador.h"
 #include "msghandlers.h"
+#include "shared.h"
 
 t_log* log_operaciones;
 t_log* log_app;

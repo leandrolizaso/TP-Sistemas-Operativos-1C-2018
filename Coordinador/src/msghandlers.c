@@ -32,11 +32,6 @@ char* keywordtos(int keyword) {
 	}
 }
 
-void destruir_instancia(t_instancia* instancia) {
-	free(instancia->nombre);
-	free(instancia);
-}
-
 t_instancia* key_explicit(char* clave) {
 	int cant_instancias = list_size(instancias); //TODO: contar solo las intancias conectadas
 	if (cant_instancias > 0) {
@@ -64,10 +59,7 @@ void do_handhsake(int socket, t_paquete* paquete) {
 		break;
 	}
 	case HANDSHAKE_INSTANCIA: {
-		t_instancia* instancia_nueva = malloc(sizeof(t_instancia));
-		instancia_nueva->fd = socket;
-		instancia_nueva->nombre = strdup(paquete->data);
-		registrar_instancia(instancia_nueva);
+		registrar_instancia(socket, strdup(paquete->data));
 
 		tamanio = sizeof(int) * 2;
 		data = malloc(tamanio);
