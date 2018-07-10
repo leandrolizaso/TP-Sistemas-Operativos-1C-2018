@@ -148,7 +148,7 @@ int recibir_mensaje(int socket) {
 	}
 	case OPERACION: {
 		pthread_t hilito;
-		pthread_create(&hilito, NULL, do_esi_request, &params);
+		pthread_create(&hilito, NULL, do_esi_request, params);
 		pthread_detach(hilito);
 		break;
 	}

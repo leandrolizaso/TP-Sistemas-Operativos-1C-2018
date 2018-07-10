@@ -33,15 +33,37 @@ char* keywordtos(int keyword) {
 }
 
 t_instancia* key_explicit(char* clave) {
-	int cant_instancias = list_size(instancias); //TODO: contar solo las intancias conectadas
+	int cant_instancias = list_size(instancias);
 	if (cant_instancias > 0) {
 		int caracter = *clave;
 		caracter = caracter - 97;
-		int rango = (26 / cant_instancias) + 1; //TODO: consultar sobre este +1
+		int rango = (26 / cant_instancias) + 1;
 		int n_instancia = caracter / rango;
 		return list_get(instancias, n_instancia);
 	}
 	return NULL;
+}
+
+t_instancia* equitative_load(char* clave) {
+	static int next_instance = 0;
+	next_instance++;
+	if (next_instance > list_size(instancias)) {
+		next_instance = 0;
+	}
+	return list_get(instancias, next_instance);
+}
+
+t_instancia* least_space_used(char* clave) {
+
+	//funcion local
+	bool ordenar_libre(void* a, void* b) {
+		t_instancia* inst1 = a;
+		t_instancia* inst2 = b;
+		return inst1->ocupado <= inst2->ocupado;
+	}
+
+	list_sort(instancias, ordenar_libre);
+	return list_get(instancias, 0);
 }
 
 void* do_handhsake(void* args) {
@@ -168,24 +190,34 @@ void* do_esi_request(void* args) {
 }
 
 int instancia_guardar(int keyword, t_clavevalor cv) {
-	t_instancia* instancia = dictionary_get(claves, cv.clave);
-	if (instancia == NULL) {
-		//TODO: seleccion de algoritmo
-		instancia = key_explicit(cv.clave);
+	t_clave* clave = dictionary_get(claves, cv.clave);
+	t_instancia* instancia;
+
+	if (clave != NULL) {
+		instancia = clave->instancia;
+	} else {
+		char* algoritmo = config_get_string_value(config, CFG_ALGO);
+
+		if (strcmp(algoritmo, "LSU")) {
+			instancia = least_space_used(cv.clave);
+		} else if (strcmp(algoritmo, "EL")) {
+			instancia = equitative_load(cv.clave);
+		} else if (strcmp(algoritmo, "KE")) {
+			instancia = key_explicit(cv.clave);
+		}
+
 		if (instancia == NULL) {
-			//no hay instancia para atender esta peticion;
+			loggear("warning",
+					"Todavia no se registraron instancias, por lo que no se puede atender al ESI.");
 			return EXIT_FAILURE;
 		}
-		//if instancia desconectada
-		//then eliminar clave
-		//return fallo
 	}
 
 	int tamanio;
 	void* buff;
 	int operacion;
 	switch (keyword) {
-	case 1: {
+	case 1: { //set
 		tamanio = sizeof_clavevalor(cv);
 		buff = serializar_clavevalor(cv);
 		operacion = SAVE_CLAVE;
