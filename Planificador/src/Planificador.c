@@ -786,6 +786,7 @@ _Bool is_in_list_socket(int socket,t_list* lista, int* id){
 			*id = ((proceso_esi_t*)un_esi)->ID;
 			return true;
 		}
+		return false;
 	}
 
 	return list_find(lista,&mismo_id);
