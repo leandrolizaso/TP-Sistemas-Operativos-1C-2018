@@ -10,6 +10,8 @@
 #define CONTINUE_COMMUNICATION  1
 #define END_CONNECTION -1
 
+#include <commons/config.h>
+
 t_config* leer_config(int argc, char* argv[]);
 int config_incorrecta(t_config* config);
 int recibir_mensaje(int socket);

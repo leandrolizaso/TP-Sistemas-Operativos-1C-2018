@@ -163,15 +163,10 @@ int recibir_mensaje(int socket) {
 }
 
 void loggear(char* level_char, char* template, ...) {
-	va_list args, copy;
+	va_list args;
 	va_start(args, template);
 
-	va_copy(copy, args);
-	int size = vsnprintf(NULL, 0, template, copy) + 1; // "+1" por el '\0'
-	va_end(copy);
-
-	char* texto = malloc(size);
-	vsnprintf(texto, size, template, args);
+	char* texto = string_from_vformat(template,args);
 
 	switch (log_level_from_string(level_char)) {
 	//Si _log_write_in_level no fuera privada, usaria eso.

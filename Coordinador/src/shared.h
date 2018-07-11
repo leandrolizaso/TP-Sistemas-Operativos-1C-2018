@@ -4,7 +4,7 @@
 typedef struct {
 	int fd;
 	char* nombre;
-	int ocupado;
+	int libre;
 } t_instancia;
 
 typedef struct {
@@ -15,5 +15,7 @@ typedef struct {
 
 void registrar_instancia(int socket, char* nombre_instancia);
 void destruir_instancia(t_instancia* instancia);
+void registrar_clave(char* clave);
+void destruir_clave(t_clave* clave);
 
 #endif /* SRC_SHARED_H_ */
