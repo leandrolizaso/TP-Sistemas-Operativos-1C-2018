@@ -510,7 +510,7 @@ void escribirEnArchivo(void* elem){
 	if (!(stat(config.point_mount, &sb) == 0 && S_ISDIR(sb.st_mode))) {
 		mkdir(config.point_mount, S_IRWXU);
 	}
-	int tamanio = sizeof(char)*(espacio->tamanio + 1);
+	int tamanio = sizeof(char)*espacio->tamanio;
 	char* valor = extraerValor(espacio);
 	int fd = open(punto_montaje, O_RDWR | O_CREAT, S_IRWXU);
 	ftruncate(fd, tamanio);
