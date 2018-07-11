@@ -101,13 +101,14 @@ void ejecutar(char* script){
 					destruir_operacion(operacion);
 				} else {
 					char* error;
-					error = string_from_format("La línea: %s .No es válida",
-							ultima_linea);
+					error = string_from_format("La línea: %s .No es válida",ultima_linea);
 					log_error(logger, error); // al loguear la linea uno ve el porque de invalidez :3
 					free(error);
 					destruir_operacion(operacion);
 					destruir_paquete(paquete);
-					morir();
+					//morir();
+					imRunning = false;
+
 				}
 			}
 			break;
@@ -119,8 +120,7 @@ void ejecutar(char* script){
 
 	if(imRunning){
 		if (paquete->codigo_operacion == FINALIZAR) {
-			char* msg = string_from_format("ESI%d fue finalizado por consola.",
-					ID);
+			char* msg = string_from_format("ESI%d fue finalizado por consola.",ID);
 			log_mensaje(msg);
 			free(msg);
 		} else {
