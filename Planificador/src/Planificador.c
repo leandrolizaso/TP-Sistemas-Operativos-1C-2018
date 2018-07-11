@@ -325,7 +325,7 @@ int procesar_mensaje(int socket) {
 
 		if(!hizo_get(esi_ejecutando,recurso)){
 			char* mensaje = "El esi no hizo GET";
-			error_de_esi(mensaje);
+			error_de_esi(mensaje, socket);
 			free(recurso);
 			sem_post(m_esi);
 			break;
@@ -359,7 +359,7 @@ int procesar_mensaje(int socket) {
 		sem_wait(m_esi);
 		if(!hizo_get(esi_ejecutando,recurso)){
 			char* mensaje = "El esi no hizo GET";
-			error_de_esi(mensaje);
+			error_de_esi(mensaje, socket);
 
 		} else {
 			enviar(socket, OPERACION_ESI_VALIDA, 0, NULL);
@@ -900,8 +900,8 @@ bool esta_clave(char* clave) {
 
 }
 
-void error_de_esi(char* mensaje){
-	enviar(socket_coordinador, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje)+1,mensaje);
+void error_de_esi(char* mensaje, int socket){
+	enviar(socket, OPERACION_ESI_INVALIDA,sizeof(char)*strlen(mensaje)+1,mensaje);
 	sem_wait(m_rip);
 	char* esi_finaliza_msg=malloc(sizeof(char)*30);
 	strcpy(esi_finaliza_msg,"Finalizo ESI con error ");
