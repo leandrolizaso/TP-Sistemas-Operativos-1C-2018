@@ -46,7 +46,7 @@ void ejecutar(char* script){
 	char* ultima_linea = NULL;
 	bool ejecutoUltima = false;
 	bool primero = true;
-	bool imRunning = true;
+	imRunning = true;
 
 	fp = fopen(script, "r");
 
@@ -182,14 +182,16 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 			log_mensaje(msg);
 			free(msg);
 			destruir_paquete(paquete);
-			morir();
+			//morir();
+			imRunning=false;
 			break;
 		default:
 			error = string_from_format("El codigo de operación %d no es válido",paquete->codigo_operacion);
 			log_error(logger, error);
 			free(error);
 			destruir_paquete(paquete);
-			morir();
+			//morir();
+			imRunning=false;
 		}
 }
 

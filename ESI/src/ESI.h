@@ -30,6 +30,7 @@ t_config_esi config;
 int socket_coordinador;
 int socket_planificador;
 int ID;
+bool imRunning;
 
 void log_mensaje(char* mensaje);
 void validarAperturaScript(FILE* fp);
