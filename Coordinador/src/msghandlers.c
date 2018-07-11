@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <pthread.h>
 #include <pelao/sockets.h>
 #include <pelao/protocolo.h>
 #include <commons/log.h>
@@ -142,6 +143,9 @@ void* do_esi_request(void* args) {
 	default:
 		loggear("error", "Se recibio una operacion invalida del ESI %d: %d",
 				mensaje_esi.id_esi, mensaje_esi.keyword);
+		enviar(socket_esi, ERROR_OPERACION, 34,
+				"Se recibio una operacion invalida");
+		return NULL;
 	}
 
 	if (!dictionary_has_key(claves, clave) && mensaje_esi.keyword != 0) {
@@ -215,9 +219,23 @@ int instancia_guardar(int keyword, t_clavevalor cv) {
 
 		switch (paquete->codigo_operacion) {
 		case NEED_COMPACTAR: {
-			//levantar un hilo para cada instancia
-			//enviarles "COMPACTA"
-			//join de todos esos hilos
+			int cant_instancias = list_size(instancias);
+			pthread_t hilos_instancia[cant_instancias];
+
+			void* compactar(void* args) {
+				int* indice = args;
+				t_instancia* inst = list_get(instancias, *indice);
+				enviar(inst->fd, COMPACTA, 0, NULL);
+				destruir_paquete(recibir(inst->fd));
+				return NULL;
+			}
+
+			for (int i = 0; i < cant_instancias; i++) {
+				pthread_create(&hilos_instancia[i], NULL, compactar, &i);
+			}
+			for (int i = 0; i < cant_instancias; i++) {
+				pthread_join(hilos_instancia[i], NULL);
+			}
 			return instancia_guardar(keyword, cv);
 		}
 		case RESPUESTA_INTANCIA: {
@@ -236,6 +254,8 @@ int instancia_guardar(int keyword, t_clavevalor cv) {
 			}
 			return EXIT_SUCCESS;
 		}
+		default:
+			return EXIT_FAILURE;
 		}
 	} else { //STORE
 		enviar(clave->instancia->fd, DUMP_CLAVE, strlen_null(cv.clave),
