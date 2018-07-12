@@ -12,7 +12,7 @@ extern t_config* config;
 void registrar_instancia(int socket, char* nombre_instancia){
 	t_instancia* instancia_nueva = malloc(sizeof(t_instancia));
 	instancia_nueva->fd = socket;
-	instancia_nueva->nombre = nombre_instancia;
+	instancia_nueva->nombre = strdup(nombre_instancia);
 	instancia_nueva->libre = config_get_int_value(config,CFG_ENTRYCANT);
 	list_add(instancias, instancia_nueva);
 }

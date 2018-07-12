@@ -83,7 +83,7 @@ void* do_handhsake(void* args) {
 		break;
 	}
 	case HANDSHAKE_INSTANCIA: {
-		registrar_instancia(socket, strdup(paquete->data));
+		registrar_instancia(socket, paquete->data);
 
 		tamanio = sizeof(int) * 2;
 		data = malloc(tamanio);
@@ -127,7 +127,7 @@ void* do_esi_request(void* args) {
 	/* Asi me aseguro de tener un archivo limpio*/
 
 	loggear("trace", "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
-	usleep(config_get_int_value(config, CFG_DELAY)*1000);
+	usleep(config_get_int_value(config, CFG_DELAY) * 1000);
 	loggear("trace", "Seguimos!");
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
@@ -179,14 +179,14 @@ void* do_esi_request(void* args) {
 
 		char* resultado_error = instancia_guardar(mensaje_esi.keyword,
 				mensaje_esi.clave_valor);
-		loggear("trace","el resultado de insancia fue: %s",resultado_error);
+		loggear("trace", "el resultado de insancia fue: %s", resultado_error);
 
 		if (resultado_error) {
-			loggear("debug","enviando al ESI ese error");
+			loggear("debug", "enviando al ESI ese error");
 			enviar(socket_esi, ERROR_OPERACION, strlen_null(resultado_error),
 					resultado_error);
 		} else {
-			loggear("debug","enviando al ESI un exito");
+			loggear("debug", "enviando al ESI un exito");
 			enviar(socket_esi, EXITO_OPERACION, 0, NULL);
 		}
 		free(resultado_error);
@@ -198,12 +198,13 @@ void* do_esi_request(void* args) {
 		break;
 	}
 	destruir_paquete(paquete);
-	loggear("debug","do_esi_request finalizado");
+	loggear("debug", "do_esi_request finalizado");
 	return NULL;
 }
 
 char* instancia_guardar(int keyword, t_clavevalor cv) {
-	loggear("trace","Enviando a instancia %s %s %s",keywordtos(keyword),cv.clave,cv.valor );
+	loggear("trace", "Enviando a instancia %s %s %s", keywordtos(keyword),
+			cv.clave, cv.valor);
 	t_clave* clave = dictionary_get(claves, cv.clave);
 
 	//Si no tiene una instancia, trato de asignarle una
@@ -235,8 +236,8 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 	}
 
 	if (keyword == 1) { //SET
-		int entradas_ocupadas = strlen(cv.valor)
-				/ config_get_int_value(config, CFG_ENTRYSIZE) +1;
+		int entradas_ocupadas = (strlen(cv.valor) - 1)
+				/ config_get_int_value(config, CFG_ENTRYSIZE) + 1;
 		loggear("trace", "La clave %s ocupa %d entradas", cv.clave,
 				entradas_ocupadas);
 		if (clave->instancia->libre < entradas_ocupadas) {
@@ -246,11 +247,12 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 					clave->instancia->libre);
 		}
 
-		loggear("trace", "enviando SAVE_CLAVE %s %s.",
-				cv.clave, cv.valor);
+		loggear("trace", "enviando SAVE_CLAVE %s %s.", cv.clave, cv.valor);
 		enviar(clave->instancia->fd, SAVE_CLAVE, sizeof_clavevalor(cv),
 				serializar_clavevalor(cv));
-		loggear("trace", "esperando resultado de la instancia (fd:%d, nombre:%s)...",clave->instancia->fd, clave->instancia->nombre);
+		loggear("trace",
+				"esperando resultado de la instancia (fd:%d, nombre:%s)...",
+				clave->instancia->fd, clave->instancia->nombre);
 		t_paquete* paquete = recibir(clave->instancia->fd);
 		loggear("trace",
 				"recibido de instancia status: %d (%d need_compactar, %d OK",
@@ -258,28 +260,29 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 
 		switch (paquete->codigo_operacion) {
 		case NEED_COMPACTAR: {
-			loggear("debug","Instancia %s me pide compactar!",clave->instancia->nombre);
+			loggear("debug", "Instancia %s me pide compactar!",
+					clave->instancia->nombre);
 			int cant_instancias = list_size(instancias);
 			pthread_t hilos_instancia[cant_instancias];
 
 			void* compactar(void* args) {
 				int* indice = args;
 				t_instancia* inst = list_get(instancias, *indice);
-				loggear("trace","compactando en instancia %s",inst->nombre);
+				loggear("trace", "compactando en instancia %s", inst->nombre);
 				enviar(inst->fd, COMPACTA, 0, NULL);
 				destruir_paquete(recibir(inst->fd));
 				return NULL;
 			}
 
-			loggear("debug","iniciando hilos para compactar");
+			loggear("debug", "iniciando hilos para compactar");
 			for (int i = 0; i < cant_instancias; i++) {
 				pthread_create(&hilos_instancia[i], NULL, compactar, &i);
 			}
-			loggear("debug","joining hilos de compaco realizado");
+			loggear("debug", "joining hilos de compaco realizado");
 			for (int i = 0; i < cant_instancias; i++) {
 				pthread_join(hilos_instancia[i], NULL);
 			}
-			loggear("debug","hilos joineados, se intenta guardar nuevamente");
+			loggear("debug", "hilos joineados, se intenta guardar nuevamente");
 			return instancia_guardar(keyword, cv);
 		}
 		case RESPUESTA_INTANCIA: {
@@ -287,7 +290,7 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 			clave->instancia->libre -= entradas_ocupadas;
 
 			if (paquete->tamanio > 0) {
-				loggear("debug","hubo reemplazos");
+				loggear("debug", "hubo reemplazos");
 				//hubo reemplazos
 				//deserializar las claves, separando por '\0'
 				//por cada unas de esas
@@ -303,12 +306,12 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 					paquete->codigo_operacion);
 		}
 	} else { //STORE
-		loggear("trace","enviando STORE_CLAVE \"%s\" a instancia.",cv.clave);
+		loggear("trace", "enviando STORE_CLAVE \"%s\" a instancia.", cv.clave);
 		enviar(clave->instancia->fd, DUMP_CLAVE, strlen_null(cv.clave),
 				cv.clave);
-		loggear("trace","esperando respuesta de instancia...");
+		loggear("trace", "esperando respuesta de instancia...");
 		destruir_paquete(recibir(clave->instancia->fd));
-		loggear("trace","listo, seguimos.");
+		loggear("trace", "listo, seguimos.");
 		return NULL;
 	}
 

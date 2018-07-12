@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
 	free(ip_planificador);
 	free(port);
 	dictionary_destroy(claves);
-	list_destroy_and_destroy_elements(instancias, (void*)destruir_instancia);
+	list_destroy_and_destroy_elements(instancias, (void*) destruir_instancia);
 	config_destroy(config);
 
 	printf("Finalizado");
@@ -126,7 +126,7 @@ int config_incorrecta(t_config* config) {
 }
 
 int recibir_mensaje(int socket) {
-	loggear("debug","recibiendo mensaje de socket %d",socket);
+	loggear("debug", "recibiendo mensaje de socket %d", socket);
 	static t_dictionary* conexiones = NULL;
 	if (conexiones == NULL) {
 		conexiones = dictionary_create();
@@ -145,9 +145,9 @@ int recibir_mensaje(int socket) {
 		pthread_t hilito;
 		pthread_create(&hilito, NULL, do_handhsake, params);
 		pthread_detach(hilito);
-		if(paquete->codigo_operacion==HANDSHAKE_INSTANCIA){
+		if (paquete->codigo_operacion == HANDSHAKE_INSTANCIA) {
 			return LET_ME_HANDLE_IT;
-		}else{
+		} else {
 			return CONTINUE_COMMUNICATION;
 		}
 		break;
@@ -159,12 +159,14 @@ int recibir_mensaje(int socket) {
 		return CONTINUE_COMMUNICATION;
 		break;
 	}
-	//case STATUS:{
-	//    bla bla bla
-	//    return CONTINUE_COMMUNICATION;
-	//}
+		//case STATUS:{
+		//    bla bla bla
+		//    return CONTINUE_COMMUNICATION;
+		//}
 	default: {
-		loggear("warning","Epa! parece que se desconectaron del socket %d?\ncodigo_operacion:%d\ttamaño:%d",socket,paquete->codigo_operacion, paquete->tamanio);
+		loggear("warning",
+				"Epa! parece que se desconectaron del socket %d?\ncodigo_operacion:%d\ttamaño:%d",
+				socket, paquete->codigo_operacion, paquete->tamanio);
 		destruir_paquete(paquete);
 		return END_CONNECTION;
 	}
@@ -175,7 +177,7 @@ void loggear(char* level_char, char* template, ...) {
 	va_list args;
 	va_start(args, template);
 
-	char* texto = string_from_vformat(template,args);
+	char* texto = string_from_vformat(template, args);
 
 	switch (log_level_from_string(level_char)) {
 	//Si _log_write_in_level no fuera privada, usaria eso.
