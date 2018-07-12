@@ -251,8 +251,10 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 		}
 
 		loggear("trace", "enviando SAVE_CLAVE %s %s.", cv.clave, cv.valor);
+		void* buff = serializar_clavevalor(cv);
 		enviar(clave->instancia->fd, SAVE_CLAVE, sizeof_clavevalor(cv),
-				serializar_clavevalor(cv));
+				buff);
+		free(buff);
 		loggear("trace",
 				"esperando resultado de la instancia (fd:%d, nombre:%s)...",
 				clave->instancia->fd, clave->instancia->nombre);
@@ -285,6 +287,8 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 				pthread_join(hilos_instancia[i], NULL);
 			}
 			loggear("debug", "hilos joineados, se intenta guardar nuevamente");
+
+			destruir_paquete(paquete);
 			return instancia_guardar(keyword, cv);
 		}
 		case RESPUESTA_INTANCIA: {
@@ -321,9 +325,11 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 				}
 
 			}
+			destruir_paquete(paquete);
 			return NULL;
 		}
 		default:
+			destruir_paquete(paquete);
 			return string_from_format(
 					"Se obtuvo un mensaje inesperado de la instancia: %d",
 					paquete->codigo_operacion);
