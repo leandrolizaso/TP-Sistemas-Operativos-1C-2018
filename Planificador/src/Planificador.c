@@ -379,7 +379,7 @@ int procesar_mensaje(int socket) {
 			flag_esi_muerto = false;
 			sem_post(m_esi);
 			break;
-		}// else if (pausado) break;
+		} else if (pausado) break;
 
 		sem_wait(m_esi);
 
@@ -483,11 +483,11 @@ void planificar() {
 			}
 			}	else if(algoritmo==SJFCD) {
 				if(esi_ejecutando!=NULL){list_add(ready_q,esi_ejecutando);}
-				list_sort(ready_q,&menor_tiempo);
-				esi_ejecutando = list_get(ready_q, 0);
-				list_remove(ready_q, 0);
-				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-				aumentar_rafaga(esi_ejecutando);
+					list_sort(ready_q,&menor_tiempo);
+					esi_ejecutando = list_get(ready_q, 0);
+					list_remove(ready_q, 0);
+					enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+					aumentar_rafaga(esi_ejecutando);
 				} else {
 					perror("No se conoce el algoritmo de planificacion");
 				}
