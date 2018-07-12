@@ -372,14 +372,14 @@ int procesar_mensaje(int socket) {
 
 	case EXITO_OPERACION: {
 
-		if(pausado&&flag_esi_muerto){
+		if(/*pausado&&*/flag_esi_muerto){
 			sem_wait(m_esi);
 			matar_esi(esi_ejecutando);
 			esi_ejecutando = NULL;
 			flag_esi_muerto = false;
 			sem_post(m_esi);
 			break;
-		} else if (pausado) break;
+		}// else if (pausado) break;
 
 		sem_wait(m_esi);
 
@@ -802,8 +802,8 @@ void kill(int id){
 	void finalizar_esi(t_list* lista){
 		proceso_esi_t* esi =list_find(lista,&mismo_id);
 		enviar(esi->socket,FINALIZAR,0,NULL);
+		char* esi_finaliza_msg = string_from_format("Finalizo ESI %s",string_itoa(esi->ID));
 		list_remove_and_destroy_by_condition(lista,&mismo_id,&destructor_esi);
-		char* esi_finaliza_msg = string_from_format("Finalizo ESI s%",string_itoa(esi->ID));
 		sem_wait(m_rip);
 		log_debug(rip_q,esi_finaliza_msg);
 		sem_post(m_rip);
@@ -811,11 +811,12 @@ void kill(int id){
 	}
 
 	sem_wait(m_esi);
+	if(esi_ejecutando != NULL){
 	if(id==esi_ejecutando->ID){
 		flag_esi_muerto=true;
 		sem_post(m_esi);
 		return;
-	}
+	}}
 	sem_post(m_esi);
 
 	sem_wait(m_blocked);
@@ -931,7 +932,7 @@ _Bool tiene_asginado(void* pointer){
 
 void matar_esi(){
 	enviar(esi_ejecutando->socket,FINALIZAR,0,NULL);
-	char* esi_finaliza_msg = string_from_format("Finalizo ESI s%",string_itoa(esi_ejecutando->ID));
+	char* esi_finaliza_msg = string_from_format("Finalizo ESI %s",string_itoa(esi_ejecutando->ID));
 	destructor_esi((void*)esi_ejecutando);
 	sem_wait(m_rip);
 	log_debug(rip_q,esi_finaliza_msg);
