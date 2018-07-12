@@ -51,6 +51,8 @@
 /* Instancia a Coordinador */
 #define RESPUESTA_INTANCIA 401
 #define NEED_COMPACTAR 402
+#define OK_ESPACIO 403
+#define NO_ESPACIO 404
 
 /* Coordinador a Instancia */
 //#define ENVIAR_CONFIG 207 // este mensaje tambien lo usa planificador luego del handshake para enviar al coordinador
@@ -58,6 +60,7 @@
 #define DUMP_CLAVE 207  // codigo para bajar a archivo
 #define COMPACTA 208
 /* Serializacion/Desserializacion */
+#define HAS_ESPACIO 209
 
 int strlen_null(char* str);
 
