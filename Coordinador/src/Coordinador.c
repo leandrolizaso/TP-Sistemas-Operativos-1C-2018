@@ -45,6 +45,7 @@ int main(int argc, char* argv[]) {
 	puerto_planificador = malloc(20 * sizeof(char));
 	claves = dictionary_create();
 	instancias = list_create();
+	inicializar_sincronizacion();
 
 	config = leer_config(argc, argv);
 	if (config_incorrecta(config)) {
@@ -57,6 +58,7 @@ int main(int argc, char* argv[]) {
 
 	multiplexar(port, recibir_mensaje);
 
+	finalizar_sincronizacion();
 	log_destroy(log_app);
 	log_destroy(log_operaciones);
 	free(puerto_planificador);

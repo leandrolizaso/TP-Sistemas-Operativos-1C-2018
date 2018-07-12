@@ -15,6 +15,9 @@ typedef struct {
 	t_instancia* instancia;
 } t_clave;
 
+void inicializar_sincronizacion(void);
+void finalizar_sincronizacion(void);
+
 void registrar_instancia(int socket, char* nombre_instancia);
 void destruir_instancia(t_instancia* instancia);
 void registrar_clave(char* clave);
