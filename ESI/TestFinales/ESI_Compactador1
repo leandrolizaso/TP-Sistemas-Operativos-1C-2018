@@ -2,21 +2,9 @@ GET opcion1
 GET opcion2
 GET opcion3
 GET opcion4
-GET opcion5
-GET opcion6
-GET opcion7
-GET opcion8
-GET opcion9
-GET opcion10
-SET opcion1 gdeMuzza
-SET opcion2 fugazzetarellenagrande
-SET opcion3 champignonesalaparissiennegrande
-SET opcion4 faina
-SET opcion5 cantimpalo
-SET opcion6 promograndedemuzzaconfainaycalabresaconroquefort
-SET opcion7 grandecuatroquesos
-SET opcion8 grandeconanchoas
-SET opcion9 fugazza
-SET opcion3 espinacaalaromana
-SET opcion6 apioalroquefort
-SET opcion10 promograndedemuzzaconfainayfugazzarellena
+SET opcion1 fugazzetarellenagrande
+SET opcion2 promomuzzarella
+SET opcion3 pizzacuatroquesosgrande
+SET opcion1 napolitanagrande
+SET opcion3 pizzadepalmitos
+SET opcion4 pizzadecantimpalo
