@@ -197,7 +197,7 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 }
 
 void notificarCoordinador(int tamanio,char* buffer){
-	log_trace(logger,"Se notifico al coord. Tamanio: %d  ",tamanio,buffer);
+	log_trace(logger,"Se notificara al coord. Tamanio: %d  ",tamanio,buffer);
 	int tam = 0;
 	char* clave;
 	int largo;
@@ -208,6 +208,7 @@ void notificarCoordinador(int tamanio,char* buffer){
 		tam = tam + largo;
 	}
 	enviar(socket_coordinador,RESPUESTA_INTANCIA,tamanio*sizeof(char),buffer);
+	log_trace(logger,"Mensaje enviado");
 	//TODO:solo mando la/s clave/s...el Coord deberia tener en sus registros los valores tambien? digo por los algoritmos..
 	//o le envio los valores tambien ? :OOO
 }
