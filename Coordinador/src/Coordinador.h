@@ -8,6 +8,7 @@
 #define CFG_DELAY  "delay"
 
 #define CONTINUE_COMMUNICATION  1
+#define LET_ME_HANDLE_IT 0
 #define END_CONNECTION -1
 
 #include <commons/config.h>

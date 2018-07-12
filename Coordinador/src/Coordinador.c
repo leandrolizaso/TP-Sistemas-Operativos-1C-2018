@@ -126,6 +126,7 @@ int config_incorrecta(t_config* config) {
 }
 
 int recibir_mensaje(int socket) {
+	loggear("debug","recibiendo mensaje de socket %d",socket);
 	static t_dictionary* conexiones = NULL;
 	if (conexiones == NULL) {
 		conexiones = dictionary_create();
@@ -144,22 +145,30 @@ int recibir_mensaje(int socket) {
 		pthread_t hilito;
 		pthread_create(&hilito, NULL, do_handhsake, params);
 		pthread_detach(hilito);
+		if(paquete->codigo_operacion==HANDSHAKE_INSTANCIA){
+			return LET_ME_HANDLE_IT;
+		}else{
+			return CONTINUE_COMMUNICATION;
+		}
 		break;
 	}
 	case OPERACION: {
 		pthread_t hilito;
 		pthread_create(&hilito, NULL, do_esi_request, params);
 		pthread_detach(hilito);
+		return CONTINUE_COMMUNICATION;
 		break;
 	}
+	//case STATUS:{
+	//    bla bla bla
+	//    return CONTINUE_COMMUNICATION;
+	//}
 	default: {
+		loggear("warning","Epa! parece que se desconectaron del socket %d?\ncodigo_operacion:%d\ttamaño:%d",socket,paquete->codigo_operacion, paquete->tamanio);
 		destruir_paquete(paquete);
 		return END_CONNECTION;
 	}
 	}
-	// Cada hilo debe encargarse de destruir el paquete.
-	//destruir_paquete(paquete);
-	return CONTINUE_COMMUNICATION;
 }
 
 void loggear(char* level_char, char* template, ...) {

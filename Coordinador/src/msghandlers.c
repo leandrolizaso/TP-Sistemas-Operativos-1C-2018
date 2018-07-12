@@ -127,7 +127,7 @@ void* do_esi_request(void* args) {
 	/* Asi me aseguro de tener un archivo limpio*/
 
 	loggear("trace", "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
-	sleep(config_get_int_value(config, CFG_DELAY) / 1000 + 1);
+	usleep(config_get_int_value(config, CFG_DELAY)*1000);
 	loggear("trace", "Seguimos!");
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
@@ -162,10 +162,14 @@ void* do_esi_request(void* args) {
 	}
 
 	int tamanio = strlen_null(clave);
-	loggear("trace","enviando al planificador operacion %d clave \"%s\"",operacion,clave);
+	loggear("trace", "enviando al planificador operacion %d clave \"%s\"",
+			operacion, clave);
 	enviar(socket_planificador, operacion, tamanio, clave);
 	t_paquete* paquete = recibir(socket_planificador);
-	loggear("trace","recibido de planificador status %d",paquete->codigo_operacion);
+	loggear("trace",
+			"recibido de planificador status %d (%d esi_valida, %d esi_no_valida).",
+			paquete->codigo_operacion, OPERACION_ESI_VALIDA,
+			OPERACION_ESI_INVALIDA);
 	switch (paquete->codigo_operacion) {
 	case OPERACION_ESI_VALIDA: {
 		if (mensaje_esi.keyword == 0) {
@@ -175,28 +179,36 @@ void* do_esi_request(void* args) {
 
 		char* resultado_error = instancia_guardar(mensaje_esi.keyword,
 				mensaje_esi.clave_valor);
+		loggear("trace","el resultado de insancia fue: %s",resultado_error);
 
 		if (resultado_error) {
-			enviar(socket_esi, ERROR_OPERACION, strlen_null(resultado_error), resultado_error);
+			loggear("debug","enviando al ESI ese error");
+			enviar(socket_esi, ERROR_OPERACION, strlen_null(resultado_error),
+					resultado_error);
 		} else {
+			loggear("debug","enviando al ESI un exito");
 			enviar(socket_esi, EXITO_OPERACION, 0, NULL);
 		}
 		free(resultado_error);
 		break;
 	}
 	case OPERACION_ESI_INVALIDA:
+		loggear("trace", "mandando ERROR_OPERACION por OPERACION_ESI_INVALIDA");
 		enviar(socket_esi, ERROR_OPERACION, paquete->tamanio, paquete->data);
 		break;
 	}
 	destruir_paquete(paquete);
+	loggear("debug","do_esi_request finalizado");
 	return NULL;
 }
 
 char* instancia_guardar(int keyword, t_clavevalor cv) {
+	loggear("trace","Enviando a instancia %s %s %s",keywordtos(keyword),cv.clave,cv.valor );
 	t_clave* clave = dictionary_get(claves, cv.clave);
 
 	//Si no tiene una instancia, trato de asignarle una
 	if (clave->instancia == NULL) {
+		loggear("debug", "Eligiendo instancia segun algoritmo");
 		if (list_size(instancias) <= 0) {
 			return string_from_format(
 					"Todavia no se registraron instancias, por lo que no se puede atender al ESI.");
@@ -205,24 +217,28 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 		char* algoritmo = config_get_string_value(config, CFG_ALGO);
 
 		if (strcmp(algoritmo, "LSU")) {
+			loggear("debug", "Algoritmo Least Space Used");
 			clave->instancia = least_space_used(cv.clave);
 		} else if (strcmp(algoritmo, "EL")) {
+			loggear("debug", "Algoritmo Equitative Load");
 			clave->instancia = equitative_load(cv.clave);
 		} else if (strcmp(algoritmo, "KE")) {
+			loggear("debug", "Algoritmo Key Explicit");
 			clave->instancia = key_explicit(cv.clave);
 		}
 
 		if (clave->instancia == NULL) {
 			return string_from_format(
-					"No se pudo asignar una instancia a la clave \"%s\"",
+					"Error en algoritmo de distribucion. No se pudo asignar una instancia a la clave \"%s\"",
 					cv.clave);
 		}
 	}
 
 	if (keyword == 1) { //SET
-		int entradas_ocupadas = strlen_null(cv.valor)
-				/ config_get_int_value(config, CFG_ENTRYSIZE);
-
+		int entradas_ocupadas = strlen(cv.valor)
+				/ config_get_int_value(config, CFG_ENTRYSIZE) +1;
+		loggear("trace", "La clave %s ocupa %d entradas", cv.clave,
+				entradas_ocupadas);
 		if (clave->instancia->libre < entradas_ocupadas) {
 			return string_from_format(
 					"La instancia %s no tiene espacio suficiente.\nNecesario: %d\tDisponible: %d",
@@ -230,29 +246,40 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 					clave->instancia->libre);
 		}
 
+		loggear("trace", "enviando SAVE_CLAVE %s %s.",
+				cv.clave, cv.valor);
 		enviar(clave->instancia->fd, SAVE_CLAVE, sizeof_clavevalor(cv),
 				serializar_clavevalor(cv));
+		loggear("trace", "esperando resultado de la instancia (fd:%d, nombre:%s)...",clave->instancia->fd, clave->instancia->nombre);
 		t_paquete* paquete = recibir(clave->instancia->fd);
+		loggear("trace",
+				"recibido de instancia status: %d (%d need_compactar, %d OK",
+				paquete->codigo_operacion, NEED_COMPACTAR, RESPUESTA_INTANCIA);
 
 		switch (paquete->codigo_operacion) {
 		case NEED_COMPACTAR: {
+			loggear("debug","Instancia %s me pide compactar!",clave->instancia->nombre);
 			int cant_instancias = list_size(instancias);
 			pthread_t hilos_instancia[cant_instancias];
 
 			void* compactar(void* args) {
 				int* indice = args;
 				t_instancia* inst = list_get(instancias, *indice);
+				loggear("trace","compactando en instancia %s",inst->nombre);
 				enviar(inst->fd, COMPACTA, 0, NULL);
 				destruir_paquete(recibir(inst->fd));
 				return NULL;
 			}
 
+			loggear("debug","iniciando hilos para compactar");
 			for (int i = 0; i < cant_instancias; i++) {
 				pthread_create(&hilos_instancia[i], NULL, compactar, &i);
 			}
+			loggear("debug","joining hilos de compaco realizado");
 			for (int i = 0; i < cant_instancias; i++) {
 				pthread_join(hilos_instancia[i], NULL);
 			}
+			loggear("debug","hilos joineados, se intenta guardar nuevamente");
 			return instancia_guardar(keyword, cv);
 		}
 		case RESPUESTA_INTANCIA: {
@@ -260,6 +287,7 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 			clave->instancia->libre -= entradas_ocupadas;
 
 			if (paquete->tamanio > 0) {
+				loggear("debug","hubo reemplazos");
 				//hubo reemplazos
 				//deserializar las claves, separando por '\0'
 				//por cada unas de esas
@@ -270,13 +298,17 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 			return NULL;
 		}
 		default:
-			return string_from_format("Se obtuvo un mensaje inesperado de la instancia: %d",paquete->codigo_operacion);
+			return string_from_format(
+					"Se obtuvo un mensaje inesperado de la instancia: %d",
+					paquete->codigo_operacion);
 		}
 	} else { //STORE
+		loggear("trace","enviando STORE_CLAVE \"%s\" a instancia.",cv.clave);
 		enviar(clave->instancia->fd, DUMP_CLAVE, strlen_null(cv.clave),
 				cv.clave);
-		t_paquete* paquete = recibir(clave->instancia->fd);
-		destruir_paquete(paquete);
+		loggear("trace","esperando respuesta de instancia...");
+		destruir_paquete(recibir(clave->instancia->fd));
+		loggear("trace","listo, seguimos.");
 		return NULL;
 	}
 
