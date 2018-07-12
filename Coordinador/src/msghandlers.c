@@ -36,12 +36,9 @@ t_instancia* key_explicit(char* clave) {
 }
 
 t_instancia* equitative_load(char* clave) {
-	static int next_instance = 0;
-	next_instance++;
-	if (next_instance > cant_instancias()) {
-		next_instance = 0;
-	}
-	return obtener_instancia(next_instance);
+	t_instancia* instancia = quitar_instancia(0);
+	registrar_instancia(instancia);
+	return instancia;
 }
 
 t_instancia* least_space_used(char* clave) {
@@ -54,7 +51,7 @@ t_instancia* least_space_used(char* clave) {
 	}
 
 	ordenar_instancias_segun(ordenamiento_espacio_libre);
-	return obtener_instancia(0);
+	return equitative_load(clave);
 }
 
 void* do_handhsake(void* args) {
