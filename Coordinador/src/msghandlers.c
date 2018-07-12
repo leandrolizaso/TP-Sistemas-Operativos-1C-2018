@@ -3,10 +3,7 @@
 #include <pelao/sockets.h>
 #include <pelao/protocolo.h>
 #include <commons/log.h>
-#include <commons/config.h>
 #include <commons/string.h>
-#include <commons/collections/dictionary.h>
-#include <commons/collections/list.h>
 #include "Coordinador.h"
 #include "msghandlers.h"
 #include "shared.h"
@@ -16,10 +13,6 @@ extern t_log* log_operaciones;
 extern int socket_planificador;
 extern char* ip_planificador;
 extern char* puerto_planificador;
-
-extern t_config* config;
-extern t_dictionary* claves;
-extern t_list* instancias;
 
 char* keywordtos(int keyword) {
 	switch (keyword) {
@@ -35,34 +28,33 @@ char* keywordtos(int keyword) {
 }
 
 t_instancia* key_explicit(char* clave) {
-	int cant_instancias = list_size(instancias);
 	int caracter = *clave;
 	caracter = caracter - 97;
-	int rango = (26 / cant_instancias) + 1;
+	int rango = (26 / cant_instancias()) + 1;
 	int n_instancia = caracter / rango;
-	return list_get(instancias, n_instancia);
+	return obtener_instancia(n_instancia);
 }
 
 t_instancia* equitative_load(char* clave) {
 	static int next_instance = 0;
 	next_instance++;
-	if (next_instance > list_size(instancias)) {
+	if (next_instance > cant_instancias()) {
 		next_instance = 0;
 	}
-	return list_get(instancias, next_instance);
+	return obtener_instancia(next_instance);
 }
 
 t_instancia* least_space_used(char* clave) {
 
 	//funcion local
-	bool ordenar_libre(void* a, void* b) {
+	bool ordenamiento_espacio_libre(void* a, void* b) {
 		t_instancia* inst1 = a;
 		t_instancia* inst2 = b;
 		return inst1->libre >= inst2->libre;
 	}
 
-	list_sort(instancias, ordenar_libre);
-	return list_get(instancias, 0);
+	ordenar_instancias_segun(ordenamiento_espacio_libre);
+	return obtener_instancia(0);
 }
 
 void* do_handhsake(void* args) {
@@ -87,8 +79,8 @@ void* do_handhsake(void* args) {
 
 		tamanio = sizeof(int) * 2;
 		data = malloc(tamanio);
-		int cant_entradas = config_get_int_value(config, CFG_ENTRYCANT);
-		int size_entradas = config_get_int_value(config, CFG_ENTRYSIZE);
+		int cant_entradas = config_entry_cant();
+		int size_entradas = config_entry_size();
 		memcpy(data, &cant_entradas, sizeof(int));
 		memcpy(data + sizeof(int), &size_entradas, sizeof(int));
 		break;
@@ -127,7 +119,7 @@ void* do_esi_request(void* args) {
 	/* Asi me aseguro de tener un archivo limpio*/
 
 	loggear("trace", "Simulamos espera para ESI%d...", mensaje_esi.id_esi);
-	usleep(config_get_int_value(config, CFG_DELAY) * 1000);
+	usleep(config_delay() * 1000);
 	loggear("trace", "Seguimos!");
 
 	int operacion; //Este switch es hasta que el planificador pueda usar el mensaje polimorficamente
@@ -149,10 +141,10 @@ void* do_esi_request(void* args) {
 		return NULL;
 	}
 
-	if (!dictionary_has_key(claves, clave) && mensaje_esi.keyword != 0) {
+	if (no_existe_clave(clave) && mensaje_esi.keyword != 0) {
 		enviar(socket_esi, ERROR_OPERACION, 41,
 				"No podes hacer eso si la clave no existe");
-	} else if (!dictionary_has_key(claves, clave) && mensaje_esi.keyword == 0) {
+	} else if (no_existe_clave(clave) && mensaje_esi.keyword == 0) {
 		registrar_clave(clave);
 	}
 
@@ -205,17 +197,17 @@ void* do_esi_request(void* args) {
 char* instancia_guardar(int keyword, t_clavevalor cv) {
 	loggear("trace", "Enviando a instancia %s %s %s", keywordtos(keyword),
 			cv.clave, cv.valor);
-	t_clave* clave = dictionary_get(claves, cv.clave);
+	t_clave* clave = obtener_clave(cv.clave);
 
 	//Si no tiene una instancia, trato de asignarle una
 	if (clave->instancia == NULL) {
 		loggear("debug", "Eligiendo instancia segun algoritmo");
-		if (list_size(instancias) <= 0) {
+		if (cant_instancias() <= 0) {
 			return string_from_format(
 					"Todavia no se registraron instancias, por lo que no se puede atender al ESI.");
 		}
 
-		char* algoritmo = config_get_string_value(config, CFG_ALGO);
+		char* algoritmo = config_dist_algo();
 
 		if (strcmp(algoritmo, "LSU")) {
 			loggear("debug", "Algoritmo Least Space Used");
@@ -236,8 +228,8 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 	}
 
 	if (keyword == 1) { //SET
-		int entradas_ocupadas = (strlen(cv.valor) - 1)
-				/ config_get_int_value(config, CFG_ENTRYSIZE) + 1;
+		int entradas_ocupadas = (strlen(cv.valor) - 1) / config_entry_size()
+				+ 1;
 
 		loggear("trace", "La clave %s ocupa %d entradas. Se le avisa a %s",
 				cv.clave, entradas_ocupadas, clave->instancia->nombre);
@@ -273,12 +265,11 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 		case NEED_COMPACTAR: {
 			loggear("debug", "Instancia %s me pide compactar!",
 					clave->instancia->nombre);
-			int cant_instancias = list_size(instancias);
-			pthread_t hilos_instancia[cant_instancias];
+			pthread_t hilos_instancia[cant_instancias()];
 
 			void* compactar(void* args) {
 				int* indice = args;
-				t_instancia* inst = list_get(instancias, *indice);
+				t_instancia* inst = obtener_instancia(*indice);
 				loggear("trace", "compactando en instancia %s", inst->nombre);
 				enviar(inst->fd, COMPACTA, 0, NULL);
 				destruir_paquete(recibir(inst->fd));
@@ -286,36 +277,35 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 			}
 
 			loggear("debug", "iniciando hilos para compactar");
-			for (int i = 0; i < cant_instancias; i++) {
+			for (int i = 0; i < cant_instancias(); i++) {
 				pthread_create(&hilos_instancia[i], NULL, compactar, &i);
 			}
 			loggear("debug", "joining hilos de compaco realizado");
-			for (int i = 0; i < cant_instancias; i++) {
+			for (int i = 0; i < cant_instancias(); i++) {
 				pthread_join(hilos_instancia[i], NULL);
 			}
 			loggear("debug", "hilos joineados, se intenta guardar nuevamente");
 			return instancia_guardar(keyword, cv);
 		}
 		case RESPUESTA_INTANCIA: {
-			logger("debug", "RESPUESTA_INSTANCIA");
-			logger("trace", "La instancia %s tenia %d libre antes de comenzar.",
+			loggear("debug", "RESPUESTA_INSTANCIA");
+			loggear("trace", "La instancia %s tenia %d libre antes de comenzar.",
 					clave->instancia->nombre, clave->instancia->libre);
 			clave->entradas = entradas_ocupadas;
 			clave->instancia->libre -= clave->entradas;
-			logger("trace", "Al descontarle la clave guardada quedo %d.",
+			loggear("trace", "Al descontarle la clave guardada quedo %d.",
 					clave->instancia->libre);
 
 			if (paquete->tamanio > 0) {
 				loggear("debug", "hubo reemplazos");
 
-				//deserializar las claves, separando por '\0'
+				//deserializar los reemplazos, separando por '\0'
 				int leido = 0;
 				char* reemplazo = paquete->data;
 				while (leido < paquete->tamanio) {
-					t_clave* clave_reemplazada = dictionary_get(claves,
-							reemplazo);
+					t_clave* clave_reemplazada = obtener_clave(reemplazo);
 
-					logger("trace",
+					loggear("trace",
 							"Descontando en %s %d entradas de clave reemplazada %s.",
 							clave_reemplazada->instancia->nombre,
 							clave_reemplazada->entradas,
