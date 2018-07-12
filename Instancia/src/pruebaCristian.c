@@ -45,6 +45,18 @@ void atenderConexiones(){
 	while(imRunning){
 
 		switch (paquete->codigo_operacion) {
+		case HAS_ESPACIO:{
+			int* entradas = paquete->data;
+			if(tengoEntradas(*entradas)){
+				enviar(socket_coordinador,OK_ESPACIO,0,NULL);
+				log_debug("Se envio al notificador OK_ESPACIO.");
+			}else{
+				enviar(socket_coordinador,NO_ESPACIO,0,NULL);
+				log_debug("Se envio al notificador NO_ESPACIO.");
+			}
+
+		break;
+		}
 		case SAVE_CLAVE: {
 			log_trace(logger, "SAVE_CLAVE");
 
@@ -136,7 +148,6 @@ void guardar(t_clavevalor claveValor,int *indice){
 		}else{
 			switch(algoritmo){
 			case CIRC: {
-
 				if (tengoAtomicas(entradas, indice)) {
 					char* log = string_from_format("tengoAtomicas:   entradas: %d, indice: %d\n",entradas,*indice);
 					log_debug(logger, log);
