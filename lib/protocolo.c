@@ -81,10 +81,10 @@ t_mensaje_esi deserializar_mensaje_esi(void* buffer) {
 void* serializar_status_clave(t_status_clave status_clave, int* tamanio){
 	int len_valor = strlen_null(status_clave.valor);
 	*tamanio = sizeof(t_status_clave)+len_valor - 4;
-	void* buffer = malloc(tamanio);
+	void* buffer = malloc(*tamanio);
 	memcpy(buffer,&status_clave.instancia,sizeof(int));
 	memcpy(buffer+sizeof(int),&status_clave.instancia_now,sizeof(int));
-	memcpy(buffer+sizeof(int)*2,&status_clave.valor,sizeof(char)*len_valor);
+	memcpy(buffer+sizeof(int)*2,status_clave.valor,sizeof(char)*len_valor);
 	return buffer;
 }
 
@@ -96,7 +96,7 @@ t_status_clave deserializar_status_clave(void* buffer){
 	t_status_clave status_clave;
 	status_clave.instancia = *instancia;
 	status_clave.instancia_now = *instancia_now;
-	strcpy(status_clave.valor,valor); 
+	status_clave.valor = strdup(valor);
 	free(buffer);
 	return status_clave;
 }
