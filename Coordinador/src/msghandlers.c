@@ -238,13 +238,24 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 	if (keyword == 1) { //SET
 		int entradas_ocupadas = (strlen(cv.valor) - 1)
 				/ config_get_int_value(config, CFG_ENTRYSIZE) + 1;
-		loggear("trace", "La clave %s ocupa %d entradas", cv.clave,
-				entradas_ocupadas);
-		if (clave->instancia->libre < entradas_ocupadas) {
+
+		loggear("trace", "La clave %s ocupa %d entradas. Se le avisa a %s",
+				cv.clave, entradas_ocupadas, clave->instancia->nombre);
+		enviar(clave->instancia->fd, HAS_ESPACIO, sizeof(int),
+				&entradas_ocupadas);
+		loggear("debug", "Esperando veredicto. Entra?");
+		t_paquete* paquete = recibir(clave->instancia->fd);
+		loggear("trace", "Resulta que %d hay espacio (%d Si, %d No).",
+		OK_ESPACIO,
+		NO_ESPACIO);
+		int operacion = paquete->codigo_operacion;
+		destruir_paquete(paquete);
+
+		if (operacion == NO_ESPACIO) {
 			return string_from_format(
-					"La instancia %s no tiene espacio suficiente.\nNecesario: %d\tDisponible: %d",
-					clave->instancia->nombre, entradas_ocupadas,
-					clave->instancia->libre);
+					"La instancia %s no tiene espacio suficiente.\nNecesario: %d",
+					clave->instancia->nombre, entradas_ocupadas);
+
 		}
 
 		loggear("trace", "enviando SAVE_CLAVE %s %s.", cv.clave, cv.valor);
@@ -253,7 +264,7 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 		loggear("trace",
 				"esperando resultado de la instancia (fd:%d, nombre:%s)...",
 				clave->instancia->fd, clave->instancia->nombre);
-		t_paquete* paquete = recibir(clave->instancia->fd);
+		paquete = recibir(clave->instancia->fd);
 		loggear("trace",
 				"recibido de instancia status: %d (%d need_compactar, %d OK",
 				paquete->codigo_operacion, NEED_COMPACTAR, RESPUESTA_INTANCIA);
@@ -286,17 +297,39 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 			return instancia_guardar(keyword, cv);
 		}
 		case RESPUESTA_INTANCIA: {
+			logger("debug", "RESPUESTA_INSTANCIA");
+			logger("trace", "La instancia %s tenia %d libre antes de comenzar.",
+					clave->instancia->nombre, clave->instancia->libre);
 			clave->entradas = entradas_ocupadas;
-			clave->instancia->libre -= entradas_ocupadas;
+			clave->instancia->libre -= clave->entradas;
+			logger("trace", "Al descontarle la clave guardada quedo %d.",
+					clave->instancia->libre);
 
 			if (paquete->tamanio > 0) {
 				loggear("debug", "hubo reemplazos");
-				//hubo reemplazos
+
 				//deserializar las claves, separando por '\0'
-				//por cada unas de esas
-				//    clave_reemplazada = list_find(claves,...);
-				//    clave->instancia->ocupado -= clave_reemplazada->entradas
-				//    clave->instancia = NULL;
+				int leido = 0;
+				char* reemplazo = paquete->data;
+				while (leido < paquete->tamanio) {
+					t_clave* clave_reemplazada = dictionary_get(claves,
+							reemplazo);
+
+					logger("trace",
+							"Descontando en %s %d entradas de clave reemplazada %s.",
+							clave_reemplazada->instancia->nombre,
+							clave_reemplazada->entradas,
+							clave_reemplazada->clave);
+
+					clave_reemplazada->instancia->libre +=
+							clave_reemplazada->entradas;
+					clave_reemplazada->instancia = NULL;
+
+					int step = strlen_null(reemplazo);
+					leido += step;
+					reemplazo += step;
+				}
+
 			}
 			return NULL;
 		}
