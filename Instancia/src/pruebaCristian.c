@@ -49,10 +49,10 @@ void atenderConexiones(){
 			int* entradas = paquete->data;
 			if(tengoEntradas(*entradas)){
 				enviar(socket_coordinador,OK_ESPACIO,0,NULL);
-				log_debug("Se envio al notificador OK_ESPACIO.");
+				log_debug(logger,"Se envio al notificador OK_ESPACIO.");
 			}else{
 				enviar(socket_coordinador,NO_ESPACIO,0,NULL);
-				log_debug("Se envio al notificador NO_ESPACIO.");
+				log_debug(logger,"Se envio al notificador NO_ESPACIO.");
 			}
 
 		break;
