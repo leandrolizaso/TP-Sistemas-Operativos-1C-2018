@@ -392,6 +392,7 @@ void conectarCoordinador() {
 		int* tam = paquete->data+sizeof(int);
 		cantidad_entradas = *ent;
 		tamanio_entradas= *tam;
+		log_debug(logger,"Recibi cantidad de entradas: %d y tamanio de entradas: %d",cantidad_entradas,tamanio_entradas);
 		log_info(logger,"Handshake exitoso con el Coordinador");
 		destruir_paquete(paquete);
 	}
