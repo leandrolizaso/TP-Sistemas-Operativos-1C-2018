@@ -45,6 +45,16 @@ void atenderConexiones(){
 	while(imRunning){
 
 		switch (paquete->codigo_operacion) {
+		case GET_VALOR:{
+			log_debug(logger,"Se recibe del coordinador GET_VALOR con la clave %s",paquete->data);
+			t_espacio_memoria* espacio = conseguirEspacioMemoria(paquete->data);
+			char* valor = extraerValor(espacio);
+			enviar(socket_coordinador, RESPUESTA_INTANCIA, strlen_null(valor),valor);
+			log_debug(logger,"Se envia al coordinador el valor %s perteneciente a la clave %s",valor, paquete->data);
+			free(valor);
+			destruir_paquete(paquete);
+			break;
+		}
 		case HAS_ESPACIO:{
 			int* entradas = paquete->data;
 			if(tengoEntradas(*entradas)){
@@ -54,8 +64,8 @@ void atenderConexiones(){
 				enviar(socket_coordinador,NO_ESPACIO,0,NULL);
 				log_debug(logger,"Se envio al notificador NO_ESPACIO.");
 			}
-
-		break;
+			destruir_paquete(paquete);
+			break;
 		}
 		case SAVE_CLAVE: {
 			log_trace(logger, "SAVE_CLAVE");
