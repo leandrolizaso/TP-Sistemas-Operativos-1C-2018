@@ -156,9 +156,9 @@ void levantoConfig(char* path) {
 
 	if (config_has_property(config, "CANTIDAD_CLAVES")) {
 				cant_claves = config_get_int_value(config,"CANTIDAD_CLAVES");
-				log_debug(logger,"cantidad de claves leidas");
+				log_debug(logger,"cantidad de claves leidas %d",cant_claves);
+				if(cant_claves>0){
 				char** valor_leido = config_get_array_value(config,"CLAVE_TOMADA");
-
 				for(int i=0;i < cant_claves; i++){
 					if (config_has_property(config, "CLAVE_TOMADA")) {
 						char clave[40];
@@ -170,8 +170,9 @@ void levantoConfig(char* path) {
 						exit(EXIT_FAILURE);
 					}
 				}
-				block_config=false;
-
+				}else{
+					block_config=false;
+				}
 			} else {
 				log_error(logger, "No se encuentra la cantidad de claves");
 				finalizar();
