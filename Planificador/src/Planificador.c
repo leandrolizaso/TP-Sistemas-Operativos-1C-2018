@@ -171,14 +171,13 @@ void levantoConfig(char* path) {
 						exit(EXIT_FAILURE);
 					}
 				}
-				}else{
-					block_config=false;
 				}
 			} else {
 				log_error(logger, "No se encuentra la cantidad de claves");
 				finalizar();
 				exit(EXIT_FAILURE);
 		}
+	block_config=false;
 
 	log_info(logger, "Se cargó exitosamente la configuración");
 }
