@@ -45,6 +45,28 @@ void atenderConexiones(){
 	while(imRunning){
 
 		switch (paquete->codigo_operacion) {
+		case GET_VALOR:{
+			log_debug(logger,"Se recibe del coordinador GET_VALOR con la clave %s",paquete->data);
+			t_espacio_memoria* espacio = conseguirEspacioMemoria(paquete->data);
+			char* valor = extraerValor(espacio);
+			enviar(socket_coordinador, RESPUESTA_INTANCIA, strlen_null(valor),valor);
+			log_debug(logger,"Se envia al coordinador el valor %s perteneciente a la clave %s",valor, paquete->data);
+			free(valor);
+			destruir_paquete(paquete);
+			break;
+		}
+		case HAS_ESPACIO:{
+			int* entradas = paquete->data;
+			if(tengoEntradas(*entradas)){
+				enviar(socket_coordinador,OK_ESPACIO,0,NULL);
+				log_debug(logger,"Se envio al notificador OK_ESPACIO.");
+			}else{
+				enviar(socket_coordinador,NO_ESPACIO,0,NULL);
+				log_debug(logger,"Se envio al notificador NO_ESPACIO.");
+			}
+			destruir_paquete(paquete);
+			break;
+		}
 		case SAVE_CLAVE: {
 			log_trace(logger, "SAVE_CLAVE");
 
@@ -136,7 +158,6 @@ void guardar(t_clavevalor claveValor,int *indice){
 		}else{
 			switch(algoritmo){
 			case CIRC: {
-
 				if (tengoAtomicas(entradas, indice)) {
 					char* log = string_from_format("tengoAtomicas:   entradas: %d, indice: %d\n",entradas,*indice);
 					log_debug(logger, log);
@@ -197,7 +218,7 @@ void guardarPisandoClaveValor(t_clavevalor claveValor,int *indice){
 }
 
 void notificarCoordinador(int tamanio,char* buffer){
-	log_trace(logger,"Se notifico al coord. Tamanio: %d  ",tamanio,buffer);
+	log_trace(logger,"Se notificara al coord. Tamanio: %d  ",tamanio,buffer);
 	int tam = 0;
 	char* clave;
 	int largo;
@@ -208,6 +229,7 @@ void notificarCoordinador(int tamanio,char* buffer){
 		tam = tam + largo;
 	}
 	enviar(socket_coordinador,RESPUESTA_INTANCIA,tamanio*sizeof(char),buffer);
+	log_trace(logger,"Mensaje enviado");
 	//TODO:solo mando la/s clave/s...el Coord deberia tener en sus registros los valores tambien? digo por los algoritmos..
 	//o le envio los valores tambien ? :OOO
 }

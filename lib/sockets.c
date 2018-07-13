@@ -146,8 +146,11 @@ void multiplexar(char * puerto, int (*procesar_mensaje)(int)) {
 					//printf("Nueva conexion con fd: %d\n",newfd);
 				} else {
 
-					if (procesar_mensaje(i) <= 0) {
+					int resultado = procesar_mensaje(i);
+					if(resultado < 0) {
 						cerrar_socket(i);
+					}
+					if(resultado <= 0) {
 						FD_CLR(i, &master);
 					}
 				}

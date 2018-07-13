@@ -8,10 +8,14 @@
 #define CFG_DELAY  "delay"
 
 #define CONTINUE_COMMUNICATION  1
+#define LET_ME_HANDLE_IT 0
 #define END_CONNECTION -1
+
+#include <commons/config.h>
 
 t_config* leer_config(int argc, char* argv[]);
 int config_incorrecta(t_config* config);
 int recibir_mensaje(int socket);
+void loggear(char* level_char, char* template, ...);
 
 #endif /* SRC_COORDINADOR_H_ */
