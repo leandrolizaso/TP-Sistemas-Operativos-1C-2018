@@ -157,14 +157,13 @@ void levantoConfig(char* path) {
 	if (config_has_property(config, "CANTIDAD_CLAVES")) {
 				cant_claves = config_get_int_value(config,"CANTIDAD_CLAVES");
 				log_debug(logger,"cantidad de claves leidas");
+				char** valor_leido = config_get_array_value(config,"CLAVE_TOMADA");
+
 				for(int i=0;i < cant_claves; i++){
 					if (config_has_property(config, "CLAVE_TOMADA")) {
-						char* valor_leido = malloc(sizeof(char)*40);
-						valor_leido = config_get_string_value(config,"CLAVE_TOMADA");
 						char clave[40];
-						strcpy(clave,valor_leido);
+						strcpy(clave,valor_leido[i]);
 						bloquear_key(clave);
-						free(valor_leido);
 					} else {
 						log_error(logger, "No se encuentra la clave");
 						finalizar();
