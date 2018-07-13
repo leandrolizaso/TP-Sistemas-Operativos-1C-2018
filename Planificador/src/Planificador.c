@@ -164,6 +164,7 @@ void levantoConfig(char* path) {
 						char clave[40];
 						strcpy(clave,valor_leido[i]);
 						bloquear_key(clave);
+						puts(clave);
 					} else {
 						log_error(logger, "No se encuentra la clave");
 						finalizar();
@@ -370,15 +371,27 @@ int procesar_mensaje(int socket) {
 	}
 
 	case EXITO_OPERACION: {
-
-		if(/*pausado&&*/flag_esi_muerto){
-			sem_wait(m_esi);
-			matar_esi(esi_ejecutando);
-			esi_ejecutando = NULL;
-			flag_esi_muerto = false;
-			sem_post(m_esi);
-			break;
-		} else if (pausado) break;
+		if(pausado){
+			if(flag_esi_muerto){
+				sem_wait(m_esi);
+				matar_esi(esi_ejecutando);
+				esi_ejecutando = NULL;
+				flag_esi_muerto = false;
+				sem_post(m_esi);
+				break;
+			}
+		//break;
+		} else{
+			if(flag_esi_muerto){
+				sem_wait(m_esi);
+				matar_esi(esi_ejecutando);
+				esi_ejecutando = NULL;
+				flag_esi_muerto = false;
+				sem_post(m_esi);
+				planificar();
+				break;
+			}
+		}
 
 		sem_wait(m_esi);
 
@@ -393,7 +406,7 @@ int procesar_mensaje(int socket) {
 			break;
 		}
 
-
+		if(!pausado){
 		if(!esi_ejecutando->a_blocked){
 			if(algoritmo!=SJFCD){
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
@@ -409,6 +422,7 @@ int procesar_mensaje(int socket) {
 			planificar();
 		}
 		sem_post(m_ready);
+		}
 		sem_post(m_esi);
 		break;
 	}
