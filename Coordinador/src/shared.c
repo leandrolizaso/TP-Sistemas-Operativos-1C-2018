@@ -33,6 +33,19 @@ void registrar_instancia(int socket, char* nombre_instancia) {
 	pthread_mutex_unlock(&mutex_instancias);
 }
 
+void agregar_instancia(t_instancia* instancia){
+	pthread_mutex_lock(&mutex_instancias);
+	list_add(instancias,instancia);
+	pthread_mutex_unlock(&mutex_instancias);
+}
+
+t_instancia* quitar_instancia(int indice){
+	pthread_mutex_lock(&mutex_instancias);
+	t_instancia* instancia = list_remove(instancias,indice);
+	pthread_mutex_unlock(&mutex_instancias);
+	return instancia;
+}
+
 void destruir_instancia(t_instancia* instancia) {
 	free(instancia->nombre);
 	free(instancia);

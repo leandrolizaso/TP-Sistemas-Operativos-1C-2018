@@ -19,6 +19,8 @@ void inicializar_sincronizacion(void);
 void finalizar_sincronizacion(void);
 
 void registrar_instancia(int socket, char* nombre_instancia);
+void agregar_instancia(t_instancia* instancia);
+t_instancia* quitar_instancia(int indice);
 void destruir_instancia(t_instancia* instancia);
 void registrar_clave(char* clave);
 void destruir_clave(t_clave* clave);

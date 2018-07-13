@@ -37,7 +37,7 @@ t_instancia* key_explicit(char* clave) {
 
 t_instancia* equitative_load(char* clave) {
 	t_instancia* instancia = quitar_instancia(0);
-	registrar_instancia(instancia);
+	agregar_instancia(instancia);
 	return instancia;
 }
 
