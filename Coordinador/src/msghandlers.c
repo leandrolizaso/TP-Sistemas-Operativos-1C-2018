@@ -92,6 +92,63 @@ void* do_handhsake(void* args) {
 	return NULL;
 }
 
+void* do_status_request(void* args) {
+	loggear("debug","status de planificador");
+	t_params* params = args;
+	int socket_planificador = params->socket;
+	char* clave_str = strdup(params->paquete->data);
+	destruir_paquete(params->paquete);
+	free(params);
+
+	t_clave* clave = obtener_clave(clave_str);
+	t_status_clave* status = malloc(sizeof(t_status_clave));
+	status->instancia = clave->instancia->nombre;
+
+	char* algoritmo = config_dist_algo();
+	t_instancia* instancia_now;
+	if (strcmp(algoritmo, "LSU")) {
+		instancia_now = least_space_used(clave->clave);
+	} else if (strcmp(algoritmo, "EL")) {
+		instancia_now = equitative_load(clave->clave);
+	} else if (strcmp(algoritmo, "KE")) {
+		instancia_now = key_explicit(clave->clave);
+	}
+	if(instancia_now==NULL){
+		status->instancia_now = strdup("Error de algoritmo");
+	}else{
+		status->instancia_now = instancia_now->nombre;
+	}
+
+	if(clave->instancia==NULL){
+		status->valor = strdup("");
+	}else{
+		char* valor = NULL;
+		enviar(clave->instancia->fd, GET_VALOR, strlen_null(clave->clave),clave->clave);
+		t_paquete* paquete = recibir(clave->instancia->fd);
+		if(paquete->codigo_operacion != RESPUESTA_INTANCIA){
+			loggear("error","La instancia no me supo contestar el valor! Codigo:%d",paquete->codigo_operacion);
+			valor = strdup("<error>");
+		}else{
+			valor = strdup(paquete->data);
+		}
+		destruir_paquete(paquete);
+
+		status->valor = strdup(valor);
+		free(valor);
+		int *tamanio = malloc(sizeof(int));
+		void* buffer = serializar_status_clave(status,tamanio);
+		enviar(socket_planificador,RESPUESTA_STATUS,*tamanio,buffer);
+		free(tamanio);
+		free(buffer);
+	}
+
+	free(status->instancia);
+	free(status->instancia_now);
+	free(status->valor);
+	free(status);
+	return NULL;
+}
+
 void* do_esi_request(void* args) {
 	t_params* params = args;
 	int socket_esi = params->socket;

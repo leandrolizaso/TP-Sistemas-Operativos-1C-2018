@@ -161,10 +161,13 @@ int recibir_mensaje(int socket) {
 		return CONTINUE_COMMUNICATION;
 		break;
 	}
-		//case STATUS:{
-		//    bla bla bla
-		//    return CONTINUE_COMMUNICATION;
-		//}
+	case STATUS: {
+		pthread_t hilito;
+		pthread_create(&hilito, NULL, do_status_request, params);
+		pthread_detach(hilito);
+		return CONTINUE_COMMUNICATION;
+		break;
+	}
 	default: {
 		loggear("warning",
 				"Epa! parece que se desconectaron del socket %d?\ncodigo_operacion:%d\ttamaño:%d",
