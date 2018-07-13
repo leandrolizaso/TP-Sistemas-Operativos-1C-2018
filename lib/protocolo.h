@@ -61,6 +61,7 @@
 #define COMPACTA 208
 /* Serializacion/Desserializacion */
 #define HAS_ESPACIO 209
+#define GET_VALOR 210
 
 int strlen_null(char* str);
 
