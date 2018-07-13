@@ -9,7 +9,7 @@ OBJS=$(SOURCES:./src/%.c=$(BUILD_DIR)/%.o)
 all: $(APPLICATION)
 
 $(APPLICATION): create-dirs $(OBJS)
-	$(CC)  -o $(APPLICATION) $(OBJS) -lpelao -lcommons
+	$(CC)  -o $(APPLICATION) $(OBJS) -lpelao -lcommons -lpthread
 
 $(BUILD_DIR)/%.o: src/%.c
 	$(CC) -c -o "$@" "$<"
@@ -22,7 +22,7 @@ debug: all
 
 clean:
 	rm -rf $(BUILD_DIR)
-	rm $(APPLICATION)
-	rm *.log
+	rm -rf $(APPLICATION)
+	rm -rf *.log
 
 .PHONY: all create-dirs clean debug

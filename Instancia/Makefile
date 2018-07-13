@@ -22,7 +22,7 @@ debug: all
 
 clean:
 	rm -rf $(BUILD_DIR)
-	rm $(APPLICATION)
-	rm *.log
+	rm -rf $(APPLICATION)
+	rm -rf *.log
 
 .PHONY: all create-dirs clean debug
