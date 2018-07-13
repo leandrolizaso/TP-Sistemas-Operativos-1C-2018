@@ -407,21 +407,22 @@ int procesar_mensaje(int socket) {
 		}
 
 		if(!pausado){
-		if(!esi_ejecutando->a_blocked){
-			if(algoritmo!=SJFCD){
-				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
-				aumentar_rafaga(esi_ejecutando);
-			} else {
-				sem_wait(m_ready);
+			sem_wait(m_ready);
+			if(!esi_ejecutando->a_blocked){
+				if(algoritmo!=SJFCD){
+					enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+					aumentar_rafaga(esi_ejecutando);
+				} else {
+					
+					planificar();
+				}
+			}else{
+				bloquear(esi_ejecutando, recurso_bloqueante);
+				esi_ejecutando = NULL;
+				
 				planificar();
 			}
-		}else{
-			bloquear(esi_ejecutando, recurso_bloqueante);
-			esi_ejecutando = NULL;
-			sem_wait(m_ready);
-			planificar();
-		}
-		sem_post(m_ready);
+			sem_post(m_ready);
 		}
 		sem_post(m_esi);
 		break;
