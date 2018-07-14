@@ -501,6 +501,7 @@ void planificar() {
 				esi_ejecutando = list_get(ready_q, 0);
 				list_remove(ready_q, 0);
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
+				logguear_estimaciones();
 				break;
 			}
 
@@ -510,6 +511,7 @@ void planificar() {
 				list_remove(ready_q, 0);
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
 				aumentar_rafaga(esi_ejecutando);
+				logguear_estimaciones();
 				break;
 			}
 
@@ -519,6 +521,7 @@ void planificar() {
 				list_remove(ready_q, 0);
 				enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
 				aumentar_rafaga(esi_ejecutando);
+				logguear_estimaciones();
 				break;
 			}
 			}
@@ -530,6 +533,7 @@ void planificar() {
 					list_remove(ready_q, 0);
 					enviar(esi_ejecutando->socket, EJECUTAR_LINEA, 0, NULL);
 					aumentar_rafaga(esi_ejecutando);
+					logguear_estimaciones();
 				} else {
 					perror("No se conoce el algoritmo de planificacion");
 				}
@@ -907,7 +911,7 @@ void aumentar_rafaga(proceso_esi_t* esi){
 	}else{
 		esi->ejecuto_ant++;
 	}
-	logguear_estimaciones();
+	//logguear_estimaciones();
 	system_clock++;
 }
 
