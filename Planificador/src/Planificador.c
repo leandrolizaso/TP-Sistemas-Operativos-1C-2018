@@ -458,6 +458,7 @@ int procesar_mensaje(int socket) {
 
 	//RESPUESTA_STATUS 
 	case 902: {
+		/*
 		t_status_clave status = deserializar_status_clave(paquete->data);
 		if(string_equals_ignore_case("\0",status.instancia)){
 			printf("La clave no se encuentra en ninguna instancia, en este momento entraria en %s",status.instancia_now);
@@ -469,6 +470,7 @@ int procesar_mensaje(int socket) {
 		}
 		listar(clave_status);
 		sem_post(bin_status);
+		*/
 		break;
 	}
 	
