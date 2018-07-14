@@ -475,7 +475,7 @@ int procesar_mensaje(int socket) {
 		sem_post(m_esi);
 		break;
 	}
-
+/*
 	case RESPUESTA_STATUS: {
 		t_status_clave* status = deserializar_status_clave(paquete->data);
 		if(string_equals_ignore_case("\0",status->instancia)){
@@ -490,7 +490,7 @@ int procesar_mensaje(int socket) {
 		sem_post(bin_status);
 		break;
 	}
-	
+*/
 	default:
 		log_debug(logger,string_from_format("Mensaje erroneo. Recibi el codigo de operacion %d",paquete->codigo_operacion));
 		//find_esi_dead(socket);
@@ -715,11 +715,32 @@ void* consola(void* no_use) {
 
 		if (string_equals_ignore_case(token[0], "status")) {
 			if(token[1]!=NULL){
-				sem_wait(bin_status);
+				//sem_wait(bin_status);
 				strcpy(clave_status,token[1]);
 				enviar(socket_coordinador,STATUS,strlen_null(clave_status),clave_status);
-				//901 hasta modificar lib y tener STATUS
-				//No hago el post para hacer un "Productor consumidor"
+
+				/*de aca*/
+				t_paquete* paquete = recibir(socket_coordinador);
+
+				t_status_clave* status = deserializar_status_clave(
+						paquete->data);
+				if (string_equals_ignore_case("\0", status->instancia)) {
+					printf(
+							"La clave no se encuentra en ninguna instancia, en este momento entraria en %s",
+							status->instancia_now);
+					puts("No tiene valor");
+
+				} else {
+					printf("La clave esta en %s", status->instancia);
+					puts(status->valor);
+				}
+				destruir_paquete(paquete);
+				/*hasta aca (ver RESPUESTA_STATUS en procesar_mensaje)*/
+
+				listar(clave_status);
+				//sem_post(bin_status);
+
+
 			} else{
 				puts("Se necesita ingresar una clave para utilizar este comando");
 			}
