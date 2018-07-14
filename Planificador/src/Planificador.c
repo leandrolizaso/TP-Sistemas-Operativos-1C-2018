@@ -780,10 +780,12 @@ void desbloquear(char* recurso) {
 				string_equals_ignore_case(((proceso_esi_t*) unEsi)->recurso_bloqueante, recurso);
 	}
 	proceso_esi_t* esi = list_find(blocked_q, &recurso_eq);
-	esi->a_blocked=false;
-	strcpy(esi->recurso_bloqueante,"");
-	list_add(ready_q, esi);
-	list_remove_by_condition(blocked_q, &recurso_eq);
+	if (esi != NULL) {
+		esi->a_blocked = false;
+		strcpy(esi->recurso_bloqueante, "");
+		list_add(ready_q, esi);
+		list_remove_by_condition(blocked_q, &recurso_eq);
+	}
 	planificar(); //es necesario?
 }
 
@@ -869,6 +871,7 @@ void kill(int id){
 		proceso_esi_t* esi =list_find(lista,&mismo_id);
 		enviar(esi->socket,FINALIZAR,0,NULL);
 		char* esi_finaliza_msg = string_from_format("Finalizo ESI %s",string_itoa(esi->ID));
+		liberar(esi); //mmm
 		list_remove_and_destroy_by_condition(lista,&mismo_id,&destructor_esi);
 		sem_wait(m_rip);
 		log_debug(rip_q,esi_finaliza_msg);
