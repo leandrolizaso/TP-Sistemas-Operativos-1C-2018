@@ -717,7 +717,7 @@ void* consola(void* no_use) {
 			if(token[1]!=NULL){
 				sem_wait(bin_status);
 				strcpy(clave_status,token[1]);
-				enviar(socket_coordinador,STATUS,0,NULL);
+				enviar(socket_coordinador,STATUS,strlen_null(clave_status),clave_status);
 				//901 hasta modificar lib y tener STATUS
 				//No hago el post para hacer un "Productor consumidor"
 			} else{
