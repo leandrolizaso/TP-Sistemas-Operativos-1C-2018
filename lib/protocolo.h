@@ -63,6 +63,10 @@
 #define HAS_ESPACIO 209
 #define GET_VALOR 210
 
+/* Status */
+#define STATUS 901
+#define RESPUESTA_STATUS 902
+
 int strlen_null(char* str);
 
 typedef struct {
@@ -87,12 +91,12 @@ t_mensaje_esi deserializar_mensaje_esi(void* buffer);
 int strlen_null(char* str);
 
 typedef struct{
-	int instancia;
-	int instancia_now;  //Me dice en que instancia estaria actualmente
+	char* instancia;
+	char* instancia_now;  //Me dice en que instancia estaria actualmente
 	char* valor;
 } t_status_clave;
 
-void* serializar_status_clave(t_status_clave status_clave,int* tamanio);
-t_status_clave deserializar_status_clave(void* buffer);
+void* serializar_status_clave(t_status_clave* status_clave,int* tamanio);
+t_status_clave* deserializar_status_clave(void* buffer);
 
 #endif /* PROTOCOLO_H_ */
