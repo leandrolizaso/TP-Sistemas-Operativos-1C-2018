@@ -56,14 +56,20 @@ void atenderConexiones(){
 			break;
 		}
 		case HAS_ESPACIO:{
-			int* entradas = paquete->data;
-			if(tengoEntradas(*entradas)){
+
+			t_clavevalor cv = deserializar_clavevalor(paquete->data);
+			int entradas = entradasQueOcupa(cv.valor);
+			if(tengoLaClave(cv.clave)){
+				enviar(socket_coordinador,OK_ESPACIO,0,NULL);
+			}else if(tengoEntradas(entradas)){
 				enviar(socket_coordinador,OK_ESPACIO,0,NULL);
 				log_debug(logger,"Se envio al notificador OK_ESPACIO.");
 			}else{
 				enviar(socket_coordinador,NO_ESPACIO,0,NULL);
 				log_debug(logger,"Se envio al notificador NO_ESPACIO.");
 			}
+			free(cv.clave);
+			free(cv.valor);
 			destruir_paquete(paquete);
 			break;
 		}
