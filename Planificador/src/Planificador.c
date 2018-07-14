@@ -979,10 +979,10 @@ void error_de_esi(char* mensaje, int socket){
 	log_debug(rip_q,esi_finaliza_msg);
 	free(esi_finaliza_msg);
 	sem_post(m_rip);
-	destructor_esi((void*)esi_ejecutando);
-	esi_ejecutando = NULL;
+	//destructor_esi((void*)esi_ejecutando);
+	//esi_ejecutando = NULL;
 	sem_wait(m_ready);
-	planificar();
+	//planificar();
 	sem_post(m_ready);
 }
 
