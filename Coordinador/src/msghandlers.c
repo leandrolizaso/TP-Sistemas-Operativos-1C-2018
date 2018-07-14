@@ -278,14 +278,14 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 
 		char* algoritmo = config_dist_algo();
 
-		if (strcmp(algoritmo, "LSU")) {
-			loggear("debug", "Algoritmo Least Space Used");
+		if (string_equals_ignore_case(algoritmo, "LSU")) {
+			loggear("debug", "%s: Algoritmo Least Space Used",algoritmo);
 			clave->instancia = least_space_used(cv.clave);
-		} else if (strcmp(algoritmo, "EL")) {
-			loggear("debug", "Algoritmo Equitative Load");
+		} else if (string_equals_ignore_case(algoritmo, "EL")) {
+			loggear("debug", "%s: Algoritmo Equitative Load",algoritmo);
 			clave->instancia = equitative_load(cv.clave);
-		} else if (strcmp(algoritmo, "KE")) {
-			loggear("debug", "Algoritmo Key Explicit");
+		} else if (string_equals_ignore_case(algoritmo, "KE")) {
+			loggear("debug", "%s: Algoritmo Key Explicit",algoritmo);
 			clave->instancia = key_explicit(cv.clave);
 		}
 

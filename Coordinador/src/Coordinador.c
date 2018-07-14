@@ -53,6 +53,8 @@ int main(int argc, char* argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	loggear("debug","el algoritmo es %s",config_dist_algo());
+
 	char* port = config_get_string_value(config, CFG_PORT);
 	loggear("info", "Comenzando a atender peticiones en el puerto %s", port);
 
