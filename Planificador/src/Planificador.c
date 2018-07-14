@@ -45,6 +45,7 @@ _Bool ejecutando = false;
 _Bool pausado;
 char* recurso_bloqueante;
 _Bool flag_esi_muerto = false;
+char* clave_status;
 proceso_esi_t * esi_ejecutando;
 
 /*Listas*/
@@ -59,6 +60,7 @@ sem_t* m_rip;
 sem_t* m_ready;
 sem_t* m_blocked;
 sem_t* m_key;
+sem_t* bin_status;
 
 
 int main(int argc, char*argv[]) {
@@ -190,7 +192,7 @@ void inicializar(char* path) {
 	levantoConfig(path);
 
 	recurso_bloqueante = malloc(sizeof(char)*40);
-
+	clave_status = malloc(sizeof(char)*40);
 
 	init_semaphores();
 
@@ -218,6 +220,8 @@ void init_semaphores(){
 	m_esi= malloc(sizeof(sem_t));
 	m_blocked = malloc(sizeof(sem_t));
 	m_rip = malloc(sizeof(sem_t));
+	bin_status = malloc(sizeof(sem_t));
+	
 	if(sem_init(m_ready,0,1)){
 		log_info(logger, "Error al inicializar mutex ready");
 	}
@@ -232,6 +236,9 @@ void init_semaphores(){
 	}
 	if(sem_init(m_key,0,1)){
 		log_info(logger, "Error al inicializar mutex key");
+	}
+	if(sem_init(bin_status,0,1)){
+		log_info(logger, "Error al inicializar bin de status");
 	}
 }
 
@@ -253,6 +260,8 @@ void finalizar() {
 	free(m_esi);
 	free(m_blocked);
 	free(m_rip);
+	free(bin_status);
+	free(clave_status);
 }
 
 void definirAlgoritmo(char* algoritmoString) {
@@ -447,6 +456,22 @@ int procesar_mensaje(int socket) {
 		break;
 	}
 
+	//RESPUESTA_STATUS 
+	case 902: {
+		t_status_clave status = deserializar_status_clave(paquete->data);
+		if(string_equals_ignore_case("\0",status.instancia)){
+			printf("La clave no se encuentra en ninguna instancia, en este momento entraria en %s",status.instancia_now);
+			puts("No tiene valor");
+
+		}else{
+			printf("La clave esta en %s",status.instancia);
+			puts(status.valor);
+		}
+		listar(clave_status);
+		sem_post(bin_status);
+		break;
+	}
+	
 	default:
 		log_debug(logger,string_from_format("Mensaje erroneo. Recibi el codigo de operacion %d",paquete->codigo_operacion));
 		//find_esi_dead(socket);
@@ -667,9 +692,11 @@ void* consola(void* no_use) {
 
 		if (string_equals_ignore_case(token[0], "status")) {
 			if(token[1]!=NULL){
-				//Solicito al coordinador numero de instancia, valor y en que instancia deberia estar actualmente
-				//Deberia responderme por el puerto en que le hablo y no en el que multiplexo?
-				listar(token[1]);
+				sem_wait(bin_status);
+				strcpy(clave_status,token[1]);
+				enviar(socket_coordinador,901,0,NULL);
+				//901 hasta modificar lib y tener STATUS
+				//No hago el post para hacer un "Productor consumidor"
 			} else{
 				puts("Se necesita ingresar una clave para utilizar este comando");
 			}
