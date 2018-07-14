@@ -56,7 +56,6 @@ void atenderConexiones(){
 			break;
 		}
 		case HAS_ESPACIO:{
-
 			t_clavevalor cv = deserializar_clavevalor(paquete->data);
 			int entradas = entradasQueOcupa(cv.valor);
 			if(tengoLaClave(cv.clave)){
@@ -68,8 +67,6 @@ void atenderConexiones(){
 				enviar(socket_coordinador,NO_ESPACIO,0,NULL);
 				log_debug(logger,"Se envio al notificador NO_ESPACIO.");
 			}
-			free(cv.clave);
-			free(cv.valor);
 			destruir_paquete(paquete);
 			break;
 		}
