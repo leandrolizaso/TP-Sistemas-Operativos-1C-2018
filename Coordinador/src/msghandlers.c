@@ -67,6 +67,8 @@ void* do_handhsake(void* args) {
 	case HANDSHAKE_ESI:
 		break;
 	case HANDSHAKE_PLANIFICADOR: {
+		free(ip_planificador);
+		free(puerto_planificador);
 		ip_planificador = get_ip_socket(socket);
 		strcpy(puerto_planificador, paquete->data);
 		break;

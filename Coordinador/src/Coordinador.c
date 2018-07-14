@@ -28,8 +28,8 @@ t_log* log_app;
 t_log* log_consola;
 
 int socket_planificador = -1;
-char* ip_planificador;
-char* puerto_planificador;
+char* ip_planificador = NULL;
+char* puerto_planificador = NULL;
 
 t_config* config;
 t_dictionary* claves;
@@ -140,14 +140,16 @@ int recibir_mensaje(int socket) {
 	params->socket = socket;
 	params->paquete = paquete;
 
-	switch (paquete->codigo_operacion) {
+	int codigo_operacion = paquete->codigo_operacion;
+
+	switch (codigo_operacion) {
 	case HANDSHAKE_ESI:
 	case HANDSHAKE_INSTANCIA:
 	case HANDSHAKE_PLANIFICADOR: {
 		pthread_t hilito;
 		pthread_create(&hilito, NULL, do_handhsake, params);
 		pthread_detach(hilito);
-		if (paquete->codigo_operacion == HANDSHAKE_INSTANCIA) {
+		if (codigo_operacion == HANDSHAKE_INSTANCIA) {
 			return LET_ME_HANDLE_IT;
 		} else {
 			return CONTINUE_COMMUNICATION;
@@ -173,6 +175,7 @@ int recibir_mensaje(int socket) {
 				"Epa! parece que se desconectaron del socket %d?\ncodigo_operacion:%d\ttamaño:%d",
 				socket, paquete->codigo_operacion, paquete->tamanio);
 		destruir_paquete(paquete);
+		free(params);
 		return END_CONNECTION;
 	}
 	}
