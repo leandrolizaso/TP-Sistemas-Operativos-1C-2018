@@ -70,6 +70,7 @@ void* do_handhsake(void* args) {
 		free(ip_planificador);
 		free(puerto_planificador);
 		ip_planificador = get_ip_socket(socket);
+		puerto_planificador = malloc(paquete->tamanio);
 		strcpy(puerto_planificador, paquete->data);
 		break;
 	}
