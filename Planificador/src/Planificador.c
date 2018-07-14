@@ -198,7 +198,7 @@ void inicializar(char* path) {
 
 	// Me conecto al Coordinador
 	socket_coordinador = conectar_a_server(ip_coordinador, puerto_coordinador);
-	enviar(socket_coordinador, HANDSHAKE_PLANIFICADOR, 5, puerto_escucha); //TODO: poner lindo esto
+	enviar(socket_coordinador, HANDSHAKE_PLANIFICADOR,strlen_null(puerto_escucha), puerto_escucha);
 
 	t_paquete* respuesta = recibir(socket_coordinador);
 
