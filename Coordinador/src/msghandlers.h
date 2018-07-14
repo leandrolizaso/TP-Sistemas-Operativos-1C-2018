@@ -8,6 +8,7 @@ typedef struct{
 
 void* do_handhsake(void* args);
 void* do_esi_request(void* args);
+void* do_status_request(void* args);
 char* instancia_guardar(int keyword, t_clavevalor clave_valor);
 
 #endif /* SRC_MSGHANDLERS_H_ */

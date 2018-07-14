@@ -78,25 +78,53 @@ t_mensaje_esi deserializar_mensaje_esi(void* buffer) {
 }
 
 
-void* serializar_status_clave(t_status_clave status_clave, int* tamanio){
-	int len_valor = strlen_null(status_clave.valor);
-	*tamanio = sizeof(t_status_clave)+len_valor - 4;
-	void* buffer = malloc(*tamanio);
-	memcpy(buffer,&status_clave.instancia,sizeof(int));
-	memcpy(buffer+sizeof(int),&status_clave.instancia_now,sizeof(int));
-	memcpy(buffer+sizeof(int)*2,status_clave.valor,sizeof(char)*len_valor);
-	return buffer;
+void* serializar_status_clave(t_status_clave* status_clave, int* tamanio) {
+        int len_instancia = strlen_null(status_clave->instancia);
+        int len_instancia_now = strlen_null(status_clave->instancia_now);
+        int len_valor = strlen_null(status_clave->valor);
+
+        *tamanio = len_instancia + len_instancia_now + len_valor + 3 * sizeof(int);
+
+        void *buffer = malloc(*tamanio);
+        void *tmp = buffer;
+
+        memcpy(tmp, &len_instancia, sizeof(int));
+        tmp = tmp + sizeof(int);
+        memcpy(tmp, &status_clave->instancia, len_instancia);
+        tmp = tmp + len_instancia * sizeof(char);
+
+        memcpy(tmp, &len_instancia_now, sizeof(int));
+        tmp = tmp + sizeof(int);
+        memcpy(tmp, &status_clave->instancia_now, len_instancia_now);
+        tmp = tmp + len_instancia_now * sizeof(char);
+
+        memcpy(tmp, &len_valor, sizeof(int));
+        tmp = tmp + sizeof(int);
+        memcpy(tmp, &status_clave->valor, len_valor);
+        tmp = tmp + len_valor * sizeof(char);
+
+        return buffer;
 }
 
-t_status_clave deserializar_status_clave(void* buffer){
-	int* instancia = buffer;
-	int* instancia_now = instancia + 1;
-	char* valor = (char*) (instancia_now + 1);
+t_status_clave* deserializar_status_clave(void* buffer) {
+        int offset = 0;
 
-	t_status_clave status_clave;
-	status_clave.instancia = *instancia;
-	status_clave.instancia_now = *instancia_now;
-	status_clave.valor = strdup(valor);
-	free(buffer);
-	return status_clave;
+        int *len_instancia = buffer;
+        offset += sizeof(int);
+        char *instancia = buffer + offset;
+        offset += *len_instancia * sizeof(char);
+        int *len_instancia_now = buffer + offset;
+        offset += sizeof(int);
+        char *instancia_now = buffer+offset;
+        offset += *len_instancia_now * sizeof(char);
+        int *len_valor = buffer+offset;
+        offset += sizeof(int);
+        char *valor = buffer+offset;
+
+        t_status_clave* status_clave = malloc(sizeof(t_status_clave));
+        status_clave->instancia = strdup(instancia);
+        status_clave->instancia_now = strdup(instancia_now);
+        status_clave->valor = strdup(valor);
+        return status_clave;
 }
+

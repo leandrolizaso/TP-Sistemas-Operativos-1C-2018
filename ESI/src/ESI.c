@@ -108,7 +108,7 @@ void ejecutar(char* script){
 					destruir_paquete(paquete);
 					//morir();
 					imRunning = false;
-
+					enviar(socket_planificador,ESI_ABORTADO,0,NULL);
 				}
 			}
 			break;
