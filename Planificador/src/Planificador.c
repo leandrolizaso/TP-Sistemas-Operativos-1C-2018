@@ -781,7 +781,7 @@ void desbloquear(char* recurso) {
 	}
 	proceso_esi_t* esi = list_find(blocked_q, &recurso_eq);
 	esi->a_blocked=false;
-	esi->recurso_bloqueante = "";
+	strcpy(esi->recurso_bloqueante,"");
 	list_add(ready_q, esi);
 	list_remove_by_condition(blocked_q, &recurso_eq);
 	planificar(); //es necesario?
