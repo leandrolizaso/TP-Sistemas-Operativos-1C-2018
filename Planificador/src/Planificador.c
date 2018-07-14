@@ -871,7 +871,7 @@ void kill(int id){
 		proceso_esi_t* esi =list_find(lista,&mismo_id);
 		enviar(esi->socket,FINALIZAR,0,NULL);
 		char* esi_finaliza_msg = string_from_format("Finalizo ESI %s",string_itoa(esi->ID));
-		liberar(esi); //mmm
+		liberar_recursos(esi); //mmm
 		list_remove_and_destroy_by_condition(lista,&mismo_id,&destructor_esi);
 		sem_wait(m_rip);
 		log_debug(rip_q,esi_finaliza_msg);
