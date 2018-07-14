@@ -176,6 +176,7 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 			log_warning(logger,"ESI%d abortado. %s",ID,paquete->data);
 			log_warning(logger,"Línea: %s .Falló en su ejecución",line);
 			destruir_paquete(paquete);
+			enviar(socket_planificador,FALLO_OPERACION,0,NULL);
 			imRunning=false;
 			break;
 		default:
