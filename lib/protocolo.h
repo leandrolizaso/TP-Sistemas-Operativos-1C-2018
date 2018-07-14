@@ -33,6 +33,7 @@
 /*ESI a Planificador */
 #define ESI_FINALIZADO 102 // renombrar ESI_EOF
 #define ESI_ABORTADO 103
+#define FALLO_OPERACION 104
 // ERROR_OPERACION
 // EXITO_OPERACION
 
