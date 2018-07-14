@@ -290,11 +290,13 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 
 		loggear("trace", "La clave %s ocupa %d entradas. Se le avisa a %s",
 				cv.clave, entradas_ocupadas, clave->instancia->nombre);
-		enviar(clave->instancia->fd, HAS_ESPACIO, sizeof(int),
-				&entradas_ocupadas);
+		void* serializado = serializar_clavevalor(cv);
+		enviar(clave->instancia->fd, HAS_ESPACIO, sizeof_clavevalor(cv),serializado);
+		free(serializado);
 		loggear("debug", "Esperando veredicto. Entra?");
 		t_paquete* paquete = recibir(clave->instancia->fd);
 		loggear("trace", "Resulta que %d hay espacio (%d Si, %d No).",
+		paquete->codigo_operacion,
 		OK_ESPACIO,
 		NO_ESPACIO);
 		int operacion = paquete->codigo_operacion;
