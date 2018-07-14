@@ -96,7 +96,7 @@ void* do_handhsake(void* args) {
 }
 
 void* do_status_request(void* args) {
-	loggear("debug","status de planificador");
+	loggear("debug", "status de planificador");
 	t_params* params = args;
 	int socket_planificador = params->socket;
 	char* clave_str = strdup(params->paquete->data);
@@ -116,22 +116,25 @@ void* do_status_request(void* args) {
 	} else if (strcmp(algoritmo, "KE")) {
 		instancia_now = key_explicit(clave->clave);
 	}
-	if(instancia_now==NULL){
+	if (instancia_now == NULL) {
 		status->instancia_now = strdup("Error de algoritmo");
-	}else{
+	} else {
 		status->instancia_now = instancia_now->nombre;
 	}
 
-	if(clave->instancia==NULL){
+	if (clave->instancia == NULL) {
 		status->valor = strdup("");
-	}else{
+	} else {
 		char* valor = NULL;
-		enviar(clave->instancia->fd, GET_VALOR, strlen_null(clave->clave),clave->clave);
+		enviar(clave->instancia->fd, GET_VALOR, strlen_null(clave->clave),
+				clave->clave);
 		t_paquete* paquete = recibir(clave->instancia->fd);
-		if(paquete->codigo_operacion != RESPUESTA_INTANCIA){
-			loggear("error","La instancia no me supo contestar el valor! Codigo:%d",paquete->codigo_operacion);
+		if (paquete->codigo_operacion != RESPUESTA_INTANCIA) {
+			loggear("error",
+					"La instancia no me supo contestar el valor! Codigo:%d",
+					paquete->codigo_operacion);
 			valor = strdup("<error>");
-		}else{
+		} else {
 			valor = strdup(paquete->data);
 		}
 		destruir_paquete(paquete);
@@ -139,8 +142,8 @@ void* do_status_request(void* args) {
 		status->valor = strdup(valor);
 		free(valor);
 		int *tamanio = malloc(sizeof(int));
-		void* buffer = serializar_status_clave(status,tamanio);
-		enviar(socket_planificador,RESPUESTA_STATUS,*tamanio,buffer);
+		void* buffer = serializar_status_clave(status, tamanio);
+		enviar(socket_planificador, RESPUESTA_STATUS, *tamanio, buffer);
 		free(tamanio);
 		free(buffer);
 	}
@@ -291,14 +294,15 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 		loggear("trace", "La clave %s ocupa %d entradas. Se le avisa a %s",
 				cv.clave, entradas_ocupadas, clave->instancia->nombre);
 		void* serializado = serializar_clavevalor(cv);
-		enviar(clave->instancia->fd, HAS_ESPACIO, sizeof_clavevalor(cv),serializado);
+		enviar(clave->instancia->fd, HAS_ESPACIO, sizeof_clavevalor(cv),
+				serializado);
 		free(serializado);
 		loggear("debug", "Esperando veredicto. Entra?");
 		t_paquete* paquete = recibir(clave->instancia->fd);
 		loggear("trace", "Resulta que %d hay espacio (%d Si, %d No).",
-		paquete->codigo_operacion,
-		OK_ESPACIO,
-		NO_ESPACIO);
+				paquete->codigo_operacion,
+				OK_ESPACIO,
+				NO_ESPACIO);
 		int operacion = paquete->codigo_operacion;
 		destruir_paquete(paquete);
 
@@ -311,8 +315,7 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 
 		loggear("trace", "enviando SAVE_CLAVE %s %s.", cv.clave, cv.valor);
 		void* buff = serializar_clavevalor(cv);
-		enviar(clave->instancia->fd, SAVE_CLAVE, sizeof_clavevalor(cv),
-				buff);
+		enviar(clave->instancia->fd, SAVE_CLAVE, sizeof_clavevalor(cv), buff);
 		free(buff);
 		loggear("trace",
 				"esperando resultado de la instancia (fd:%d, nombre:%s)...",
@@ -329,30 +332,36 @@ char* instancia_guardar(int keyword, t_clavevalor cv) {
 			pthread_t hilos_instancia[cant_instancias()];
 
 			void* compactar(void* args) {
-				int* indice = args;
+				int *indice = args;
+				loggear("trace","compactando con argumentos %d",*indice);
 				t_instancia* inst = obtener_instancia(*indice);
 				loggear("trace", "compactando en instancia %s", inst->nombre);
 				enviar(inst->fd, COMPACTA, 0, NULL);
+				loggear("trace","compacto realziado en %s",inst->nombre);
 				destruir_paquete(recibir(inst->fd));
+				free(args);
 				return NULL;
 			}
 
 			loggear("debug", "iniciando hilos para compactar");
 			for (int i = 0; i < cant_instancias(); i++) {
-				pthread_create(&hilos_instancia[i], NULL, compactar, &i);
+				int* indice = malloc(sizeof(int));
+				*indice = i;
+				pthread_create(&hilos_instancia[i], NULL, compactar, indice);
 			}
-			loggear("debug", "joining hilos de compaco realizado");
+			loggear("debug", "empezando joining hilos de compacto realizado");
 			for (int i = 0; i < cant_instancias(); i++) {
 				pthread_join(hilos_instancia[i], NULL);
 			}
-			loggear("debug", "hilos joineados, se intenta guardar nuevamente");
+			loggear("debug", "hilos joineados correctamente, se intenta guardar nuevamente");
 
 			destruir_paquete(paquete);
 			return instancia_guardar(keyword, cv);
 		}
 		case RESPUESTA_INTANCIA: {
 			loggear("debug", "RESPUESTA_INSTANCIA");
-			loggear("trace", "La instancia %s tenia %d libre antes de comenzar.",
+			loggear("trace",
+					"La instancia %s tenia %d libre antes de comenzar.",
 					clave->instancia->nombre, clave->instancia->libre);
 			clave->entradas = entradas_ocupadas;
 			clave->instancia->libre -= clave->entradas;
