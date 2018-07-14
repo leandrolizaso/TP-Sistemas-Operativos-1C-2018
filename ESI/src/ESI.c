@@ -92,7 +92,7 @@ void ejecutar(char* script){
 			}
 
 			if(imRunning){
-
+				log_debug(logger, "ESI%d. Línea LEIDA: %s",ID,ultima_linea);
 				operacion = parse(ultima_linea);
 
 				if (operacion.valido) {
@@ -160,8 +160,8 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 	char* msg;
 	char* error;
 	enviar_operacion(mensaje_esi,paquete);
-	msg = string_from_format("Línea %s fue enviada al Coordinador por el ESI%d",line, ID);
-	log_debug(logger, msg);
+	msg = string_from_format("ESI%d. Línea ENVIADA al coord: %s",ID,line);
+	log_info(logger, msg);
 	free(msg);
 	paquete = recibir(socket_coordinador);
 
@@ -169,20 +169,13 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 
 		case EXITO_OPERACION:
 			verificarEnvio(enviar(socket_planificador, EXITO_OPERACION, 0, NULL), paquete,"el Planificador");
-			msg = string_from_format("Línea %s ejecutada exitosamente",line);
-			log_mensaje(msg);
-			free(msg);
+			log_trace(logger,"ESI%d. Línea EJECUTADA %s",ID,line);
 			destruir_paquete(paquete);
 			break;
 		case ERROR_OPERACION:
-			msg = string_from_format("ESI%d abortado. %s",ID,paquete->data);
-			log_mensaje(msg);
-			free(msg);
-			msg = string_from_format("Línea: %s .Falló en su ejecución",line);
-			log_mensaje(msg);
-			free(msg);
+			log_warning(logger,"ESI%d abortado. %s",ID,paquete->data);
+			log_warning(logger,"Línea: %s .Falló en su ejecución",line);
 			destruir_paquete(paquete);
-			//morir();
 			imRunning=false;
 			break;
 		default:
@@ -190,7 +183,6 @@ void ejecutarMensaje(t_mensaje_esi mensaje_esi,t_paquete* paquete,char* line){
 			log_error(logger, error);
 			free(error);
 			destruir_paquete(paquete);
-			//morir();
 			imRunning=false;
 		}
 }
