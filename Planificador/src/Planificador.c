@@ -280,6 +280,7 @@ int procesar_mensaje(int socket) {
 	switch (paquete->codigo_operacion) {
 
 	case HANDSHAKE_ESI: {
+		usleep(300000);
 		proceso_esi_t* nuevo_esi = nuevo_processo_esi(socket);
 		enviar(socket, HANDSHAKE_PLANIFICADOR, sizeof(int),&(nuevo_esi->ID));
 		sem_wait(m_ready);
