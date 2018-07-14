@@ -393,12 +393,14 @@ int procesar_mensaje(int socket) {
 		//break;
 		} else{
 			if(flag_esi_muerto){
+				sem_wait(m_ready);
 				sem_wait(m_esi);
 				matar_esi(esi_ejecutando);
 				esi_ejecutando = NULL;
 				flag_esi_muerto = false;
 				sem_post(m_esi);
 				planificar();
+				sem_post(m_ready);
 				break;
 			}
 		}
@@ -411,8 +413,8 @@ int procesar_mensaje(int socket) {
 			esi_ejecutando =NULL;
 			sem_wait(m_ready);
 			planificar();
-			sem_post(m_esi);
 			sem_post(m_ready);
+			sem_post(m_esi);
 			break;
 		}
 
@@ -456,21 +458,36 @@ int procesar_mensaje(int socket) {
 		break;
 	}
 
-	//RESPUESTA_STATUS 
-	case 902: {
-		/*
-		t_status_clave status = deserializar_status_clave(paquete->data);
-		if(string_equals_ignore_case("\0",status.instancia)){
-			printf("La clave no se encuentra en ninguna instancia, en este momento entraria en %s",status.instancia_now);
+	case ESI_ABORTADO:{
+		sem_wait(m_esi);
+		sem_wait(m_rip);
+		char* esi_finaliza_msg=malloc(sizeof(char)*20);
+		strcpy(esi_finaliza_msg,"Finalizo abortado ESI ");
+		string_append(&esi_finaliza_msg,string_itoa(esi_ejecutando->ID));
+		log_debug(rip_q,esi_finaliza_msg);
+		free(esi_finaliza_msg);
+		destructor_esi((void*)esi_ejecutando);
+		sem_post(m_rip);
+		esi_ejecutando = NULL;
+		sem_wait(m_ready);
+		planificar();
+		sem_post(m_ready);
+		sem_post(m_esi);
+		break;
+	}
+
+	case RESPUESTA_STATUS: {
+		t_status_clave* status = deserializar_status_clave(paquete->data);
+		if(string_equals_ignore_case("\0",status->instancia)){
+			printf("La clave no se encuentra en ninguna instancia, en este momento entraria en %s",status->instancia_now);
 			puts("No tiene valor");
 
 		}else{
-			printf("La clave esta en %s",status.instancia);
-			puts(status.valor);
+			printf("La clave esta en %s",status->instancia);
+			puts(status->valor);
 		}
 		listar(clave_status);
 		sem_post(bin_status);
-		*/
 		break;
 	}
 	
@@ -700,7 +717,7 @@ void* consola(void* no_use) {
 			if(token[1]!=NULL){
 				sem_wait(bin_status);
 				strcpy(clave_status,token[1]);
-				enviar(socket_coordinador,901,0,NULL);
+				enviar(socket_coordinador,STATUS,0,NULL);
 				//901 hasta modificar lib y tener STATUS
 				//No hago el post para hacer un "Productor consumidor"
 			} else{
@@ -991,8 +1008,12 @@ void matar_esi(){
 void liberar_recursos(void* pointer){
 	_Bool id_equals(void* ptr) {
 		if (ptr != NULL) {
-		int id = ((t_clave*) ptr)->ID_esi;
-		return id == ((proceso_esi_t*)pointer)->ID;
+			int id = ((t_clave*) ptr)->ID_esi;
+			if(id == ((proceso_esi_t*)pointer)->ID){
+				desbloquear(((t_clave*) ptr)->valor);
+				return true;
+			} else return false;
+			
 		} else return false;
 	}
 	while(tiene_asginado(pointer)){
